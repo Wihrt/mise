@@ -32,7 +32,7 @@ mise bootstrap --update
 | dotfiles       | Ajoute `~/.local/bin` au `PATH` de `~/.bashrc` et `~/.bash_profile`, et le bloc `fnox activate` dans `~/.bashrc`                 |
 | shell          | Ajoute l'activation de mise : complète dans `~/.bashrc`, par shims dans `~/.bash_profile`                                        |
 | tools          | Installe les outils de `[tools]`                                                                                                 |
-| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, clé API Anthropic, OpenCommit pour la version Node active |
+| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, clé API Anthropic, OpenCommit pour la version Node active, `rtk init --global` |
 
 Chaque étape ne modifie que ce qui diffère de la configuration, et la tâche
 peut être relancée sans effet de bord.
@@ -71,3 +71,10 @@ un proxy :
 [env]
 HTTPS_PROXY = "http://proxy:80"
 ```
+
+## rtk
+
+Le `postinstall` de `rtk` lance `rtk init --global --auto-patch` à chaque
+nouvelle version : hook Claude Code dans `~/.claude/settings.json` et
+`~/.claude/RTK.md`, sans question. La tâche `bootstrap` le relance aussi pour
+une version déjà installée ; la commande est idempotente.
