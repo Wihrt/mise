@@ -31,8 +31,9 @@ mise bootstrap --update
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | dotfiles       | Ajoute `~/.local/bin` au `PATH` de `~/.bashrc` et `~/.bash_profile`, et le bloc `fnox activate` dans `~/.bashrc`                 |
 | shell          | Ajoute l'activation de mise : complète dans `~/.bashrc`, par shims dans `~/.bash_profile`                                        |
+| packages       | Installe `podman` avec apt (demande le mot de passe sudo)                                                                         |
 | tools          | Installe les outils de `[tools]`                                                                                                 |
-| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, clé API Anthropic, OpenCommit pour la version Node active, `rtk init --global` |
+| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, clé API Anthropic, OpenCommit pour la version Node active, `rtk init --global`, socket `podman.socket` |
 
 Chaque étape ne modifie que ce qui diffère de la configuration, et la tâche
 peut être relancée sans effet de bord.
@@ -92,3 +93,14 @@ Le `postinstall` de `rtk` lance `rtk init --global --auto-patch` à chaque
 nouvelle version : hook Claude Code dans `~/.claude/settings.json` et
 `~/.claude/RTK.md`, sans question. La tâche `bootstrap` le relance aussi pour
 une version déjà installée ; la commande est idempotente.
+
+## Podman
+
+`podman` vient d'apt : le podman publié sur GitHub, que mise saurait installer,
+n'est qu'un client distant. Podman n'a pas besoin de Docker.
+
+- `[shell_alias]` définit `docker = "podman"` dans chaque shell où mise est
+  activé. Comme tout alias, il n'existe pas dans les scripts, les tâches mise
+  ni `mise exec`.
+- La tâche `bootstrap` active le socket utilisateur `podman.socket`, et
+  `DOCKER_HOST` le désigne : lazydocker et les SDK Docker parlent à Podman.
