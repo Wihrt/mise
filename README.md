@@ -15,6 +15,18 @@ mise bootstrap --adopt Wihrt/mise
 Si `git` manque, mise propose de l'installer avec le gestionnaire de paquets
 avant de cloner.
 
+Au premier passage, mise installe les outils avant que la tâche `bootstrap`
+ne demande le `GITHUB_TOKEN`. Beaucoup d'outils viennent de GitHub, dont l'API
+limite les appels anonymes à 60 par heure : passez le token dès l'adoption.
+
+```sh
+read -rsp "Token GitHub : " GITHUB_TOKEN && export GITHUB_TOKEN
+mise bootstrap --adopt Wihrt/mise
+```
+
+Si l'installation des outils échoue malgré tout, relancez `mise bootstrap` :
+il reprend là où il s'est arrêté.
+
 `--adopt` clone ce dépôt dans `~/.config/mise`, qui doit être absent ou vide,
 puis lance `mise bootstrap`. Sur un poste existant, déplacez d'abord l'ancien
 `~/.config/mise`. Ouvrez ensuite un nouveau shell.
