@@ -13,6 +13,7 @@ argo = "latest"
 claude = "latest"
 cocogitto = "latest"
 container-structure-test = "latest"
+dive = "latest"
 fnox = "latest"
 github-cli = "latest"
 gitleaks = "latest"
@@ -23,6 +24,8 @@ helm = "latest"
 helm-docs = "latest"
 herdr = "latest"
 jq = "latest"
+kind = "latest"
+kubeconform = "latest"
 kubectl = "latest"
 kubectx = "latest"
 kyverno = "latest"
@@ -35,15 +38,19 @@ opentofu = "latest"
 prek = "latest"
 process-compose = "latest"
 ruff = "latest"
+shellcheck = "latest"
+shfmt = "latest"
 sofka = "latest"
 terraform-docs = "latest"
 terramate = "latest"
+tflint = "latest"
 tfsec = "latest"
 tfswitch = "latest"
 uv = "latest"
 vault = "latest"
 yamlfmt = "latest"
 yamllint = "latest"
+yq = "latest"
 
 [tools.rtk]
 version = "latest"
@@ -69,6 +76,7 @@ macos-arm64 = { asset_pattern = "rtk-proxy-aarch64-apple-darwin.tar.gz" }
 OCO_AI_PROVIDER = "anthropic"
 OCO_MODEL = "claude-sonnet-5-5"
 # Les clients Docker (lazydocker, SDK) passent par le socket utilisateur de Podman.
+KIND_EXPERIMENTAL_PROVIDER = "podman"
 DOCKER_HOST = 'unix://{{ get_env(name="XDG_RUNTIME_DIR", default="/run/user/1000") }}/podman/podman.sock'
 
 [shell_alias]
@@ -85,6 +93,18 @@ docker = "podman"
 "apt:skopeo" = "latest"
 "apt:uidmap" = "latest"
 
+# kind sans root : modules iptables chargés au démarrage (doc kind « rootless »).
+[bootstrap.files."/etc/modules-load.d/iptables.conf"]
+content = """
+ip6_tables
+ip6table_nat
+ip_tables
+iptable_nat
+"""
+owner = "root"
+group = "root"
+mode = "0644"
+
 [bootstrap.mise_shell_activate]
 bash = true
 
@@ -94,4 +114,6 @@ bash = true
 "~/.bash_profile/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
 "~/.bashrc/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
 # mise exec trouve fnox même si ce bloc précède l'activation de mise.
+# Limite de PID des conteneurs relevée pour kind ; le reste du fichier reste à podman.
+"~/.config/containers/containers.conf/kind" = { source = "files/containers.conf", merge = true }
 "~/.bashrc/fnox" = { block = 'eval "$(mise exec fnox -- fnox activate bash)"' }
