@@ -23,12 +23,17 @@ recipients = ["$(age-keygen -y "$key_file")"]
 EOF
 fi
 
-if ! fnox get OCO_API_KEY >/dev/null 2>&1; then
+# `fnox get` renvoie 0 pour un secret déclaré sans valeur : tester la sortie.
+if [[ -z "$(fnox get OCO_API_KEY 2>/dev/null)" ]]; then
   if { : </dev/tty; } 2>/dev/null; then
-    read -rsp "Clé API Anthropic pour OpenCommit : " api_key </dev/tty
-    echo
-    printf '%s' "$api_key" |
-      fnox set --global OCO_API_KEY --provider age --description "Clé API Anthropic (OpenCommit)"
+    api_key=""
+    while [[ -z $api_key ]]; do
+      read -rsp "Clé API Anthropic pour OpenCommit : " api_key </dev/tty
+      echo
+    done
+    # fnox 1.39 ignore stdin quand --description est passé : deux appels.
+    printf '%s' "$api_key" | fnox set --global OCO_API_KEY --provider age
+    fnox set --global OCO_API_KEY --description "Clé API Anthropic (OpenCommit)" </dev/null
   else
     echo "bootstrap: pas de terminal, OCO_API_KEY non configurée ; relancer \`mise bootstrap --only task\`" >&2
   fi
