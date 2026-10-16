@@ -86,10 +86,6 @@ OCO_MODEL = "claude-sonnet-5-5"
 "apt:docker.io" = "latest"
 "apt:skopeo" = "latest"
 
-[bootstrap.services.docker]
-state = "running"
-enabled = true
-
 [bootstrap.mise_shell_activate]
 bash = true
 

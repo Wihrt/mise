@@ -31,9 +31,9 @@ mise bootstrap --update
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | dotfiles       | Ajoute `~/.local/bin` au `PATH` de `~/.bashrc` et `~/.bash_profile`, et le bloc `fnox activate` dans `~/.bashrc`                 |
 | shell          | Ajoute l'activation de mise : complète dans `~/.bashrc`, par shims dans `~/.bash_profile`                                        |
-| packages       | Installe `podman`, `buildah` et `skopeo` avec apt (mot de passe sudo)                                                                         |
+| packages       | Installe Docker (`docker.io`, Compose, Buildx) et `skopeo` avec apt (sudo)                                                                         |
 | tools          | Installe les outils de `[tools]`                                                                                                 |
-| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, `GITHUB_TOKEN` et clé API Anthropic, OpenCommit pour la version Node active, `rtk init --global`, socket `podman.socket` |
+| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, `GITHUB_TOKEN` et clé API Anthropic, OpenCommit pour la version Node active, identité et authentification git GitHub, `rtk init --global`, groupe `docker`, complétions bash |
 
 Chaque étape ne modifie que ce qui diffère de la configuration, et la tâche
 peut être relancée sans effet de bord.
@@ -87,16 +87,6 @@ Pour changer la clé :
 fnox set --global OCO_API_KEY
 ```
 
-## Réglages propres à un poste
-
-Mettez-les dans `~/.config/mise/config.local.toml`, que git ignore. Par exemple,
-un proxy :
-
-```toml
-[env]
-HTTPS_PROXY = "http://proxy:80"
-```
-
 ## rtk
 
 Le `postinstall` de `rtk` lance `rtk init --global --auto-patch` à chaque
@@ -104,33 +94,32 @@ nouvelle version : hook Claude Code dans `~/.claude/settings.json` et
 `~/.claude/RTK.md`, sans question. La tâche `bootstrap` le relance aussi pour
 une version déjà installée ; la commande est idempotente.
 
-## Podman
+## Docker
 
-`podman` vient d'apt : le podman publié sur GitHub, que mise saurait installer,
-n'est qu'un client distant. Podman n'a pas besoin de Docker. `buildah` et
-`skopeo` viennent aussi d'apt : ils ne sont pas dans le registre mise, et le
-paquet `podman` ne fait que recommander `buildah`.
+Docker Engine vient d'apt : `docker.io`, `docker-compose-v2` pour
+`docker compose`, et `docker-buildx`. Le paquet active `dockerd` à
+l'installation. La tâche `bootstrap` ajoute l'utilisateur au groupe `docker`
+(sudo) : c'est effectif à la prochaine connexion, ou tout de suite avec
+`newgrp docker`. kind et tilt utilisent Docker sans réglage supplémentaire.
 
-- `[shell_alias]` définit `docker = "podman"` dans chaque shell où mise est
-  activé. Comme tout alias, il n'existe pas dans les scripts, les tâches mise
-  ni `mise exec`.
-- La tâche `bootstrap` active le socket utilisateur `podman.socket`, et
-  `DOCKER_HOST` le désigne : lazydocker et les SDK Docker parlent à Podman.
+`skopeo` (apt) copie et inspecte des images d'un registre à l'autre sans démon.
 
-### kind sur Podman
+## Git
 
-`KIND_EXPERIMENTAL_PROVIDER=podman` fait créer les nœuds kind par Podman, sans
-root. Le mode sans root demande, d'après la doc kind (« Rootless ») :
+La tâche `bootstrap` configure git globalement :
 
-- cgroups v2 et la délégation du contrôleur `cpu`, présents par défaut avec
-  systemd 252 ou plus récent ;
-- les modules `ip6_tables`, `ip6table_nat`, `ip_tables` et `iptable_nat`,
-  chargés au démarrage par `/etc/modules-load.d/iptables.conf` (sudo). Ils ne
-  le sont qu'au prochain démarrage : `wsl --shutdown` depuis Windows, ou
-  `sudo systemctl restart systemd-modules-load` ;
-- une limite de PID relevée à 65536, dans
-  `~/.config/containers/containers.conf.d/kind.conf`.
+- l'identité (`user.name`, `user.email`), reprise du compte GitHub du
+  `GITHUB_TOKEN` si elle n'est pas déjà définie. Un e-mail GitHub privé est
+  remplacé par l'adresse `noreply` du compte ;
+- l'authentification HTTPS sur GitHub par `gh`, via son shim mise.
+  `gh auth setup-git` écrirait le chemin versionné de `gh`, qui casse à chaque
+  mise à jour.
 
-```sh
-kind create cluster
-```
+L'authentification sur les instances GitLab reste à configurer à la main.
+
+## Complétions bash
+
+La tâche génère les complétions des outils qui en fournissent dans
+`~/.local/share/bash-completion/completions`. bash-completion les charge à la
+première touche Tab, sans ralentir le démarrage du shell. Elles sont
+régénérées à chaque `mise bootstrap`.
