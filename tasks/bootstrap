@@ -23,21 +23,26 @@ recipients = ["$(age-keygen -y "$key_file")"]
 EOF
 fi
 
-# `fnox get` renvoie 0 pour un secret déclaré sans valeur : tester la sortie.
-if [[ -z "$(fnox get OCO_API_KEY 2>/dev/null)" ]]; then
-  if { : </dev/tty; } 2>/dev/null; then
-    api_key=""
-    while [[ -z $api_key ]]; do
-      read -rsp "Clé API Anthropic pour OpenCommit : " api_key </dev/tty
-      echo
-    done
-    # fnox 1.39 ignore stdin quand --description est passé : deux appels.
-    printf '%s' "$api_key" | fnox set --global OCO_API_KEY --provider age
-    fnox set --global OCO_API_KEY --description "Clé API Anthropic (OpenCommit)" </dev/null
-  else
-    echo "bootstrap: pas de terminal, OCO_API_KEY non configurée ; relancer \`mise bootstrap --only task\`" >&2
+# Demande un secret global fnox s'il n'a pas de valeur, une seule fois par poste.
+ensure_secret() {
+  local name=$1 description=$2 value=""
+  # `fnox get` renvoie 0 pour un secret déclaré sans valeur : tester la sortie.
+  [[ -n "$(fnox get "$name" 2>/dev/null)" ]] && return
+  if ! { : </dev/tty; } 2>/dev/null; then
+    echo "bootstrap: pas de terminal, $name non configuré ; relancer \`mise bootstrap --only task\`" >&2
+    return
   fi
-fi
+  while [[ -z $value ]]; do
+    read -rsp "$description : " value </dev/tty
+    echo
+  done
+  # fnox 1.39 ignore stdin quand --description est passé : deux appels.
+  printf '%s' "$value" | fnox set --global "$name" --provider age
+  fnox set --global "$name" --description "$description" </dev/null
+}
+
+ensure_secret GITHUB_TOKEN "Token GitHub"
+ensure_secret OCO_API_KEY "Clé API Anthropic (OpenCommit)"
 
 # Les postinstall de node et rtk ne tournent qu'à l'installation :
 # couvre les versions déjà présentes.
