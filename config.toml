@@ -46,6 +46,8 @@ yamllint = "latest"
 
 [tools.rtk]
 version = "latest"
+# Hook Claude Code et RTK.md globaux ; --auto-patch évite toute question.
+postinstall = "rtk init --global --auto-patch"
 [tools.rtk.platforms]
 linux-x64   = { asset_pattern = "rtk-x86_64-unknown-linux-musl.tar.gz" }
 linux-arm64 = { asset_pattern = "rtk-aarch64-unknown-linux-gnu.tar.gz" }
@@ -64,7 +66,7 @@ macos-arm64 = { asset_pattern = "rtk-proxy-aarch64-apple-darwin.tar.gz" }
 # (OCO_API_KEY) vient de fnox, voir tasks/bootstrap.
 [env]
 OCO_AI_PROVIDER = "anthropic"
-OCO_MODEL = "claude-haiku-5-5"
+OCO_MODEL = "claude-sonnet-5-5"
 
 [bootstrap.mise_shell_activate]
 bash = true

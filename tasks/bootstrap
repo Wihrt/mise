@@ -39,7 +39,9 @@ if [[ -z "$(fnox get OCO_API_KEY 2>/dev/null)" ]]; then
   fi
 fi
 
-# Le postinstall de node ne tourne qu'à l'installation : couvre la version déjà présente.
+# Les postinstall de node et rtk ne tournent qu'à l'installation :
+# couvre les versions déjà présentes.
 if [[ ! -x "$(npm prefix --global)/bin/oco" ]]; then
   npm install --global opencommit
 fi
+rtk init --global --auto-patch >/dev/null
