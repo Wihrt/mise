@@ -114,6 +114,7 @@ bash = true
 "~/.bash_profile/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
 "~/.bashrc/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
 # mise exec trouve fnox même si ce bloc précède l'activation de mise.
-# Limite de PID des conteneurs relevée pour kind ; le reste du fichier reste à podman.
-"~/.config/containers/containers.conf/kind" = { source = "files/containers.conf", merge = true }
+# kind : la limite de PID par défaut de podman (4096) étouffe certains pods,
+# dont ingress-nginx. Podman lit les drop-ins de containers.conf.d.
+"~/.config/containers/containers.conf.d/kind.conf" = { content = "[containers]\npids_limit = 65536\n", permissions = "0644" }
 "~/.bashrc/fnox" = { block = 'eval "$(mise exec fnox -- fnox activate bash)"' }
