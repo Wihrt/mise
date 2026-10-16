@@ -1,0 +1,78 @@
+[settings]
+auto_update = true
+
+[tool_alias]
+rtk = "github:rtk-ai/rtk"
+rtk-proxy = "github:rtk-ai/rtk"
+
+[tools]
+adr-tools = "latest"
+age = "latest"
+ansible = { version = "latest", expose = ["ansible-core"] }
+argo = "latest"
+claude = "latest"
+cocogitto = "latest"
+container-structure-test = "latest"
+fnox = "latest"
+github-cli = "latest"
+gitleaks = "latest"
+glab = "latest"
+go = "latest"
+hadolint = "latest"
+helm = "latest"
+helm-docs = "latest"
+herdr = "latest"
+jq = "latest"
+kubectl = "latest"
+kubectx = "latest"
+kyverno = "latest"
+lazydocker = "latest"
+lazygit = "latest"
+# Chaque nouvelle version de Node.js a son propre préfixe npm global :
+# OpenCommit y est réinstallé à chaque installation de Node.
+node = { version = "latest", postinstall = "npm install --global opencommit" }
+opentofu = "latest"
+prek = "latest"
+ruff = "latest"
+sofka = "latest"
+terraform-docs = "latest"
+terramate = "latest"
+tfsec = "latest"
+tfswitch = "latest"
+uv = "latest"
+vault = "latest"
+yamlfmt = "latest"
+yamllint = "latest"
+
+[tools.rtk]
+version = "latest"
+[tools.rtk.platforms]
+linux-x64   = { asset_pattern = "rtk-x86_64-unknown-linux-musl.tar.gz" }
+linux-arm64 = { asset_pattern = "rtk-aarch64-unknown-linux-gnu.tar.gz" }
+macos-x64   = { asset_pattern = "rtk-x86_64-apple-darwin.tar.gz" }
+macos-arm64 = { asset_pattern = "rtk-aarch64-apple-darwin.tar.gz" }
+
+[tools.rtk-proxy]
+version = "latest"
+[tools.rtk-proxy.platforms]
+linux-x64   = { asset_pattern = "rtk-proxy-x86_64-unknown-linux-musl.tar.gz" }
+linux-arm64 = { asset_pattern = "rtk-proxy-aarch64-unknown-linux-gnu.tar.gz" }
+macos-x64   = { asset_pattern = "rtk-proxy-x86_64-apple-darwin.tar.gz" }
+macos-arm64 = { asset_pattern = "rtk-proxy-aarch64-apple-darwin.tar.gz" }
+
+# OpenCommit lit sa configuration dans l'environnement ; la clé API
+# (OCO_API_KEY) vient de fnox, voir tasks/bootstrap.
+[env]
+OCO_AI_PROVIDER = "anthropic"
+OCO_MODEL = "claude-haiku-5-5"
+
+[bootstrap.mise_shell_activate]
+bash = true
+
+[dotfiles]
+# mise.run installe mise dans ~/.local/bin : il doit être sur le PATH
+# avant les blocs d'activation.
+"~/.bash_profile/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
+"~/.bashrc/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
+# mise exec trouve fnox même si ce bloc précède l'activation de mise.
+"~/.bashrc/fnox" = { block = 'eval "$(mise exec fnox -- fnox activate bash)"' }

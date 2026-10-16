@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#MISE description="Amorce fnox et OpenCommit sur ce poste"
+# Lancée par `mise bootstrap` à chaque exécution : chaque étape est idempotente.
+set -euo pipefail
+
+fnox_dir="$HOME/.config/fnox"
+key_file="$fnox_dir/age.txt"
+config_file="$fnox_dir/config.toml"
+
+# Clé age du poste : générée une seule fois, jamais remplacée.
+if [[ ! -f $key_file ]]; then
+  install -d -m 700 "$fnox_dir"
+  (umask 077 && age-keygen -o "$key_file")
+fi
+
+if [[ ! -f $config_file ]]; then
+  cat >"$config_file" <<EOF
+default_provider = "age"
+
+[providers.age]
+type = "age"
+recipients = ["$(age-keygen -y "$key_file")"]
+EOF
+fi
+
+if ! fnox get OCO_API_KEY >/dev/null 2>&1; then
+  if { : </dev/tty; } 2>/dev/null; then
+    read -rsp "Clé API Anthropic pour OpenCommit : " api_key </dev/tty
+    echo
+    printf '%s' "$api_key" |
+      fnox set --global OCO_API_KEY --provider age --description "Clé API Anthropic (OpenCommit)"
+  else
+    echo "bootstrap: pas de terminal, OCO_API_KEY non configurée ; relancer \`mise bootstrap --only task\`" >&2
+  fi
+fi
+
+# Le postinstall de node ne tourne qu'à l'installation : couvre la version déjà présente.
+if [[ ! -x "$(npm prefix --global)/bin/oco" ]]; then
+  npm install --global opencommit
+fi
