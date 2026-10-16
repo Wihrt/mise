@@ -33,6 +33,7 @@ lazygit = "latest"
 node = { version = "latest", postinstall = "npm install --global opencommit" }
 opentofu = "latest"
 prek = "latest"
+process-compose = "latest"
 ruff = "latest"
 sofka = "latest"
 terraform-docs = "latest"
@@ -75,11 +76,14 @@ docker = "podman"
 
 # Le podman de mise (github:podman-container-tools/podman) n'est qu'un client
 # distant : le moteur vient d'apt. buildah et skopeo ne sont pas dans le
-# registre mise ; podman ne fait que recommander buildah.
+# registre mise. podman ne fait que recommander buildah, uidmap (mode sans
+# root) et passt (réseau) : déclarés pour les postes sans Install-Recommends.
 [bootstrap.packages]
 "apt:buildah" = "latest"
+"apt:passt" = "latest"
 "apt:podman" = "latest"
 "apt:skopeo" = "latest"
+"apt:uidmap" = "latest"
 
 [bootstrap.mise_shell_activate]
 bash = true
