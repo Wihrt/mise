@@ -33,7 +33,7 @@ mise bootstrap --update
 | shell          | Ajoute l'activation de mise : complète dans `~/.bashrc`, par shims dans `~/.bash_profile`                                        |
 | packages       | Installe `podman`, `buildah` et `skopeo` avec apt (mot de passe sudo)                                                                         |
 | tools          | Installe les outils de `[tools]`                                                                                                 |
-| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, clé API Anthropic, OpenCommit pour la version Node active, `rtk init --global`, socket `podman.socket` |
+| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, `GITHUB_TOKEN` et clé API Anthropic, OpenCommit pour la version Node active, `rtk init --global`, socket `podman.socket` |
 
 Chaque étape ne modifie que ce qui diffère de la configuration, et la tâche
 peut être relancée sans effet de bord.
@@ -44,6 +44,16 @@ Au premier passage, la tâche génère `~/.config/fnox/age.txt` (la clé privée
 poste, à ne jamais partager) et `~/.config/fnox/config.toml`, qui chiffre les
 secrets pour cette clé. Les secrets d'un poste ne se déchiffrent pas sur un
 autre.
+
+La tâche demande ensuite, une seule fois par poste, les secrets globaux que
+`fnox activate` exporte dans chaque shell :
+
+| Secret         | Usage                                                         |
+| -------------- | ------------------------------------------------------------- |
+| `GITHUB_TOKEN` | `gh`, et mise pour éviter la limite de l'API GitHub           |
+| `OCO_API_KEY`  | Clé API Anthropic d'OpenCommit                                |
+
+Pour changer une valeur : `fnox set --global <SECRET>`.
 
 ## OpenCommit
 
