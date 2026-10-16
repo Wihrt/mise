@@ -45,6 +45,7 @@ terraform-docs = "latest"
 terramate = "latest"
 tflint = "latest"
 tfswitch = "latest"
+tilt = "latest"
 trivy = "latest"
 uv = "latest"
 vault = "latest"
@@ -75,35 +76,19 @@ macos-arm64 = { asset_pattern = "rtk-proxy-aarch64-apple-darwin.tar.gz" }
 [env]
 OCO_AI_PROVIDER = "anthropic"
 OCO_MODEL = "claude-sonnet-5-5"
-# Les clients Docker (lazydocker, SDK) passent par le socket utilisateur de Podman.
-KIND_EXPERIMENTAL_PROVIDER = "podman"
-DOCKER_HOST = 'unix://{{ get_env(name="XDG_RUNTIME_DIR", default="/run/user/1000") }}/podman/podman.sock'
 
-[shell_alias]
-docker = "podman"
-
-# Le podman de mise (github:podman-container-tools/podman) n'est qu'un client
-# distant : le moteur vient d'apt. buildah et skopeo ne sont pas dans le
-# registre mise. podman ne fait que recommander buildah, uidmap (mode sans
-# root) et passt (réseau) : déclarés pour les postes sans Install-Recommends.
+# docker.io crée le groupe docker et active dockerd ; docker-compose-v2 fournit
+# `docker compose`. skopeo copie et inspecte les images sans démon. Le groupe
+# docker est attribué par tasks/bootstrap, une fois le paquet installé.
 [bootstrap.packages]
-"apt:buildah" = "latest"
-"apt:passt" = "latest"
-"apt:podman" = "latest"
+"apt:docker-buildx" = "latest"
+"apt:docker-compose-v2" = "latest"
+"apt:docker.io" = "latest"
 "apt:skopeo" = "latest"
-"apt:uidmap" = "latest"
 
-# kind sans root : modules iptables chargés au démarrage (doc kind « rootless »).
-[bootstrap.files."/etc/modules-load.d/iptables.conf"]
-content = """
-ip6_tables
-ip6table_nat
-ip_tables
-iptable_nat
-"""
-owner = "root"
-group = "root"
-mode = "0644"
+[bootstrap.services.docker]
+state = "running"
+enabled = true
 
 [bootstrap.mise_shell_activate]
 bash = true
@@ -114,7 +99,4 @@ bash = true
 "~/.bash_profile/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
 "~/.bashrc/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
 # mise exec trouve fnox même si ce bloc précède l'activation de mise.
-# kind : la limite de PID par défaut de podman (4096) étouffe certains pods,
-# dont ingress-nginx. Podman lit les drop-ins de containers.conf.d.
-"~/.config/containers/containers.conf.d/kind.conf" = { content = "[containers]\npids_limit = 65536\n", permissions = "0644" }
 "~/.bashrc/fnox" = { block = 'eval "$(mise exec fnox -- fnox activate bash)"' }
