@@ -56,6 +56,20 @@ La clé s'appelle `OCO_API_KEY` plutôt qu'`ANTHROPIC_API_KEY` : exportée dans
 tous les shells, `ANTHROPIC_API_KEY` ferait utiliser à Claude Code la
 facturation API au lieu de l'abonnement.
 
+### Hook git
+
+La tâche `bootstrap` installe le hook `prepare-commit-msg` d'OpenCommit dans
+`~/.config/git/template/hooks` et règle `init.templateDir` : chaque dépôt créé
+par `git init` ou `git clone` le reçoit. Pour un dépôt existant, lancez
+`git init` dedans (git n'écrase aucun hook déjà présent) ou `oco hook set`.
+
+Le hook ne génère un message que pour un `git commit` sans message : `-m`, un
+merge ou un amend ne l'appellent pas. Si l'appel échoue, l'erreur apparaît en
+commentaire dans le message et le commit n'est pas bloqué.
+
+`core.hooksPath` n'est pas utilisé : il désactiverait les hooks propres à
+chaque dépôt, comme ceux de prek.
+
 Pour changer la clé :
 
 ```sh
