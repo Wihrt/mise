@@ -67,6 +67,16 @@ macos-arm64 = { asset_pattern = "rtk-proxy-aarch64-apple-darwin.tar.gz" }
 [env]
 OCO_AI_PROVIDER = "anthropic"
 OCO_MODEL = "claude-sonnet-5-5"
+# Les clients Docker (lazydocker, SDK) passent par le socket utilisateur de Podman.
+DOCKER_HOST = 'unix://{{ get_env(name="XDG_RUNTIME_DIR", default="/run/user/1000") }}/podman/podman.sock'
+
+[shell_alias]
+docker = "podman"
+
+# Le podman de mise (github:podman-container-tools/podman) n'est qu'un client
+# distant : le moteur vient d'apt.
+[bootstrap.packages]
+"apt:podman" = "latest"
 
 [bootstrap.mise_shell_activate]
 bash = true

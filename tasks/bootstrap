@@ -46,6 +46,11 @@ if [[ ! -x "$(npm prefix --global)/bin/oco" ]]; then
 fi
 rtk init --global --auto-patch >/dev/null
 
+# Socket API compatible Docker, fourni par le paquet podman.
+if systemctl --user cat podman.socket >/dev/null 2>&1; then
+  systemctl --user enable --now podman.socket
+fi
+
 # Hook prepare-commit-msg d'OpenCommit, copié par git dans chaque dépôt créé
 # par `git init` ou `git clone`. Il vise node/latest pour suivre les montées
 # de version de Node. core.hooksPath désactiverait les hooks propres à chaque
