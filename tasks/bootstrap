@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+#MISE description="Amorce fnox, git, OpenCommit, Docker et les complétions sur ce poste"
+# Lancée par `mise bootstrap` à chaque exécution : chaque étape est idempotente.
+set -euo pipefail
+
+shims="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims"
+
+fnox_dir="$HOME/.config/fnox"
+key_file="$fnox_dir/age.txt"
+config_file="$fnox_dir/config.toml"
+
+# Clé age du poste : générée une seule fois, jamais remplacée.
+if [[ ! -f $key_file ]]; then
+  install -d -m 700 "$fnox_dir"
+  (umask 077 && age-keygen -o "$key_file")
+fi
+
+if [[ ! -f $config_file ]]; then
+  cat >"$config_file" <<EOF
+default_provider = "age"
+
+[providers.age]
+type = "age"
+recipients = ["$(age-keygen -y "$key_file")"]
+EOF
+fi
+
+# Demande un secret global fnox s'il n'a pas de valeur, une seule fois par poste.
+ensure_secret() {
+  local name=$1 description=$2 value=""
+  # `fnox get` renvoie 0 pour un secret déclaré sans valeur : tester la sortie.
+  [[ -n "$(fnox get "$name" 2>/dev/null)" ]] && return
+  if ! { : </dev/tty; } 2>/dev/null; then
+    echo "bootstrap: pas de terminal, $name non configuré ; relancer \`mise bootstrap --only task\`" >&2
+    return
+  fi
+  while [[ -z $value ]]; do
+    read -rsp "$description : " value </dev/tty
+    echo
+  done
+  # fnox 1.39 ignore stdin quand --description est passé : deux appels.
+  printf '%s' "$value" | fnox set --global "$name" --provider age
+  fnox set --global "$name" --description "$description" </dev/null
+}
+
+ensure_secret GITHUB_TOKEN "Token GitHub"
+ensure_secret OCO_API_KEY "Clé API Anthropic (OpenCommit)"
+
+# Identité git : reprise du compte GitHub si elle n'est pas déjà définie.
+# Un e-mail GitHub privé est remplacé par l'adresse noreply du compte.
+GITHUB_TOKEN="$(fnox get GITHUB_TOKEN 2>/dev/null || true)"
+export GITHUB_TOKEN
+if [[ -n $GITHUB_TOKEN ]] &&
+  { [[ -z "$(git config --global --get user.name || true)" ]] ||
+    [[ -z "$(git config --global --get user.email || true)" ]]; }; then
+  if gh_user="$(gh api user --jq '[.login, (.id | tostring), (.name // .login), (.email // "")] | @tsv')"; then
+    IFS=$'\t' read -r gh_login gh_id gh_name gh_email <<<"$gh_user"
+    [[ -n $gh_email ]] || gh_email="$gh_id+$gh_login@users.noreply.github.com"
+    [[ -n "$(git config --global --get user.name || true)" ]] ||
+      git config --global user.name "$gh_name"
+    [[ -n "$(git config --global --get user.email || true)" ]] ||
+      git config --global user.email "$gh_email"
+  else
+    echo "bootstrap: compte GitHub illisible, identité git non configurée" >&2
+  fi
+fi
+
+# Authentification git sur GitHub par gh, via son shim : `gh auth setup-git`
+# écrirait le chemin versionné de gh, cassé à la mise à jour suivante.
+# La valeur vide annule les helpers hérités, comme le fait gh.
+for host in github.com gist.github.com; do
+  key="credential.https://$host.helper"
+  git config --global --unset-all "$key" || true
+  git config --global --add "$key" ""
+  git config --global --add "$key" "!$shims/gh auth git-credential"
+done
+
+# Les postinstall de node et rtk ne tournent qu'à l'installation :
+# couvre les versions déjà présentes.
+if [[ ! -x "$(npm prefix --global)/bin/oco" ]]; then
+  npm install --global opencommit
+fi
+rtk init --global --auto-patch >/dev/null
+
+# Hook prepare-commit-msg d'OpenCommit, copié par git dans chaque dépôt créé
+# par `git init` ou `git clone`. core.hooksPath désactiverait les hooks propres
+# à chaque dépôt (prek), d'où init.templateDir.
+# Exception aux shims : OpenCommit ne passe en mode hook que si process.argv[1]
+# est le hook lui-même, ce qu'un shim casse. node/latest suit les versions.
+template_dir="$HOME/.config/git/template"
+oco_cli="$(dirname "$(mise where node)")/latest/lib/node_modules/opencommit/out/cli.cjs"
+current_template="$(git config --global --get init.templateDir || true)"
+if [[ -z $current_template || $current_template == "$template_dir" ]]; then
+  install -d "$template_dir/hooks"
+  ln -sfn "$oco_cli" "$template_dir/hooks/prepare-commit-msg"
+  git config --global init.templateDir "$template_dir"
+else
+  echo "bootstrap: init.templateDir vaut déjà $current_template ; hook OpenCommit non installé" >&2
+fi
+
+# Docker sans sudo ; effectif à la prochaine connexion (ou `newgrp docker`).
+if getent group docker >/dev/null && ! id -nG "$USER" | tr ' ' '\n' | grep -qx docker; then
+  sudo usermod --append --groups docker "$USER"
+fi
+
+# Complétions bash, chargées à la demande par bash-completion depuis ce dossier.
+# Régénérées à chaque passage pour suivre les montées de version.
+completion_dir="${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
+install -d "$completion_dir"
+while read -r cmd args; do
+  # shellcheck disable=SC2086 # args est une liste de mots
+  if "$cmd" $args >"$completion_dir/$cmd.tmp" 2>/dev/null && [[ -s "$completion_dir/$cmd.tmp" ]]; then
+    mv "$completion_dir/$cmd.tmp" "$completion_dir/$cmd"
+  else
+    rm -f "$completion_dir/$cmd.tmp"
+    echo "bootstrap: complétion bash de $cmd non générée" >&2
+  fi
+done <<'EOF'
+argo completion bash
+cog generate-completions bash
+dive completion bash
+fnox completion bash
+gh completion -s bash
+glab completion -s bash
+helm completion bash
+herdr completion bash
+kind completion bash
+kubectl completion bash
+mise completion bash
+process-compose completion bash
+ruff generate-shell-completion bash
+sofka completion bash
+tilt completion bash
+trivy completion bash
+uv generate-shell-completion bash
+yq shell-completion bash
+EOF

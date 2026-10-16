@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install mise
+        run: |
+          curl -fsSL https://mise.run | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Shellcheck
+        run: mise exec shellcheck -- shellcheck tasks/bootstrap
+      - name: Adopt as global config
+        run: |
+          mkdir -p ~/.config
+          cp -r "$GITHUB_WORKSPACE" ~/.config/mise
+      - name: Bootstrap dry run
+        working-directory: ${{ runner.temp }}
+        run: mise bootstrap --dry-run --yes

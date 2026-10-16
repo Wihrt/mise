@@ -1,0 +1,3 @@
+# Réglages propres à un poste (proxy, etc.)
+config.local.toml
+*.local.toml
