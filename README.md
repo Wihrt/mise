@@ -116,3 +116,21 @@ paquet `podman` ne fait que recommander `buildah`.
   ni `mise exec`.
 - La tâche `bootstrap` active le socket utilisateur `podman.socket`, et
   `DOCKER_HOST` le désigne : lazydocker et les SDK Docker parlent à Podman.
+
+### kind sur Podman
+
+`KIND_EXPERIMENTAL_PROVIDER=podman` fait créer les nœuds kind par Podman, sans
+root. Le mode sans root demande, d'après la doc kind (« Rootless ») :
+
+- cgroups v2 et la délégation du contrôleur `cpu`, présents par défaut avec
+  systemd 252 ou plus récent ;
+- les modules `ip6_tables`, `ip6table_nat`, `ip_tables` et `iptable_nat`,
+  chargés au démarrage par `/etc/modules-load.d/iptables.conf` (sudo). Ils ne
+  le sont qu'au prochain démarrage : `wsl --shutdown` depuis Windows, ou
+  `sudo systemctl restart systemd-modules-load` ;
+- une limite de PID relevée à 65536, dans
+  `~/.config/containers/containers.conf.d/kind.conf`.
+
+```sh
+kind create cluster
+```
