@@ -45,3 +45,18 @@ if [[ ! -x "$(npm prefix --global)/bin/oco" ]]; then
   npm install --global opencommit
 fi
 rtk init --global --auto-patch >/dev/null
+
+# Hook prepare-commit-msg d'OpenCommit, copié par git dans chaque dépôt créé
+# par `git init` ou `git clone`. Il vise node/latest pour suivre les montées
+# de version de Node. core.hooksPath désactiverait les hooks propres à chaque
+# dépôt (prek), d'où init.templateDir.
+template_dir="$HOME/.config/git/template"
+oco_cli="$(dirname "$(mise where node)")/latest/lib/node_modules/opencommit/out/cli.cjs"
+current_template="$(git config --global --get init.templateDir || true)"
+if [[ -z $current_template || $current_template == "$template_dir" ]]; then
+  install -d "$template_dir/hooks"
+  ln -sfn "$oco_cli" "$template_dir/hooks/prepare-commit-msg"
+  git config --global init.templateDir "$template_dir"
+else
+  echo "bootstrap: init.templateDir vaut déjà $current_template ; hook OpenCommit non installé" >&2
+fi
