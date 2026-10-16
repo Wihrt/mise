@@ -31,7 +31,7 @@ mise bootstrap --update
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | dotfiles       | Ajoute `~/.local/bin` au `PATH` de `~/.bashrc` et `~/.bash_profile`, et le bloc `fnox activate` dans `~/.bashrc`                 |
 | shell          | Ajoute l'activation de mise : complète dans `~/.bashrc`, par shims dans `~/.bash_profile`                                        |
-| packages       | Installe `podman` avec apt (demande le mot de passe sudo)                                                                         |
+| packages       | Installe `podman`, `buildah` et `skopeo` avec apt (mot de passe sudo)                                                                         |
 | tools          | Installe les outils de `[tools]`                                                                                                 |
 | tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, clé API Anthropic, OpenCommit pour la version Node active, `rtk init --global`, socket `podman.socket` |
 
@@ -97,7 +97,9 @@ une version déjà installée ; la commande est idempotente.
 ## Podman
 
 `podman` vient d'apt : le podman publié sur GitHub, que mise saurait installer,
-n'est qu'un client distant. Podman n'a pas besoin de Docker.
+n'est qu'un client distant. Podman n'a pas besoin de Docker. `buildah` et
+`skopeo` viennent aussi d'apt : ils ne sont pas dans le registre mise, et le
+paquet `podman` ne fait que recommander `buildah`.
 
 - `[shell_alias]` définit `docker = "podman"` dans chaque shell où mise est
   activé. Comme tout alias, il n'existe pas dans les scripts, les tâches mise

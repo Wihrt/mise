@@ -74,9 +74,12 @@ DOCKER_HOST = 'unix://{{ get_env(name="XDG_RUNTIME_DIR", default="/run/user/1000
 docker = "podman"
 
 # Le podman de mise (github:podman-container-tools/podman) n'est qu'un client
-# distant : le moteur vient d'apt.
+# distant : le moteur vient d'apt. buildah et skopeo ne sont pas dans le
+# registre mise ; podman ne fait que recommander buildah.
 [bootstrap.packages]
+"apt:buildah" = "latest"
 "apt:podman" = "latest"
+"apt:skopeo" = "latest"
 
 [bootstrap.mise_shell_activate]
 bash = true
