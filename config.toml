@@ -37,6 +37,10 @@ node = { version = "latest", postinstall = "npm install --global opencommit" }
 opentofu = "latest"
 prek = "latest"
 process-compose = "latest"
+# Les outils pypi (ansible, yamllint) résolvent leur interpréteur via le shim
+# `python` : sans version globale, leur installation échoue hors d'un projet
+# qui déclare python.
+python = "3.14"
 ruff = "latest"
 shellcheck = "latest"
 shfmt = "latest"
