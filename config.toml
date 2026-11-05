@@ -78,6 +78,12 @@ macos-arm64 = { asset_pattern = "rtk-proxy-aarch64-apple-darwin.tar.gz" }
 # OpenCommit lit sa configuration dans l'environnement ; la clé API
 # (OCO_API_KEY) vient de fnox, voir tasks/bootstrap.
 [env]
+# Claude Code : réduction des tokens.
+# Compaction automatique à 400K tokens plutôt qu'au bord de la fenêtre de 1M.
+CLAUDE_CODE_AUTO_COMPACT_WINDOW = "400000"
+# Pas de requête de fond pour le titre du terminal ni pour les suggestions de prompt.
+CLAUDE_CODE_DISABLE_TERMINAL_TITLE = "1"
+CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION = "false"
 OCO_AI_PROVIDER = "anthropic"
 OCO_MODEL = "claude-sonnet-5-5"
 
