@@ -1,0 +1,4 @@
+# typos config. TESTS.md holds French specs by design; typos targets code identifiers.
+# Existing repo: merge into its _typos.toml / typos.toml / .typos.toml / pyproject.toml [tool.typos].
+[files]
+extend-exclude = ["TESTS.md"]

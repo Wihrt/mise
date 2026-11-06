@@ -1,0 +1,14 @@
+# typos config. TESTS.md holds French specs by design; typos targets code identifiers.
+# The repo prose and imported harness content are French (typos is English-only),
+# so those paths are excluded rather than rewritten.
+[files]
+extend-exclude = [
+  "TESTS.md",
+  "README.md",
+  "config.toml",
+  "tasks/",
+  "docs/",
+  ".superpowers/",
+  "claude/",
+  "rtk/",
+]

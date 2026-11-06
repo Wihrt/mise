@@ -1,0 +1,3 @@
+{
+  "Exclude": ["^claude/skills/", "^claude/agents/", "^docs/superpowers/specs/"]
+}

@@ -1,0 +1,2 @@
+# Per-test reports written by the test tasks (read by ~/.claude/agents/bin/tdd-gate).
+.tdd/

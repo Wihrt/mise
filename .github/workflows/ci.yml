@@ -5,13 +5,18 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Install mise
         run: |
           curl -fsSL https://mise.run | sh
@@ -25,3 +30,24 @@ jobs:
       - name: Bootstrap dry run
         working-directory: ${{ runner.temp }}
         run: mise bootstrap --dry-run --yes
+
+  tooling:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - name: Check
+        run: mise run check
+      - name: Conventional commits
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch origin "$BASE_REF"
+          b=$(git rev-list --reverse "origin/$BASE_REF..HEAD" | head -1)
+          [ -z "$b" ] || mise exec -- cog check "$b..HEAD"

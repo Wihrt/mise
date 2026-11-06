@@ -1,0 +1,94 @@
+# Template: merge into the repo's mise.toml, never replace it. Keep every existing
+# tool and task; pin versions exactly (check with `mise ls-remote <tool>`).
+[tools]
+cocogitto = "7.0.0"
+editorconfig-checker = "4.0.2"
+gitleaks = "8.30.1"
+actionlint = "1.7.12"
+bats = "1.13.0"
+node = "24.22.1"  # lint:renovate runs npx; CI has no global node
+prek = "0.5.7"
+shellcheck = "0.11.0"
+typos = "1.51.1"
+uv = "0.13.7"
+zizmor = "1.32.0"
+
+[env]
+RENOVATE_VERSION = "44.175.3"
+
+[tasks.setup]
+description = "Install the git hooks"
+run = "prek install"
+
+[tasks.fmt]
+description = "Format the code (replace with the stack formatter)"
+run = "echo 'no formatter configured'"
+
+[tasks.lint]
+description = "Run every lint:* task"
+depends = ["lint:*"]
+
+# The repo owns the test:<ns> tasks (test:go, test:py, ...); `test` runs them all.
+# Each test:<ns> also writes a per-test report under .tdd/ (gitignored, see templates/gitignore):
+#   go:   mkdir -p .tdd && gotestsum --junitfile .tdd/junit.xml -- ./...   (gotestsum in [tools])
+#   py:   uv run pytest --junitxml=.tdd/junit.xml
+#   helm: mkdir -p .tdd && helm unittest -t JUnit -o .tdd/junit.xml <chart>
+#   tofu: tofu init -backend=false && mkdir -p .tdd && tofu test -json-into=.tdd/tofu.json
+[tasks.test]
+description = "Run every test:* task"
+depends = ["test:*"]
+
+[tasks.check]
+description = "lint then test (CI entrypoint)"
+depends = ["lint", "test"]
+
+[tasks."lint:secrets"]
+description = "Scan the tree for secrets"
+run = "gitleaks git --no-banner --redact"  # git history only: `dir` scans ignored .venv/, node_modules/
+
+[tasks."lint:typos"]
+description = "Spell-check the tree"
+run = "typos"
+
+[tasks."lint:editorconfig"]
+description = "Check files against .editorconfig"
+run = "editorconfig-checker"
+
+# hook:* tasks are called only by hooks, never by lint/check (they need their argument).
+# prek passes the commit message file as the first argument of the hook entry.
+[tasks."hook:commit-msg"]
+description = "Check a commit message with cocogitto (commit-msg hook only)"
+usage = 'arg "<file>"'
+run = 'cog verify --file "$usage_file"'
+
+[tasks."lint:renovate"]
+description = "Validate the Renovate config"
+run = "npx --yes --package renovate@${RENOVATE_VERSION} -- renovate-config-validator --strict"
+
+[tasks."lint:shell"]
+description = "Shellcheck the shell scripts"
+run = "shellcheck tasks/* claude/hooks/*.sh"
+
+[tasks."lint:ci"]
+description = "Lint the GitHub Actions workflows"
+run = """
+actionlint
+zizmor --offline .github/workflows
+"""
+
+[tasks."test:hooks"]
+description = "Run the hook bats tests"
+run = """
+mkdir -p .tdd
+bats --report-formatter junit --output .tdd claude/hooks/tests/
+mv .tdd/report.xml .tdd/junit.xml
+"""
+
+[tasks."test:tdd-gate"]
+description = "Run the tdd-gate pytest suite"
+dir = "claude/agents/bin"
+env = { PYTHONDONTWRITEBYTECODE = "1" }
+run = """
+mkdir -p ../../../.tdd
+uvx --python 3.14 pytest -q -p no:cacheprovider --junitxml=../../../.tdd/tdd-gate.xml tests
+"""
