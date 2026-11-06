@@ -91,16 +91,22 @@ permissions) traverse le lien ou le remplace par un fichier. Les deux cas sont
 visibles : modification dans `git status` du main checkout, ou cible signalée
 par `mise dot status`. À observer après migration.
 
-### Contrôles CI
+### Outillage du dépôt et contrôles CI
 
-Le job `check` existant est étendu par une tâche `mise run check:harness`
-(utilisable aussi en local) :
+Fait vérifié (mise 2026.10.25) : dans le dossier de config globale, `mise.toml`
+et `mise.local.toml` sont chargés depuis n'importe quel répertoire, et les
+fichiers de `tasks/` sont des tâches globales ; `.config/mise.toml` n'est chargé
+que dans le dépôt. L'outillage du dépôt (baseline repo-tooling) vit donc dans
+`.config/mise.toml`, en tâches inline ; `tasks/` ne contient que des tâches du
+poste. `mise run check` (CI et local) enchaîne :
 
-1. `bats claude/hooks/tests/` ;
-2. `mise dot apply` dans un `HOME` temporaire puis vérification des liens ;
-3. cohérence skills ↔ entrées `[dotfiles]` ;
-4. hygiène : ni `*.bak*` ni `/home/arnaud` sous `claude/` et `rtk/` (hors
-   `references/` des skills).
+1. `test:hooks` : `bats claude/hooks/tests/` ;
+2. `test:dotfiles` : `mise dot apply` dans un `HOME` temporaire puis
+   vérification des liens ;
+3. `lint:harness` : cohérence skills ↔ entrées `[dotfiles]`, et hygiène (ni
+   `*.bak*` ni `/home/arnaud` sous `claude/` et `rtk/`, hors `references/` des
+   skills) ;
+4. `test:plugins` : la tâche `claude-plugins` avec un `claude` simulé.
 
 ### Migration de ce poste (une fois, après merge de la dernière PR)
 
@@ -113,12 +119,14 @@ Action sur le `$HOME` de l'utilisateur : lancée seulement sur son feu vert.
 
 ### Découpage en PR (pile, un worktree)
 
-1. **Import** : `claude/` et `rtk/` copiés depuis le poste, cette spec, tâche
-   `check:harness` (bats + hygiène) en CI (HAR-006).
+0. **Outillage + import** : baseline repo-tooling dans `.config/mise.toml`,
+   `claude/` et `rtk/` copiés depuis le poste, cette spec, `test:hooks` en CI.
+1. **Hygiène** : `lint:harness` (HAR-006).
 2. **Hook `realpath`** dans `claude/hooks/require-worktree.sh` (HAR-002).
-3. **Déploiement** : entrées `[dotfiles]`, README ; `check:harness` gagne les
-   contrôles 2 et 3 (HAR-001, HAR-003, HAR-004).
-4. **Plugin** : tâche `claude-plugins`, appelée par `bootstrap` (HAR-005).
+3. **Déploiement** : entrées `[dotfiles]`, `test:dotfiles`, cohérence dans
+   `lint:harness`, README (HAR-001, HAR-003, HAR-004).
+4. **Plugin** : tâche du poste `claude-plugins`, appelée par `bootstrap`
+   (HAR-005).
 
 Le hook réel (`~/.claude/hooks`) ne change qu'à la migration : aucun lien
 n'existe avant, donc rien à protéger plus tôt.
@@ -145,7 +153,7 @@ n'existe avant, donc rien à protéger plus tôt.
 
 ### HAR-004 — Un skill sans entrée de déploiement fait échouer le contrôle
 - **Étant donné** le dépôt avec un dossier `claude/skills/<nouveau>/` sans entrée `[dotfiles]`, ou une entrée `[dotfiles]` dont la source n'existe pas
-- **Quand** `mise run check:harness` est lancé
+- **Quand** `mise run lint:harness` est lancé
 - **Alors** il échoue (code non nul) en nommant le skill ou la source en cause ; sur le dépôt cohérent il réussit
 - **Frontière** : tâche mise
 
@@ -157,6 +165,6 @@ n'existe avant, donc rien à protéger plus tôt.
 
 ### HAR-006 — Pas de sauvegarde ni de chemin personnel versionnés
 - **Étant donné** un fichier `*.bak*`, ou un fichier contenant `/home/arnaud` hors `claude/skills/*/references/`, sous `claude/` ou `rtk/`
-- **Quand** `mise run check:harness` est lancé
+- **Quand** `mise run lint:harness` est lancé
 - **Alors** il échoue en nommant le fichier ; sans ces fichiers il réussit
 - **Frontière** : tâche mise
