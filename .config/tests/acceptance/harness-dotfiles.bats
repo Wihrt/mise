@@ -9,7 +9,9 @@ setup() {
   cfg="$BATS_TEST_TMPDIR/cfg"
   home="$BATS_TEST_TMPDIR/home"
   mkdir -p "$cfg" "$home"
-  git -C "$ROOT" archive HEAD | tar -x -C "$cfg"
+  (cd "$ROOT" && git ls-files -z --cached | while IFS= read -r -d '' f; do
+    [ -e "$f" ] && printf '%s\0' "$f"
+  done | xargs -0 cp --parents -t "$cfg")
   cfg="$(cd "$cfg" && pwd -P)"
   export MISE_YES=1
 }
@@ -48,10 +50,24 @@ resolves_to() { # <target under home> <expected path under cfg>
   [ "$status" -eq 0 ]
 }
 
+@test "HAR-003 third-party content in ~/.claude and ~/.config/rtk is left intact" {
+  mkdir -p "$home/.claude/skills/synced/x" "$home/.config/rtk/llm-proxy" "$BATS_TEST_TMPDIR/other"
+  echo "synced content" > "$home/.claude/skills/synced/x/SKILL.md"
+  echo "other content" > "$BATS_TEST_TMPDIR/other/f"
+  ln -s "$BATS_TEST_TMPDIR/other" "$home/.claude/skills/curl-md"
+  echo "db content" > "$home/.config/rtk/llm-proxy/rtk-proxy.db"
+  run apply
+  [ "$status" -eq 0 ]
+  [ "$(cat "$home/.claude/skills/synced/x/SKILL.md")" = "synced content" ]
+  [ -L "$home/.claude/skills/curl-md" ]
+  [ "$(readlink "$home/.claude/skills/curl-md")" = "$BATS_TEST_TMPDIR/other" ]
+  [ "$(cat "$home/.config/rtk/llm-proxy/rtk-proxy.db")" = "db content" ]
+}
+
 lint() {
   cd "$cfg"
-  mise trust --quiet .config/mise.toml >/dev/null 2>&1 || true
-  run mise run lint:harness
+  MISE_STATE_DIR="$BATS_TEST_TMPDIR/state" MISE_TRUSTED_CONFIG_PATHS="$cfg" \
+    MISE_DATA_DIR="$REAL_DATA" MISE_CACHE_DIR="$REAL_CACHE" run mise run lint:harness
 }
 
 @test "HAR-004 a skill directory without a [dotfiles] entry fails and is named" {
