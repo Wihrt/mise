@@ -75,12 +75,11 @@ for host in github.com gist.github.com; do
   git config --global --add "$key" "!$shims/gh auth git-credential"
 done
 
-# Les postinstall de node et rtk ne tournent qu'à l'installation :
+# Le postinstall de node ne tourne qu'à l'installation :
 # couvre les versions déjà présentes.
 if [[ ! -x "$(npm prefix --global)/bin/oco" ]]; then
   npm install --global opencommit
 fi
-rtk init --global --auto-patch >/dev/null
 
 # Hook prepare-commit-msg d'OpenCommit, copié par git dans chaque dépôt créé
 # par `git init` ou `git clone`. core.hooksPath désactiverait les hooks propres

@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
       - name: Install mise
         run: |
-          curl -fsSL https://mise.run | sh
+          curl -fsSL https://mise.run | MISE_VERSION=v2026.10.25 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Shellcheck
         run: mise exec shellcheck -- shellcheck tasks/bootstrap
@@ -41,6 +41,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          version: 2026.10.25
       - name: Check
         run: mise run check
       - name: Conventional commits
