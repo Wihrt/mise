@@ -175,5 +175,5 @@ n'existe avant, donc rien à protéger plus tôt.
 ### HAR-006 — Rien de personnel ni d'interne versionné
 - **Étant donné**, sous `claude/` ou `rtk/`, un fichier `*.bak*`, un fichier contenant `/home/arnaud` hors `claude/skills/*/references/`, ou un fichier contenant un motif listé dans le fichier local non versionné `.config/harness-denylist.local` (un motif par ligne)
 - **Quand** `mise run lint:harness` est lancé
-- **Alors** il échoue en nommant le fichier (sans afficher le motif) ; sans ces fichiers il réussit ; sans `.config/harness-denylist.local`, seuls les deux premiers contrôles s'appliquent et la tâche le signale sur une ligne
+- **Alors** il échoue en nommant le fichier (sans afficher le motif) ; sans ces fichiers il réussit ; les lignes vides de `.config/harness-denylist.local` sont ignorées ; un motif que `grep -E` refuse fait échouer la tâche en nommant `.config/harness-denylist.local` (jamais de réussite silencieuse) ; sans `.config/harness-denylist.local`, seuls les deux premiers contrôles s'appliquent et la tâche le signale sur exactement une ligne contenant `harness-denylist.local`
 - **Frontière** : tâche mise
