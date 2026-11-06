@@ -13,3 +13,14 @@ Branche : `feat/harness-hook-realpath` · Commande : `mise run test:acceptance`
 ### HAR-002 — Une édition via un lien vers le main checkout est refusée
 - **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-002
 - **Test** : `.config/tests/acceptance/harness-hook-realpath.bats` › `HAR-002 Edit through a file link to the main checkout is denied`
+
+## harness-dotfiles — Déploiement du harness par [dotfiles]
+Branche : `feat/harness-dotfiles-2` · Commande : `mise run test:acceptance`
+
+### HAR-001 — Poste vierge : le harness est posé en liens vers le dépôt
+- **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-001
+- **Test** : `.config/tests/acceptance/harness-dotfiles.bats` › `HAR-001 every harness target is a link resolving into the repo`
+
+### HAR-004 — Un skill sans entrée de déploiement fait échouer le contrôle
+- **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-004
+- **Test** : `.config/tests/acceptance/harness-dotfiles.bats` › `HAR-004 a skill directory without a [dotfiles] entry fails and is named`
