@@ -108,3 +108,53 @@
 - [ ] **Step 1:** pour chaque plugin : sans `claude` sur le `PATH`, rien ; si `claude plugin list` échoue, avertit et continue ; si l'id est absent de la sortie, `claude plugin install <id>`.
 - [ ] **Step 2:** `mise run check` → code 0.
 - [ ] **Step 3:** commit `feat(bootstrap): installer les plugins Claude Code`, PR.
+
+### Task 5: Correctifs des remarques Copilot — branche `feat/harness-copilot-fixes`, slug `harness-copilot-fixes`
+
+**Criteria:** HAR-007, HAR-008, HAR-009, HAR-010, HAR-011, HAR-012 · **Frontières :** voir chaque critère
+
+**Files:**
+- Modify: `claude/hooks/agent-guard.sh`, `claude/hooks/never-merge.sh`
+- Modify: `.config/mise.toml` (tâche de scan des secrets indexés appelée par le hook pre-commit `lint-secrets` ; `lint:secrets` garde le scan d'historique pour la CI), `.pre-commit-config.yaml`, `claude/skills/repo-tooling/templates/` (même correction dans les gabarits), `claude/skills/repo-tooling/SKILL.md`
+- Modify: `.config/lint-harness.sh`
+- Modify: `claude/skills/k8s-restricted/policy/pss-restricted.rego`, `claude/skills/helm-render-diff-check/scripts/policy-rules.py`
+- Sans test (docs) : `claude/skills/k8s-restricted/SKILL.md` ligne 26 (ResourceQuota : une déclaration requise par un quota CPU/mémoire omise fait refuser le Pod à l'admission ; seul un quota sur une ressource non exigée, comme ephemeral-storage, tolère l'omission)
+- Sans test (outillage) : `test:hooks` et `test:acceptance` écrivent chacun leur rapport, puis fusion dans `.tdd/junit.xml`
+
+## Critères d'acceptation
+
+### HAR-007 — L'auteur des tests ne peut pas sortir des dossiers de test par `..` ou par un lien
+- **Étant donné** le rôle `acceptance-writer` et un dépôt avec `pkg/calc.go` et `pkg/tests/`, dont un lien `pkg/tests/link.go` vers `pkg/calc.go`
+- **Quand** `agent-guard.sh` reçoit un `Edit` dont `file_path` vaut `pkg/tests/../calc.go` ou `pkg/tests/link.go`
+- **Alors** il refuse ; il accepte `pkg/tests/calc_test.go` (fichier ordinaire sous `tests/`)
+- **Frontière** : entrée JSON / sortie du hook
+
+### HAR-008 — Un push forcé reste refusé même accompagné d'un lease
+- **Étant donné** le hook `never-merge.sh`
+- **Quand** il reçoit `git push -f --force-with-lease origin feat`, ou `git push --force --force-with-lease origin feat`
+- **Alors** il refuse ; il accepte `git push --force-with-lease origin feat`
+- **Frontière** : entrée JSON / sortie du hook
+
+### HAR-009 — Le hook pre-commit détecte un secret indexé
+- **Étant donné** un dépôt git temporaire où un fichier contenant un jeton d'accès factice au format GitHub (`ghp_` + 36 caractères alphanumériques) est indexé mais pas commité
+- **Quand** la tâche mise appelée par le hook pre-commit `lint-secrets` est lancée dans ce dépôt
+- **Alors** elle échoue (code non nul) ; sans ce fichier indexé elle réussit
+- **Frontière** : tâche mise du hook pre-commit
+
+### HAR-010 — Les fichiers binaires ne contournent pas `lint:harness`, et le chemin personnel n'est jamais affiché
+- **Étant donné**, sous `claude/`, un fichier contenant un octet NUL et `/home/arnaud`, ou un octet NUL et un motif de `.config/harness-denylist.local`
+- **Quand** `mise run lint:harness` est lancé
+- **Alors** il échoue en nommant le fichier ; sa sortie ne contient ni `/home/arnaud` ni le motif
+- **Frontière** : tâche mise
+
+### HAR-011 — La politique restricted refuse un Pod nu et un UID 0
+- **Étant donné** un manifeste `kind: Pod` (sans contrôleur) avec `hostNetwork: true`, ou un Deployment dont le conteneur a `runAsNonRoot: true` et `runAsUser: 0`
+- **Quand** `conftest test --policy claude/skills/k8s-restricted/policy <manifeste>` est lancé
+- **Alors** il échoue (code non nul) avec au moins un refus ; un Pod nu conforme au profil restricted passe
+- **Frontière** : CLI conftest
+
+### HAR-012 — Le rapport des règles réseau montre les entités Cilium
+- **Étant donné** une CiliumNetworkPolicy dont une règle d'egress a `toEntities: [world]` et une règle d'ingress `fromEntities: [cluster]`
+- **Quand** `python3 -I claude/skills/helm-render-diff-check/scripts/policy-rules.py <fichier>` est lancé
+- **Alors** sa sortie nomme `world` et `cluster` parmi les pairs, et ne présente pas ces règles comme sans pair (`none`)
+- **Frontière** : CLI du script
