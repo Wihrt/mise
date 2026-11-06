@@ -34,7 +34,10 @@ decision() {
   unset CLAUDE_CODE_SUBAGENT_MODEL; [ "$(decision "$(agent Agent)")" = deny ]
 }
 @test "no model, agent file pinned to sonnet: allow" {
-  unset CLAUDE_CODE_SUBAGENT_MODEL; [ "$(decision "$(agent Agent "" implementer)")" = allow ]
+  mkdir -p "$BATS_TEST_TMPDIR/.claude/agents"
+  printf -- '---\nmodel: sonnet\n---\n' >"$BATS_TEST_TMPDIR/.claude/agents/implementer.md"
+  unset CLAUDE_CODE_SUBAGENT_MODEL
+  [ "$(HOME=$BATS_TEST_TMPDIR decision "$(agent Agent "" implementer)")" = allow ]
 }
 @test "no model, built-in agent, env unset: deny" {
   unset CLAUDE_CODE_SUBAGENT_MODEL; [ "$(decision "$(agent Agent "" general-purpose)")" = deny ]
