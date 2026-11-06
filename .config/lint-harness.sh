@@ -39,7 +39,11 @@ else
 fi
 
 # Every skill has a [dotfiles] entry and every harness entry has an existing source.
-# config.toml is read as TOML (python3 from the globally pinned python), not grepped.
+# config.toml is read as TOML (python3 >= 3.11, pinned in .config/mise.toml), not grepped.
+python3 -I -c 'import tomllib' 2>/dev/null || {
+  echo 'lint:harness: python3 with tomllib (>= 3.11) is required'
+  exit 1
+}
 python3 -I - config.toml <<'PY' || fail=1
 import os, sys, tomllib
 

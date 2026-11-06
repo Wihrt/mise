@@ -118,10 +118,15 @@ Migrer un poste existant, **avant** `mise bootstrap` : les vrais fichiers de
 overwrite`). Sauvegarder, puis laisser mise les remplacer :
 
 ```sh
-tar czf ~/claude-harness-backup.tar.gz -C ~ .claude/CLAUDE.md .claude/RTK.md \
-  .claude/settings.json .claude/agents .claude/hooks .claude/skills .config/rtk
-mise dot apply --force
+cd ~ && paths=() && for p in .claude/CLAUDE.md .claude/RTK.md .claude/settings.json \
+  .claude/agents .claude/hooks .claude/skills .config/rtk; do
+  [ -e "$p" ] && paths+=("$p"); done \
+  && tar czf ~/claude-harness-backup.tar.gz "${paths[@]}" \
+  && mise dot apply --force
 ```
+
+`--force` n'écrase pas que le harness : il réapplique aussi les entrées
+du shell (`~/.bashrc`, `~/.bash_profile`).
 
 ## rtk
 
