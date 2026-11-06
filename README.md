@@ -45,7 +45,7 @@ mise bootstrap --update
 | shell          | Ajoute l'activation de mise : complète dans `~/.bashrc`, par shims dans `~/.bash_profile`                                        |
 | packages       | Installe Docker (`docker.io`, Compose, Buildx) et `skopeo` avec apt (sudo)                                                                         |
 | tools          | Installe les outils de `[tools]`                                                                                                 |
-| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, `GITHUB_TOKEN` et clé API Anthropic, OpenCommit pour la version Node active, identité et authentification git GitHub, `rtk init --global`, groupe `docker`, complétions bash |
+| tâche          | [`tasks/bootstrap`](tasks/bootstrap) : clé age et config fnox globale, `GITHUB_TOKEN` et clé API Anthropic, OpenCommit pour la version Node active, identité et authentification git GitHub, groupe `docker`, complétions bash |
 
 Chaque étape ne modifie que ce qui diffère de la configuration, et la tâche
 peut être relancée sans effet de bord.
@@ -119,21 +119,27 @@ overwrite`). Sauvegarder, puis laisser mise les remplacer :
 
 ```sh
 cd ~ && paths=() && for p in .claude/CLAUDE.md .claude/RTK.md .claude/settings.json \
-  .claude/agents .claude/hooks .claude/skills .config/rtk; do
+  .claude/agents .claude/hooks .claude/skills \
+  .config/rtk/config.toml .config/rtk/filters.toml .config/rtk/pipeline.toml \
+  .config/rtk/pipelines; do
   if [ -e "$p" ]; then paths+=("$p"); fi; done \
   && tar czf ~/claude-harness-backup.tar.gz "${paths[@]}" \
   && mise dot apply --force
 ```
+
+Prérequis : `claude/settings.json` fixe `ANTHROPIC_BASE_URL=http://127.0.0.1:8080`.
+rtk-proxy (installé par mise) doit donc tourner
+(`rtk-proxy start --bind 127.0.0.1:8080`) avant de lancer Claude Code ; le
+dépôt ne le démarre pas.
 
 `--force` n'écrase pas que le harness : il réapplique aussi les entrées
 du shell (`~/.bashrc`, `~/.bash_profile`).
 
 ## rtk
 
-Le `postinstall` de `rtk` lance `rtk init --global --auto-patch` à chaque
-nouvelle version : hook Claude Code dans `~/.claude/settings.json` et
-`~/.claude/RTK.md`, sans question. La tâche `bootstrap` le relance aussi pour
-une version déjà installée ; la commande est idempotente.
+Le hook rtk de Claude Code et `RTK.md` sont versionnés dans `claude/`. Ne pas
+lancer `rtk init` : il réécrirait les fichiers liés du checkout. Les mises à
+jour passent par une PR.
 
 ## Docker
 
