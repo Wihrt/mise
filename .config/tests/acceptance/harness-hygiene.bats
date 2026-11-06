@@ -11,12 +11,14 @@ setup() {
   rm -f "$FIX/.config/harness-denylist.local"
   mkdir -p "$FIX/claude" "$FIX/rtk"
   export MISE_YES=1
-  (cd "$FIX" && mise trust --quiet .config/mise.toml >/dev/null 2>&1 || true)
+  REAL_DATA="${MISE_DATA_DIR:-$HOME/.local/share/mise}"
+  REAL_CACHE="${MISE_CACHE_DIR:-$HOME/.cache/mise}"
 }
 
 lint() {
   cd "$FIX"
-  run mise run lint:harness
+  MISE_STATE_DIR="$BATS_TEST_TMPDIR/state" MISE_TRUSTED_CONFIG_PATHS="$FIX" \
+    MISE_DATA_DIR="$REAL_DATA" MISE_CACHE_DIR="$REAL_CACHE" run mise run lint:harness
 }
 
 @test "HAR-006 clean tree without local denylist succeeds and warns on exactly one line" {

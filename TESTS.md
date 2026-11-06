@@ -24,3 +24,10 @@ Branche : `feat/harness-dotfiles-2` · Commande : `mise run test:acceptance`
 ### HAR-004 — Un skill sans entrée de déploiement fait échouer le contrôle
 - **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-004
 - **Test** : `.config/tests/acceptance/harness-dotfiles.bats` › `HAR-004 a skill directory without a [dotfiles] entry fails and is named`
+
+## harness-dotfiles-preserve — Contenus tiers préservés
+Branche : `feat/harness-dotfiles-preserve` · Commande : `mise run test:acceptance`
+
+### HAR-003 — Les contenus tiers de `~/.claude` et `~/.config/rtk` restent intacts
+- **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-003
+- **Test** : `.config/tests/acceptance/harness-dotfiles.bats` › `HAR-003 third-party content in ~/.claude and ~/.config/rtk is left intact`
