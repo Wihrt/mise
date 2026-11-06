@@ -120,7 +120,7 @@ overwrite`). Sauvegarder, puis laisser mise les remplacer :
 ```sh
 cd ~ && paths=() && for p in .claude/CLAUDE.md .claude/RTK.md .claude/settings.json \
   .claude/agents .claude/hooks .claude/skills .config/rtk; do
-  [ -e "$p" ] && paths+=("$p"); done \
+  if [ -e "$p" ]; then paths+=("$p"); fi; done \
   && tar czf ~/claude-harness-backup.tar.gz "${paths[@]}" \
   && mise dot apply --force
 ```
