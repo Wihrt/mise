@@ -169,7 +169,7 @@ n'existe avant, donc rien à protéger plus tôt.
 ### HAR-005 — Le plugin superpowers est installé s'il manque, et seulement alors
 - **Étant donné** un `claude` factice sur le `PATH` dont `plugin list` omet (ou contient) `superpowers@anthropic-plugin-directory`
 - **Quand** la tâche `claude-plugins` s'exécute
-- **Alors** `claude plugin install superpowers@anthropic-plugin-directory` est appelé exactement une fois (ou jamais) ; sans `claude` sur le `PATH`, la tâche réussit sans l'appeler
+- **Alors** `claude plugin install superpowers@anthropic-plugin-directory` est appelé exactement une fois (ou jamais) ; sans `claude` sur le `PATH`, la tâche réussit sans l'appeler ; si `claude plugin list` échoue, la tâche réussit sans appeler `claude plugin install` et écrit un avertissement sur la sortie d'erreur
 - **Frontière** : tâche `claude-plugins`, `claude` simulé
 
 ### HAR-006 — Rien de personnel ni d'interne versionné
