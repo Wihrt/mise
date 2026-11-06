@@ -71,9 +71,9 @@ Des entrées `[dotfiles]` dans `config.toml`, toutes en `mode = "symlink"` :
 
 L'étape `dotfiles` de `mise bootstrap` pose les liens ; l'étape `tools`
 installe `rtk`, `rtk-proxy` et `bats` ; la tâche `bootstrap` installe ensuite
-le plugin superpowers s'il est absent (`claude plugin install
-superpowers@anthropic-plugin-directory`), et ne fait rien si `claude` est
-absent.
+le plugin superpowers s'il est absent, en appelant la tâche `claude-plugins`
+(`claude plugin install superpowers@anthropic-plugin-directory`), qui ne fait
+rien si `claude` est absent.
 
 Mise à jour : merge de PR puis `git pull` (ou `mise bootstrap --update`), les
 liens pointant déjà vers le checkout.
@@ -116,9 +116,9 @@ Action sur le `$HOME` de l'utilisateur : lancée seulement sur son feu vert.
 1. **Import** : `claude/` et `rtk/` copiés depuis le poste, cette spec, tâche
    `check:harness` (bats + hygiène) en CI (HAR-006).
 2. **Hook `realpath`** dans `claude/hooks/require-worktree.sh` (HAR-002).
-3. **Déploiement** : entrées `[dotfiles]`, `check:harness`, installation du
-   plugin dans `tasks/bootstrap`, README ; `check:harness` gagne les contrôles
-   2 et 3 (HAR-001, HAR-003, HAR-004, HAR-005).
+3. **Déploiement** : entrées `[dotfiles]`, README ; `check:harness` gagne les
+   contrôles 2 et 3 (HAR-001, HAR-003, HAR-004).
+4. **Plugin** : tâche `claude-plugins`, appelée par `bootstrap` (HAR-005).
 
 Le hook réel (`~/.claude/hooks`) ne change qu'à la migration : aucun lien
 n'existe avant, donc rien à protéger plus tôt.
@@ -151,9 +151,9 @@ n'existe avant, donc rien à protéger plus tôt.
 
 ### HAR-005 — Le plugin superpowers est installé s'il manque, et seulement alors
 - **Étant donné** un `claude` factice sur le `PATH` dont `plugin list` omet (ou contient) `superpowers@anthropic-plugin-directory`
-- **Quand** la tâche `bootstrap` s'exécute
+- **Quand** la tâche `claude-plugins` s'exécute
 - **Alors** `claude plugin install superpowers@anthropic-plugin-directory` est appelé exactement une fois (ou jamais) ; sans `claude` sur le `PATH`, la tâche réussit sans l'appeler
-- **Frontière** : tâche `bootstrap`, `claude` simulé
+- **Frontière** : tâche `claude-plugins`, `claude` simulé
 
 ### HAR-006 — Pas de sauvegarde ni de chemin personnel versionnés
 - **Étant donné** un fichier `*.bak*`, ou un fichier contenant `/home/arnaud` hors `claude/skills/*/references/`, sous `claude/` ou `rtk/`
