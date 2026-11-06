@@ -99,6 +99,30 @@ Pour changer la clé :
 fnox set --global OCO_API_KEY
 ```
 
+## Harness Claude Code
+
+Le dépôt versionne le harness : `claude/` (`CLAUDE.md`, `RTK.md`,
+`settings.json`, `agents/`, `hooks/`, `skills/`) et `rtk/` (configuration et
+pipelines de rtk). L'étape `dotfiles` de `mise bootstrap` pose des liens
+symboliques vers le checkout : `~/.claude/…` et `~/.config/rtk/…`. Une mise à
+jour est un `git pull`.
+
+Ajouter un skill : créer `claude/skills/<nom>/`, puis ajouter dans
+`config.toml`, section `[dotfiles]`, la ligne
+`"~/.claude/skills/<nom>" = { source = "claude/skills/<nom>", mode = "symlink" }`
+(un skill = une ligne). `mise run lint:harness` échoue si un skill n'a pas son
+entrée ou si une `source` n'existe pas.
+
+Migrer un poste existant, **avant** `mise bootstrap` : les vrais fichiers de
+`~/.claude` et `~/.config/rtk` bloquent l'étape `dotfiles` (`refusing to
+overwrite`). Sauvegarder, puis laisser mise les remplacer :
+
+```sh
+tar czf ~/claude-harness-backup.tar.gz -C ~ .claude/CLAUDE.md .claude/RTK.md \
+  .claude/settings.json .claude/agents .claude/hooks .claude/skills .config/rtk
+mise dot apply --force
+```
+
 ## rtk
 
 Le `postinstall` de `rtk` lance `rtk init --global --auto-patch` à chaque

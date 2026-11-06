@@ -106,3 +106,32 @@ bash = true
 "~/.bashrc/local-bin" = { line = 'export PATH="$HOME/.local/bin:$PATH"', position = "prepend" }
 # mise exec trouve fnox même si ce bloc précède l'activation de mise.
 "~/.bashrc/fnox" = { block = 'eval "$(mise exec fnox -- fnox activate bash)"' }
+
+# Harness Claude Code et rtk (versionnés dans claude/ et rtk/), tous en symlink.
+# Un skill = une ligne : pas de symlink-each, qui créerait des dossiers réels.
+"~/.claude/CLAUDE.md" = { source = "claude/CLAUDE.md", mode = "symlink" }
+"~/.claude/RTK.md" = { source = "claude/RTK.md", mode = "symlink" }
+"~/.claude/settings.json" = { source = "claude/settings.json", mode = "symlink" }
+"~/.claude/agents" = { source = "claude/agents", mode = "symlink" }
+"~/.claude/hooks" = { source = "claude/hooks", mode = "symlink" }
+"~/.config/rtk/config.toml" = { source = "rtk/config.toml", mode = "symlink" }
+"~/.config/rtk/filters.toml" = { source = "rtk/filters.toml", mode = "symlink" }
+"~/.config/rtk/pipeline.toml" = { source = "rtk/pipeline.toml", mode = "symlink" }
+"~/.config/rtk/pipelines" = { source = "rtk/pipelines", mode = "symlink" }
+"~/.claude/skills/docker-build-strategies" = { source = "claude/skills/docker-build-strategies", mode = "symlink" }
+"~/.claude/skills/dockerfile-restricted" = { source = "claude/skills/dockerfile-restricted", mode = "symlink" }
+"~/.claude/skills/forge-gh" = { source = "claude/skills/forge-gh", mode = "symlink" }
+"~/.claude/skills/forge-glab" = { source = "claude/skills/forge-glab", mode = "symlink" }
+"~/.claude/skills/helm-chart-authoring" = { source = "claude/skills/helm-chart-authoring", mode = "symlink" }
+"~/.claude/skills/helm-render-diff-check" = { source = "claude/skills/helm-render-diff-check", mode = "symlink" }
+"~/.claude/skills/hexagonal-go" = { source = "claude/skills/hexagonal-go", mode = "symlink" }
+"~/.claude/skills/hexagonal-py" = { source = "claude/skills/hexagonal-py", mode = "symlink" }
+"~/.claude/skills/k8s-restricted" = { source = "claude/skills/k8s-restricted", mode = "symlink" }
+"~/.claude/skills/kubernetes-skill" = { source = "claude/skills/kubernetes-skill", mode = "symlink" }
+"~/.claude/skills/opentofu-local" = { source = "claude/skills/opentofu-local", mode = "symlink" }
+"~/.claude/skills/parallel-repo-plan-dispatch" = { source = "claude/skills/parallel-repo-plan-dispatch", mode = "symlink" }
+"~/.claude/skills/readonly-cluster-and-secret-inspection" = { source = "claude/skills/readonly-cluster-and-secret-inspection", mode = "symlink" }
+"~/.claude/skills/repo-tooling" = { source = "claude/skills/repo-tooling", mode = "symlink" }
+"~/.claude/skills/stacked-tdd-mr" = { source = "claude/skills/stacked-tdd-mr", mode = "symlink" }
+"~/.claude/skills/terraform-skill" = { source = "claude/skills/terraform-skill", mode = "symlink" }
+"~/.claude/skills/vault-kv-guarded-write" = { source = "claude/skills/vault-kv-guarded-write", mode = "symlink" }
