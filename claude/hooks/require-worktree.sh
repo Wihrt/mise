@@ -32,6 +32,7 @@ case "$tool" in
   Edit|Write|NotebookEdit)
     path=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<<"$input")
     [ -n "$path" ] || exit 0
+    path=$(realpath -m -- "$path" 2>/dev/null) || exit 0
     dir=$(dirname "$path")
     while [ ! -d "$dir" ] && [ "$dir" != "/" ]; do
       dir=$(dirname "$dir")
