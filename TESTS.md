@@ -31,3 +31,10 @@ Branche : `feat/harness-dotfiles-preserve` · Commande : `mise run test:acceptan
 ### HAR-003 — Les contenus tiers de `~/.claude` et `~/.config/rtk` restent intacts
 - **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-003
 - **Test** : `.config/tests/acceptance/harness-dotfiles.bats` › `HAR-003 third-party content in ~/.claude and ~/.config/rtk is left intact`
+
+## harness-plugin — Installation du plugin superpowers
+Branche : `feat/harness-plugin-2` · Commande : `mise run test:acceptance`
+
+### HAR-005 — Le plugin superpowers est installé s'il manque, et seulement alors
+- **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-005
+- **Test** : `.config/tests/acceptance/harness-plugin.bats` › `HAR-005 plugin absent from claude plugin list: installed exactly once`

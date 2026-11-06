@@ -135,3 +135,6 @@ trivy completion bash
 uv generate-shell-completion bash
 yq shell-completion bash
 EOF
+
+# Plugins Claude Code.
+mise run claude-plugins

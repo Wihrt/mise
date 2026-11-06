@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#MISE description="Installe les plugins Claude Code manquants"
+set -euo pipefail
+
+plugins=(
+  "superpowers@anthropic-plugin-directory"
+)
+
+command -v claude >/dev/null 2>&1 || exit 0
+
+if ! installed="$(claude plugin list 2>/dev/null)"; then
+  echo "claude plugin list a échoué : plugins non vérifiés" >&2
+  exit 0
+fi
+
+for id in "${plugins[@]}"; do
+  if ! awk '{print $NF}' <<<"$installed" | grep -qxF -- "$id"; then
+    claude plugin install "$id"
+  fi
+done
