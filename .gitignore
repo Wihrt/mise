@@ -1,3 +1,13 @@
 # Réglages propres à un poste (proxy, etc.)
 config.local.toml
 *.local.toml
+
+# Rapports par test écrits par les tâches test:* (lus par tdd-gate)
+.tdd/
+
+# Preuves et journaux de session des skills (locaux, jamais versionnés)
+claude/skills/*/references/evidence-*.md
+claude/skills/*/.ledger.jsonl
+claude/skills/*/.sidecar.json.lock
+# Motifs internes à ne pas publier
+.config/harness-denylist.local

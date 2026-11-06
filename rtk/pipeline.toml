@@ -1,0 +1,28 @@
+schema_version = 1
+
+[pipeline]
+extends = ["rtk:proxy", "rtk:delegate-reads"]
+
+# CCR : compression réversible des résultats d'outils (le modèle peut redemander le contenu élidé)
+[override.normalize]
+use = ["ansi", "progress", "dedup", "ccr"]
+
+# Modèle des tâches déléguées : Haiku, avec la clé API d'OpenCommit (fnox).
+# Pas ANTHROPIC_API_KEY : Claude Code basculerait sur la facturation API.
+[upstream.haiku]
+provider    = "anthropic"
+model       = "claude-haiku-5-5"
+api_key_env = "OCO_API_KEY"
+
+[task.bulk-read]
+kind     = "summarize"
+upstream = "haiku"
+
+[task.code-write]
+kind     = "generate"
+upstream = "haiku"
+
+# Lectures entières > 50 lignes : refusées, renvoyées vers bulk-read (Haiku).
+# Les lectures avec offset/limit passent toujours (whole_file = false).
+[override.shunt-large-read]
+when = { file_lines_gt = 50, whole_file = true }

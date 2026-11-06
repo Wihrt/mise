@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+# Deliberate fake secret in a "bad example" of a skill; imported verbatim.
+[[allowlists]]
+description = "intentional bad example in kubernetes-skill"
+paths = ['''claude/skills/kubernetes-skill/references/examples-bad\.md''']

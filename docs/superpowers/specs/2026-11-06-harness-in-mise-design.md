@@ -37,6 +37,15 @@ harness passe par une PR et sa CI ; l'historique git remplace les fichiers
 
 ## Périmètre
 
+Le dépôt est public (`gh repo view Wihrt/mise` : `PUBLIC`) : le harness versionné ne
+contient ni hôte, ni projet, ni chemin propre à un client ou au poste. Les
+traces de fabrication des skills (`references/evidence-*.md`, `.ledger.jsonl`,
+`.sidecar.json.lock`) restent hors dépôt, copiées dans
+`~/.claude/docs/skill-evidence/<skill>/` et ignorées par git. La détection du
+forge ne liste aucun hôte : `github.com` → `gh` ; sinon l'hôte d'`origin` connu
+de `glab auth status` → `glab`, ou de `gh auth status --hostname <hôte>` →
+`gh` ; sinon arrêt.
+
 Versionné : `CLAUDE.md`, `RTK.md`, `settings.json`, `agents/`, `hooks/` (scripts
 et tests bats), les 17 skills locaux, et `~/.config/rtk/{config,filters,pipeline}.toml`
 + `pipelines/`.
@@ -163,8 +172,8 @@ n'existe avant, donc rien à protéger plus tôt.
 - **Alors** `claude plugin install superpowers@anthropic-plugin-directory` est appelé exactement une fois (ou jamais) ; sans `claude` sur le `PATH`, la tâche réussit sans l'appeler
 - **Frontière** : tâche `claude-plugins`, `claude` simulé
 
-### HAR-006 — Pas de sauvegarde ni de chemin personnel versionnés
-- **Étant donné** un fichier `*.bak*`, ou un fichier contenant `/home/arnaud` hors `claude/skills/*/references/`, sous `claude/` ou `rtk/`
+### HAR-006 — Rien de personnel ni d'interne versionné
+- **Étant donné**, sous `claude/` ou `rtk/`, un fichier `*.bak*`, un fichier contenant `/home/arnaud` hors `claude/skills/*/references/`, ou un fichier contenant un motif listé dans le fichier local non versionné `.config/harness-denylist.local` (un motif par ligne)
 - **Quand** `mise run lint:harness` est lancé
-- **Alors** il échoue en nommant le fichier ; sans ces fichiers il réussit
+- **Alors** il échoue en nommant le fichier (sans afficher le motif) ; sans ces fichiers il réussit ; sans `.config/harness-denylist.local`, seuls les deux premiers contrôles s'appliquent et la tâche le signale sur une ligne
 - **Frontière** : tâche mise

@@ -1,0 +1,53 @@
+---
+name: stacked-tdd-mr
+description: Use when executing an implementation plan, after superpowers:writing-plans, in a GitHub or GitLab repo.
+---
+
+Wrapper over superpowers:subagent-driven-development (SDD, validated 6.4.2). Invoke SDD and follow it; the overrides below win. One plan task = one branch = one MR, stacked. Never merge. The orchestrator writes no tests and no production code.
+
+## Overrides to SDD
+1. **Version.** `ls ~/.claude/plugins/cache/*/superpowers/`; not `6.4.2-*`: ledger `Warning: SDD <v> not validated`, re-read these overrides against its SKILL.md.
+2. **Dispatch.** Order per task: acceptance-writer, red gate, implementer, green gate. Both agents: `model: sonnet`, SDD's filled prompt plus slug, ID prefix, criterion IDs, spec path, mise task, worktree, branch. Before every dispatch `git status --short` is empty; else `git stash push -u -m "<slug> attempt <n>"` and ledger it. Task branch: `git switch -c feat/<slug> <branch N-1>` (task 1: `origin/<default>` or the branch the user names; the MR targets the same base).
+3. **Red gate.** `subagent_type: acceptance-writer`; reply `ACCEPTANCE <sha>`: run `~/.claude/agents/bin/tdd-gate red --slug <slug> --test <sha> --task <task> --repo <worktree> --spec <spec> --ac <ID,...>`; quote exit code and last line. `--allow-compile-red` only after a ledgered `Ruling:`. FAIL: finding into fix rounds with the acceptance-writer. PASS: dispatch `subagent_type: implementer` with the acceptance sha.
+4. **Green gate.** Reply `DONE <sha>`: run `~/.claude/agents/bin/tdd-gate green --slug <slug> --test <acceptance sha> --feat <sha> --task <task> --repo <worktree> [--ac-changed <ID,...>]`; quote exit code and last line. FAIL: finding into SDD fix rounds with the implementer. Only then SDD's task review; its dispatch carries `git show --stat --format="%h %s" <acceptance sha> <sha>` and the rubric: is each criterion observable at the boundary? does each acceptance test check the "Alors", and only it? which behaviour-neutral change would break it (any answer is a finding)? did the acceptance-writer depend on implementation details?
+5. **Contested criterion.** `CRITERION-ISSUE <ID>: <reason>`, `TESTS-CHANGE <ID>: <reason>` or a reviewer finding: rule it, ledger `Ruling: <what> - <why> - <cost if wrong>`. Boundary does not exist yet: ruling (a) resume the acceptance-writer with `compile-red permitted`, red with `--allow-compile-red`; or (b) insert a skeleton task before this one. Transcription error: resume the acceptance-writer with the ruling and the old acceptance sha; it rebuilds `test(<slug>): acceptance` from its parent (any `feat` commit is dropped), red again (step 3), then re-dispatch the implementer with the new sha. Criterion change: also ledger `Criterion change: <ID> <old> → <new> — <why>`, the orchestrator edits the spec (the only spec edit it makes), acceptance-writer rebuilds, red again, then green with `--ac-changed <ID>`. Refused: resume the sender with the ruling.
+5b. **Replies.** A reply without a usable sha: take `git rev-parse HEAD` in the worktree, check `git log -1` matches the expected commit type, ledger it. `green` always uses the top slug of the branch (it checks every `TESTS.md` ID); "no behaviour change" tasks pass the top slug's acceptance sha.
+5c. **Characterize.** Plan task field `Mode: characterize` (default `atdd`): already-green behaviour, no implementer. Flow: acceptance-writer (dispatch adds "characterization: tests expected green; replaces <slugs>"; reply `ACCEPTANCE <sha>`), then `subagent_type: mutant-writer` (`model: sonnet`; base = acceptance sha, IDs, spec, worktree, out = `<sdd workspace>/mutants/<slug>/`; reply `MUTANTS <dir>`, `NO-MUTANT <ID>: <reason>` or `BLOCKED <reason>`: rule it), then `~/.claude/agents/bin/tdd-gate characterize --slug <slug> --test <sha> --task <task> --repo <worktree> --spec <spec> --ac <ID,...> --mutants <dir> [--replaces <slug,...>] [--ac-changed <ID,...>]`; quote exit code and last line. Lines `KILLED`, `SURVIVED`, `MUTANT INVALID`, `BASELINE NOT GREEN`, `REPLACED <slug>: <file or ID>`. `SURVIVED <ID>`: ruling, test too weak (resume the acceptance-writer) vs equivalent mutant (resume the mutant-writer); ledger it, re-run. `MUTANT INVALID`: resume the mutant-writer. `BASELINE NOT GREEN` on a new ID = real bug: ruling, that ID switches to ATDD (red gate, implementer, green). `green` takes `--replaces` too. MR body: block "Tests remplacés" from the `REPLACED` lines. Review: transcript check, the mutant-writer read no test path (`TESTS.md` included).
+6. **Models.** Acceptance-writer, implementer, task reviewer, scoped re-reviews: `sonnet` (or `haiku`). Fix rounds 4-5: fresh Sonnet implementer, never a more capable model. Only step 8 may exceed Sonnet.
+7. **Per task, after green and review approved.** Push; open the MR with the forge skill (base = branch N-1; body: criterion IDs with titles, link to the `TESTS.md` section as `<project web_url>/-/blob/<branch>/TESTS.md`, GitHub `/blob/<branch>/TESTS.md`, plus the heading as text; a "Critères modifiés" block on top when any). Start the next task without waiting for CI. Never edit `TESTS.md` yourself.
+8. **End.** Final review: SDD's final whole-branch review, dispatch description `final review <stack>`, `model: opus`, read-only. Each retained remark goes through "Work without a test". Then watch CI of all MRs with Monitor (forge skill). Red: superpowers:systematic-debugging phases 1-3, reproduction = criterion of a fix task, then "Rebase and conflicts".
+9. **Finish.** Do not invoke finishing-a-development-branch. Write the status report listing every `Criterion change:` first, then every `Ruling:` from the ledger, then stop with the MR links. Never merge, never propose lifting a hook.
+10. **Blockers.** `BLOCKED <reason>` and missing tool: rule it (propose adding the tool to `mise.toml`; install nothing outside the repo). Stop for the user only on merge, security-sensitive or irreversible action, plan broken beyond a guess; artifact with numbered options and a recommendation, chat gets link and choice.
+
+## Setup
+1. Worktree for the whole stack: superpowers:using-git-worktrees. Enter it (EnterWorktree, or start the session there) before dispatching any agent; agents `cd <worktree>` at the start of every Bash call (the worktree hook judges commits by the call's cwd).
+2. Forge, run in the repo (`gh` for GitHub, `glab` otherwise; then follow `forge-gh` / `forge-glab` for MRs, CI, status):
+```bash
+host=$(git remote get-url origin | sed -E 's#^[a-z+]+://([^@/]*@)?##; s#^[^@/]*@##; s#[:/].*##' | tr '[:upper:]' '[:lower:]')
+case "$host" in
+  github.com) forge=gh ;;
+  *) if [ -z "$host" ]; then echo "hôte $host inconnu"; exit 1
+     elif glab auth status 2>&1 | grep -qxF "$host"; then forge=glab
+     elif gh auth status --hostname "$host" >/dev/null 2>&1; then forge=gh
+     else echo "hôte $host inconnu"; exit 1; fi ;;
+esac
+```
+Unknown host (or a local-path origin): stop and say so to the user.
+3. Repo not conforming to `repo-tooling` (no `mise.toml` with `setup`/`test`/`check`, no prek config): feature 1 is `chore(tooling)` (see "Work without a test").
+4. No CI pipeline: stop and tell the user. Check GitLab: `glab api projects/:id | jq -r .ci_config_path` and `git ls-files .gitlab-ci.yml`; GitHub: `ls .github/workflows`. An include-only CI counts.
+5. Each plan task = one feature = one slug, one ID prefix, one mise task, one branch.
+
+## Work without a test
+Who does what (the orchestrator still writes nothing):
+- Behaviour change (CI red on a test, behavioural review remark): if the cause is unknown, first superpowers:systematic-debugging phases 1-3 (no red/green, throwaway code); once the root cause is proven, you write the fix criterion (ID + Étant donné/Quand/Alors from the root cause) at the end of the plan's fix task under `## Critères d'acceptation`, and the acceptance-writer transcribes it (steps 3-4 on the faulty branch, `--spec` = the plan file). A wrong test follows step 5, never an in-place edit.
+- Non-behavioural fix (lint, formatting, docs, rename, CI config): the `implementer` alone, brief says "no behaviour change" and the commit type (`fix(ci)`, `refactor`, `docs`); then green mode with the branch's acceptance sha and the new sha.
+- `chore(tooling)`: the `implementer` applies `repo-tooling`, no `TESTS.md` section. Gate: you re-run `mise run check` and `prek run --all-files` (they are read-only) and quote them.
+
+## Rebase and conflicts
+- Base moves during the stack (review on MR N-1): `git rebase --update-refs` from the top, `git push --force-with-lease` each moved branch. Afterwards every test and feat sha above has changed: re-run `tdd-gate green` on each moved branch with its new shas (`git log --format='%h %s' <base>..<branch>`) before pushing.
+- `TESTS.md` carries `merge=union` (`.gitattributes`). If a conflict still occurs, you may keep both sections verbatim (the only allowed `TESTS.md` edit), then re-run green on each moved branch.
+
+## Status report
+On request ("status report", "où en est-on", "topo") and at the end of a stack: one Docs artifact per workstream, updated at the same link. Sections: where we are (MR table read via `gh`/`glab` just before writing), what remains, what awaits a decision, evidence. Chat: short result and link.
+
+Templates: `templates/acceptance-criteria.md` (spec criteria), `templates/TESTS.md`.

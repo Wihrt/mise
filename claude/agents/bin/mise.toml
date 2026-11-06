@@ -1,0 +1,3 @@
+[tasks.test]
+description = "Run the tdd-gate tests"
+run = "uvx --python 3.14 pytest -q tests"

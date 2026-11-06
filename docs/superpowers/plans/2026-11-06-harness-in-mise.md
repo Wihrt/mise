@@ -45,7 +45,8 @@
 - [ ] **Step 1:** copie depuis le poste : `rsync -a --exclude='*.bak*' --exclude=.archive --exclude=synced`, skills = dossiers réels seulement (pas `curl-md`, `find-skills`). Vérifier : `find claude rtk \( -name '*.bak*' -o -type l \) | wc -l` → `0` ; `ls claude/skills | wc -l` → `17`.
 - [ ] **Step 2:** baseline repo-tooling dans `.config/mise.toml` (et non `mise.toml`). Vérifier depuis `/tmp` : `mise tasks ls | grep -c 'test:hooks'` → `0`.
 - [ ] **Step 3:** `mise run check` → code 0, 114 tests bats `ok` ; `prek run --all-files` → code 0 (scoper les hooks qui échouent sur les fichiers importés et nommer l'exclusion dans la PR).
-- [ ] **Step 4:** commit `chore(tooling): outillage du dépôt et import du harness`, PR vers `main`, CI verte.
+- [ ] **Step 4:** commit `chore(tooling): outillage du dépôt et import du harness`.
+- [ ] **Step 5 (généralisation, dépôt public) :** retirer du dépôt `claude/skills/*/references/evidence-*.md`, `claude/skills/*/.ledger.jsonl`, `claude/skills/*/.sidecar.json.lock` et les ignorer dans `.gitignore` ; dans `forge-glab`, `forge-gh`, `stacked-tdd-mr` : aucun hôte en dur, détection `github.com` → gh, sinon hôte d'`origin` connu de `glab auth status` → glab, ou de `gh auth status --hostname <hôte>` → gh, sinon arrêt ; dans `helm-chart-authoring`, `helm-render-diff-check`, `parallel-repo-plan-dispatch` : noms de projets clients remplacés par des termes génériques, sens inchangé. Vérifier : `git grep -ciE '<motifs internes>'` → 0 (motifs fournis hors dépôt). Commit `refactor(harness): skills sans hôte ni projet interne`, PR vers `main`, CI verte.
 
 ### Task 1: Hygiène du harness — branche `feat/harness-hygiene`, slug `harness-hygiene`, préfixe `HAR`
 
@@ -57,7 +58,7 @@
 **Interfaces:**
 - Produces: `mise run lint:harness` — code 0 si propre, sinon non nul avec une ligne `lint:harness: <fichier>: <raison>` par problème. Task 3 y ajoute la cohérence.
 
-- [ ] **Step 1:** `lint:harness` échoue sur tout `*.bak*` sous `claude/`/`rtk/` et tout fichier contenant `/home/arnaud` hors `claude/skills/*/references/`.
+- [ ] **Step 1:** `lint:harness` échoue sur tout `*.bak*` sous `claude/`/`rtk/`, tout fichier contenant `/home/arnaud` hors `claude/skills/*/references/`, et tout fichier contenant un motif de `.config/harness-denylist.local` (gitignoré ; nom du fichier affiché, jamais le motif). `.config/harness-denylist.local` absent : ligne d'avertissement, contrôle ignoré.
 - [ ] **Step 2:** `mise run check` → code 0.
 - [ ] **Step 3:** commit, PR (base `feat/harness-import`).
 

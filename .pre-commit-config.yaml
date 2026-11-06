@@ -1,0 +1,76 @@
+# Template for .pre-commit-config.yaml: append missing hooks to an existing file,
+# keep every existing hook. Hooks run `mise run <task>`; no command logic here.
+default_install_hook_types: [pre-commit, pre-push, commit-msg]
+default_stages: [pre-commit]
+# Imported harness content (skills, agents, rtk) is copied verbatim, not reformatted.
+exclude: ^(claude/(skills|agents)/|rtk/)
+repos:
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: fix-byte-order-marker
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+        exclude: ^claude/hooks/tests/  # bats files carry a shebang and are run by bats
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+  - repo: local
+    hooks:
+      - id: lint-secrets
+        name: lint:secrets
+        entry: mise run lint:secrets
+        language: system
+        pass_filenames: false
+      - id: lint-typos
+        name: lint:typos
+        entry: mise run lint:typos
+        language: system
+        pass_filenames: false
+      - id: lint-editorconfig
+        name: lint:editorconfig
+        entry: mise run lint:editorconfig
+        language: system
+        pass_filenames: false
+      - id: lint-shell
+        name: lint:shell
+        entry: mise run lint:shell
+        language: system
+        pass_filenames: false
+        files: ^(tasks/|claude/hooks/.*\.sh$)
+      - id: lint-ci
+        name: lint:ci
+        entry: mise run lint:ci
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/
+      - id: lint-renovate
+        name: lint:renovate
+        entry: mise run lint:renovate
+        language: system
+        pass_filenames: false
+        files: ^(\.github/|\.gitlab/)?renovate\.json5?$
+      - id: hook-commit-msg
+        name: hook:commit-msg
+        entry: mise run hook:commit-msg
+        language: system
+        pass_filenames: true
+        stages: [commit-msg]
+      - id: test
+        name: test
+        entry: mise run test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
