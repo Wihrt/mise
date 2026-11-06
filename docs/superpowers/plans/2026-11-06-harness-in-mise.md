@@ -119,13 +119,13 @@
 - Modify: `.config/lint-harness.sh`
 - Modify: `claude/skills/k8s-restricted/policy/pss-restricted.rego`, `claude/skills/helm-render-diff-check/scripts/policy-rules.py`
 - Sans test (docs) : `claude/skills/k8s-restricted/SKILL.md` ligne 26 (ResourceQuota : une déclaration requise par un quota CPU/mémoire omise fait refuser le Pod à l'admission ; seul un quota sur une ressource non exigée, comme ephemeral-storage, tolère l'omission)
-- Sans test (outillage) : `test:hooks` et `test:acceptance` écrivent chacun leur rapport, puis fusion dans `.tdd/junit.xml`
+- Sans test (outillage) : `test:hooks` et `test:acceptance` écrivent chacun leur rapport (`test:hooks` → `.tdd/hooks.xml`, `test:acceptance` → `.tdd/junit.xml`, seul lu par `tdd-gate`)
 
 ## Critères d'acceptation
 
-### HAR-007 — L'auteur des tests ne peut pas sortir des dossiers de test par `..` ou par un lien
+### HAR-007 — L'auteur des tests ne peut pas sortir des dossiers de test par `..`, par un lien ou hors du dépôt
 - **Étant donné** le rôle `acceptance-writer` et un dépôt avec `pkg/calc.go` et `pkg/tests/`, dont un lien `pkg/tests/link.go` vers `pkg/calc.go`
-- **Quand** `agent-guard.sh` reçoit un `Edit` dont `file_path` vaut `pkg/tests/../calc.go` ou `pkg/tests/link.go`
+- **Quand** `agent-guard.sh` reçoit un `Edit` dont `file_path` vaut `pkg/tests/../calc.go`, `pkg/tests/link.go`, ou un chemin absolu hors du répertoire de travail de l'appel (par exemple `<autre dossier>/tests/a_test.go` ou `<autre dossier>/TESTS.md`)
 - **Alors** il refuse ; il accepte `pkg/tests/calc_test.go` (fichier ordinaire sous `tests/`)
 - **Frontière** : entrée JSON / sortie du hook
 
