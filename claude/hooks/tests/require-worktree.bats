@@ -42,3 +42,13 @@ decision() {
   [ "$(decide "$HOOKS/require-worktree.sh" <<<"$(j "$W/main/ignored.txt")")" = allow ]
   [ "$(decide "$HOOKS/require-worktree.sh" <<<"$(j "$W/main/other.txt")")" = deny ]
 }
+@test "edit path with .. or a dangling symlink into the main checkout: denied, exit 0" {
+  W=$BATS_FILE_TMPDIR
+  ln -sfn "$W/main/new.txt" "$W/dangling"
+  for p in "$W/wt/../main/f" "$W/dangling"; do
+    j=$(jq -nc --arg c "$W/wt" --arg p "$p" '{tool_name:"Write",cwd:$c,tool_input:{file_path:$p}}')
+    run "$HOOK" <<<"$j"
+    [ "$status" -eq 0 ]
+    [ "$(decision "$j")" = deny ]
+  done
+}
