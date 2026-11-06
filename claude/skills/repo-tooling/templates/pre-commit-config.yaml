@@ -27,7 +27,7 @@ repos:
     hooks:
       - id: lint-secrets
         name: lint:secrets
-        entry: mise run lint:secrets
+        entry: mise run lint:secrets:staged
         language: system
         pass_filenames: false
       - id: lint-typos

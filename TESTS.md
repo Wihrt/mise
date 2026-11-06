@@ -38,3 +38,30 @@ Branche : `feat/harness-plugin-2` · Commande : `mise run test:acceptance`
 ### HAR-005 — Le plugin superpowers est installé s'il manque, et seulement alors
 - **Critère** : `docs/superpowers/specs/2026-11-06-harness-in-mise-design.md` › HAR-005
 - **Test** : `.config/tests/acceptance/harness-plugin.bats` › `HAR-005 plugin absent from claude plugin list: installed exactly once`
+
+## harness-copilot-fixes — Correctifs des remarques Copilot
+Branche : `feat/harness-copilot-fixes` · Commande : `mise run test:acceptance`
+
+### HAR-007 — L'auteur des tests ne peut pas sortir des dossiers de test par `..` ou par un lien
+- **Critère** : `docs/superpowers/plans/2026-11-06-harness-in-mise.md` › HAR-007
+- **Test** : `.config/tests/acceptance/harness-copilot-fixes.bats` › `HAR-007 acceptance-writer editing pkg/tests/../calc.go is refused`
+
+### HAR-008 — Un push forcé reste refusé même accompagné d'un lease
+- **Critère** : `docs/superpowers/plans/2026-11-06-harness-in-mise.md` › HAR-008
+- **Test** : `.config/tests/acceptance/harness-copilot-fixes.bats` › `HAR-008 a forced short-flag publish with a lease is refused`
+
+### HAR-009 — Le hook pre-commit détecte un secret indexé
+- **Critère** : `docs/superpowers/plans/2026-11-06-harness-in-mise.md` › HAR-009
+- **Test** : `.config/tests/acceptance/harness-copilot-fixes.bats` › `HAR-009 the lint-secrets hook task fails on a staged token and passes without it`
+
+### HAR-010 — Les fichiers binaires ne contournent pas `lint:harness`, et le chemin personnel n'est jamais affiché
+- **Critère** : `docs/superpowers/plans/2026-11-06-harness-in-mise.md` › HAR-010
+- **Test** : `.config/tests/acceptance/harness-copilot-fixes.bats` › `HAR-010 a binary file with the personal path fails, is named, and the path is not printed`
+
+### HAR-011 — La politique restricted refuse un Pod nu et un UID 0
+- **Critère** : `docs/superpowers/plans/2026-11-06-harness-in-mise.md` › HAR-011
+- **Test** : `.config/tests/acceptance/harness-copilot-fixes.bats` › `HAR-011 a bare Pod with hostNetwork is refused`
+
+### HAR-012 — Le rapport des règles réseau montre les entités Cilium
+- **Critère** : `docs/superpowers/plans/2026-11-06-harness-in-mise.md` › HAR-012
+- **Test** : `.config/tests/acceptance/harness-copilot-fixes.bats` › `HAR-012 the rules report names the world and cluster entities, not none`

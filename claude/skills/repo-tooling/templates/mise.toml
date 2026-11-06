@@ -41,6 +41,10 @@ depends = ["lint", "test"]
 description = "Scan the tree for secrets"
 run = "gitleaks git --no-banner --redact"  # git history only: `dir` scans ignored .venv/, node_modules/
 
+[tasks."lint:secrets:staged"]
+description = "Scan the staged changes for secrets (pre-commit hook)"
+run = "gitleaks git --staged --no-banner --redact"
+
 [tasks."lint:typos"]
 description = "Spell-check the tree"
 run = "typos"

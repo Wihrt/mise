@@ -22,7 +22,7 @@ Complements the public `lukasniessen/kubernetes-skill@kubernetes-skill` (generic
 - A `PodDisruptionBudget` when `replicas` > 1.
 
 ## Resources
-- A ResourceQuota counts the `requests.*` and `limits.*` declared in pod specs; a pod declaring nothing counts 0. A refusal is `FailedCreate` with `exceeded quota`, not a crash loop.
+- A ResourceQuota counts the `requests.*` and `limits.*` declared in pod specs; a declaration required by a CPU/memory quota that is omitted makes admission refuse the pod; only a quota on a resource that is not required, such as ephemeral-storage, tolerates the omission (the pod counts 0). A refusal is `FailedCreate` with `exceeded quota`, not a crash loop.
 - Size each declared value to the measured floor plus margin for a rolling update (one extra pod starts first). Before editing, read the quota (`kubectl -n <ns> describe resourcequota`) and the declarations of every workload in the namespace; fix them in one pass. A PVC does not relieve an ephemeral-storage quota. Removing a declaration admits the pod at 0 and drops node protection: name that trade-off first.
 
 ## Kustomize and Helm

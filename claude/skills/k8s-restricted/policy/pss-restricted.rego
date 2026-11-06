@@ -6,6 +6,7 @@ package main
 workloads := {"Deployment", "StatefulSet", "DaemonSet", "Job", "ReplicaSet"}
 
 pod_spec := input.spec.template.spec if input.kind in workloads
+pod_spec := input.spec if input.kind == "Pod"
 pod_spec := input.spec.jobTemplate.spec.template.spec if input.kind == "CronJob"
 
 containers contains c if some c in pod_spec.containers
@@ -59,7 +60,7 @@ deny contains msg if {
 deny contains msg if {
 	some c in containers
 	not numeric_uid(c)
-	msg := sprintf("%s/%s container %s: runAsUser must be a numeric uid (pod or container)", [input.kind, input.metadata.name, c.name])
+	msg := sprintf("%s/%s container %s: runAsUser must be a non-zero numeric uid (pod or container)", [input.kind, input.metadata.name, c.name])
 }
 
 deny contains msg if {
@@ -93,8 +94,13 @@ seccomp_ok(c) if {
 	object.get(pod_spec, ["securityContext", "seccompProfile", "type"], "") in {"RuntimeDefault", "Localhost"}
 }
 
-numeric_uid(c) if is_number(object.get(c, ["securityContext", "runAsUser"], null))
+numeric_uid(c) if nonzero_uid(object.get(c, ["securityContext", "runAsUser"], null))
 numeric_uid(c) if {
 	object.get(c, ["securityContext", "runAsUser"], null) == null
-	is_number(object.get(pod_spec, ["securityContext", "runAsUser"], null))
+	nonzero_uid(object.get(pod_spec, ["securityContext", "runAsUser"], null))
+}
+
+nonzero_uid(u) if {
+	is_number(u)
+	u != 0
 }

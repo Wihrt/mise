@@ -4,6 +4,7 @@
 cocogitto = "7.0.0"
 editorconfig-checker = "4.0.2"
 gitleaks = "8.30.1"
+conftest = "0.71.1"
 actionlint = "1.7.12"
 bats = "1.13.0"
 node = "24.22.1"  # lint:renovate runs npx; CI has no global node
@@ -51,6 +52,10 @@ depends = ["lint", "test"]
 description = "Scan the tree for secrets"
 run = "gitleaks git --no-banner --redact"  # git history only: `dir` scans ignored .venv/, node_modules/
 
+[tasks."lint:secrets:staged"]
+description = "Scan the staged changes for secrets (pre-commit hook)"
+run = "gitleaks git --staged --no-banner --redact"
+
 [tasks."lint:typos"]
 description = "Spell-check the tree"
 run = "typos"
@@ -89,8 +94,10 @@ zizmor --offline .github/workflows
 description = "Run the hook bats tests"
 run = """
 mkdir -p .tdd
-bats --report-formatter junit --output .tdd claude/hooks/tests/
-mv .tdd/report.xml .tdd/junit.xml
+mkdir -p .tdd/hooks
+bats --report-formatter junit --output .tdd/hooks claude/hooks/tests/ || rc=$?
+mv .tdd/hooks/report.xml .tdd/hooks.xml
+exit ${rc:-0}
 """
 
 [tasks."test:tdd-gate"]

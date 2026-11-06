@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# PreToolUse hook (Bash): never merge, never force-push without a lease.
+# PreToolUse hook (Bash): never merge, never force-publish (a lease does not excuse -f/--force).
 # Denies `glab mr merge` and `gh pr merge` anywhere, `git merge` on the default
-# branch, and `git push --force`/`-f` unless --force-with-lease is present.
+# branch, and `git push --force`/`-f` even alongside --force-with-lease.
 set -u
 
 input=$(cat)
@@ -48,8 +48,7 @@ while IFS= read -r seg; do
     deny "Merging is never done from here: gh pr merge is blocked. Stop at a green pipeline and hand over the PR link."
   fi
   if grep -Eq "${PREFIX}git( +(-c|-C) +[^ ]+)* +push( |\$)" <<<"$seg"; then
-    if grep -Eq '(^| )(--force|-[[:alpha:]]*f[[:alpha:]]*)( |$)' <<<"$seg" &&
-      ! grep -Eq -- '--force-with-lease' <<<"$seg"; then
+    if grep -Eq '(^| )(--force|-[[:alpha:]]*f[[:alpha:]]*)( |$)' <<<"$seg"; then
       deny "Force pushes are blocked. Use git push --force-with-lease instead."
     fi
     dir=$cwd

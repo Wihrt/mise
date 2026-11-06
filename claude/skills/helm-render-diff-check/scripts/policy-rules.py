@@ -15,6 +15,8 @@ def peers(rule):
             labels = selector.get("matchLabels") or {}
             text = ",".join(f"{k.split('/')[-1]}={v}" for k, v in labels.items())
             out.append(text or "all pods")
+    for key in ("fromEntities", "toEntities"):
+        out += ["entity:" + str(e) for e in rule.get(key) or []]
     for key in ("fromCIDR", "toCIDR"):
         out += rule.get(key) or []
     for fqdn in rule.get("toFQDNs") or []:
