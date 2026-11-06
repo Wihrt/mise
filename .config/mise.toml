@@ -38,6 +38,10 @@ depends = ["lint:*"]
 description = "Run every test:* task"
 depends = ["test:*"]
 
+[tasks."test:acceptance"]
+description = "Acceptance tests (bats), per-test report in .tdd/junit.xml"
+run = "mkdir -p .tdd/acceptance && { bats --report-formatter junit --output .tdd/acceptance .config/tests/acceptance/ || rc=$?; mv .tdd/acceptance/report.xml .tdd/junit.xml; exit ${rc:-0}; }"
+
 [tasks.check]
 description = "lint then test (CI entrypoint)"
 depends = ["lint", "test"]
@@ -67,7 +71,11 @@ run = "npx --yes --package renovate@${RENOVATE_VERSION} -- renovate-config-valid
 
 [tasks."lint:shell"]
 description = "Shellcheck the shell scripts"
-run = "shellcheck tasks/* claude/hooks/*.sh"
+run = "shellcheck tasks/* claude/hooks/*.sh .config/lint-harness.sh"
+
+[tasks."lint:harness"]
+description = "Check the versioned harness for backups, personal paths and denylisted patterns"
+run = ".config/lint-harness.sh"
 
 [tasks."lint:ci"]
 description = "Lint the GitHub Actions workflows"
