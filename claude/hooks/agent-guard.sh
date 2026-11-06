@@ -36,11 +36,19 @@ case "$tool" in
     path=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<<"$input")
     [ -n "$path" ] || exit 0
     case "$path" in /*) ;; *) path=$cwd/$path ;; esac
+    path=$(realpath -m -- "$path" 2>/dev/null) || deny "acceptance-writer: cannot resolve $path."
+    # Only the part below the call's cwd counts: a parent directory named test/ proves nothing.
+    root=$(realpath -m -- "$cwd" 2>/dev/null) || root=$cwd
+    case "$path" in
+      "$root"/*) ;;
+      *) deny "acceptance-writer may only edit files under $root." ;;
+    esac
     base=${path##*/}
     case "$base" in
       TESTS.md|mise.toml|.gitignore|*_test.*|test_*.py|conftest.py|*.tftest.hcl) exit 0 ;;
     esac
-    case "/${path%/*}/" in
+    rel=${path#"$root"/}
+    case "/${rel%/*}/" in
       */test/*|*/tests/*|*/acceptance/*|*/testdata/*) exit 0 ;;
     esac
     deny "acceptance-writer may only edit test files, TESTS.md, mise.toml, .gitignore."

@@ -14,8 +14,8 @@ while IFS= read -r f; do
 done < <(find "${dirs[@]}" -name '*.bak*' -not -path '*/.git/*' | sort)
 
 while IFS= read -r f; do
-  report "$f" "contains /home/arnaud"
-done < <(grep -rIl --exclude-dir=.git -e '/home/arnaud' "${dirs[@]}" 2>/dev/null |
+  report "$f" "contains a personal path"
+done < <(grep -ral --exclude-dir=.git -e '/home/arnaud' "${dirs[@]}" 2>/dev/null |
   grep -v '^claude/skills/[^/]*/references/' | sort || true)
 
 denylist=.config/harness-denylist.local
@@ -25,7 +25,7 @@ if [ -f "$denylist" ]; then
   grep -v '^[[:space:]]*$' "$denylist" >"$patterns" || true
   if [ -s "$patterns" ]; then
     rc=0
-    matches=$(grep -rIl --exclude-dir=.git -E -f "$patterns" "${dirs[@]}" 2>/dev/null | sort) || rc=$?
+    matches=$(grep -ral --exclude-dir=.git -E -f "$patterns" "${dirs[@]}" 2>/dev/null | sort) || rc=$?
     if [ "$rc" -ge 2 ] || { [ "$rc" -eq 1 ] && [ -n "$matches" ]; }; then
       report "$denylist" "invalid pattern or grep error"
     else

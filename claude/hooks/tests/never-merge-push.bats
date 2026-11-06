@@ -22,5 +22,5 @@ check() { [ "$(decision "$(cmd "$2" "$BATS_FILE_TMPDIR/$3")")" = "$1" ]; }
 @test "push on feature" { check allow 'git push' wt; }
 @test "git -C main push" { check deny "git -C $BATS_FILE_TMPDIR/r push" wt; }
 @test "push feat:feat from main" { check allow 'git push origin feat:feat' r; }
-@test "force flag together with --force-with-lease: allowed" { check allow 'git push -f --force-with-lease origin feat' wt; }
+@test "force flag together with --force-with-lease: denied" { check deny 'git push -f --force-with-lease origin feat' wt; }
 @test "force flag without lease: denied" { check deny 'git push -f origin feat' wt; }
