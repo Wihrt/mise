@@ -19,8 +19,10 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import tomllib
 import xml.etree.ElementTree as ET
 from fnmatch import fnmatch
@@ -912,9 +914,51 @@ def gate_characterize(args):
     return ok
 
 
+def killed(args, repo, sha, patch):
+    """Apply the patch on a throwaway worktree of sha and run the tasks: True when a task fails."""
+    tmp = Path(tempfile.mkdtemp(prefix="tdd-replay-"))
+    wt = tmp / "wt"
+    try:
+        git(repo, "worktree", "add", "--detach", str(wt), sha)
+        apply_mutant(wt, patch)
+        os.environ["MISE_TRUSTED_CONFIG_PATHS"] = str(wt)
+        return any(run_mise(wt, t, args.timeout)[0] != 0 for t in args.task.split(","))
+    finally:
+        git(repo, "worktree", "remove", "--force", str(wt))
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def gate_replay(args):
+    repo = Path(args.repo).resolve()
+    ok = True
+    for patch in sorted(Path(args.proofs).glob("*.patch")):
+        name = patch.stem
+        was, now = killed(args, repo, args.base, patch), killed(args, repo, args.head, patch)
+        if was and now:
+            out(f"KEPT {name}")
+        elif not was and not now:
+            out(f"NEVER {name}")
+        elif now:
+            out(f"GAINED {name}")
+        elif name in args.accept_lost:
+            out(f"LOST ACCEPTED {name}")
+        else:
+            out(f"LOST {name}")
+            ok = False
+    return ok
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog="tdd-gate", description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="mode", required=True)
+    p = sub.add_parser("replay")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--base", required=True, metavar="SHA")
+    p.add_argument("--head", required=True, metavar="SHA")
+    p.add_argument("--proofs", required=True, metavar="DIR")
+    p.add_argument("--task", required=True, help="comma list of mise tasks")
+    p.add_argument("--accept-lost", type=lambda v: v.split(","), default=[], metavar="NAME,...")
+    p.add_argument("--timeout", type=int, default=540)
     for mode in ("red", "green", "characterize"):
         p = sub.add_parser(mode)
         p.add_argument("--slug", required=True)
@@ -951,7 +995,7 @@ def main(argv=None):
     if args.mode == "red" and bool(args.spec) != bool(args.ac):
         ap.error("--spec and --ac go together")
     try:
-        ok = {"red": gate_red, "green": gate_green, "characterize": gate_characterize}[args.mode](args)
+        ok = {"red": gate_red, "green": gate_green, "characterize": gate_characterize, "replay": gate_replay}[args.mode](args)
     except GateError as e:
         if str(e) != "no ids":
             out(f"ERROR: {e}")
