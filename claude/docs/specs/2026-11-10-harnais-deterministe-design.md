@@ -197,7 +197,9 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 ### FRM-002 — Un test gardé ne change pas
 - **Étant donné** un fichier de test cité par un slug remplacé (`--replaces`), où le test `X-001`, présent dans `TESTS.md` avant et après, a une ligne modifiée, et où `X-002` est modifié et listé dans `--ac-changed`
 - **Quand** `tdd-gate characterize` est lancé
-- **Alors** la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
+- **Alors**
+  - la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
+  - quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
 - **Cas réel** : comparaison bloc par bloc faite à la main à chaque tâche de l'élagage
 
 ### FRM-003 — Un rapport absent dit quoi faire
