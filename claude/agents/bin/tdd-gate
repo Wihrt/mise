@@ -21,11 +21,14 @@ import os
 import re
 import subprocess
 import sys
+import tomllib
 import xml.etree.ElementTree as ET
+from fnmatch import fnmatch
 from pathlib import Path
 
 # An ID is letters, optional dash, 3+ digits, not followed by an alphanumeric
 # (so TestSHA256Sum and TestHTTP2Handler are legacy names, not IDs).
+WIRING_FILES = (".pre-commit-config.yaml", "lefthook.yml", ".gitlab-ci.yml", ".github/workflows/*")
 ID_RE = r"[A-Z]+-?[0-9]{3,}(?![A-Za-z0-9])"
 NAME_POS = re.compile(r"^\s*(?:func Test|def test_?|- ?it:\s*\"?\[?|it:\s*\"?\[?|run \"|@test \")")
 NAME_POS_SELECT = re.compile(r"^\s*(func Test|def test|- ?it:|it:|run \"|@test \")")
@@ -549,11 +552,41 @@ def check_stability(args, repo, text, before=""):
     return ok
 
 
+def wired_tasks(repo, sha):
+    """Tasks cited by `mise run` in a commit-hook or CI file of the commit, plus their `depends` closure in mise.toml."""
+    _, names = git(repo, "ls-tree", "-r", "--name-only", sha)
+    wired = set()
+    for f in names.splitlines():
+        if any(fnmatch(f, w) for w in WIRING_FILES):
+            for m in re.finditer(r"mise run\s+([\w:.-]+(?:\s+:::\s+[\w:.-]+)*)", git(repo, "show", f"{sha}:{f}")[1]):
+                wired.update(t for t in m.group(1).split() if t != ":::")
+    rc, txt = git(repo, "show", f"{sha}:mise.toml")
+    tasks = tomllib.loads(txt).get("tasks", {}) if rc == 0 else {}
+    todo = list(wired)
+    while todo:
+        deps = tasks.get(todo.pop(), {}).get("depends", [])
+        for d in [deps] if isinstance(deps, str) else deps:
+            if d not in wired:
+                wired.add(d)
+                todo.append(d)
+    return wired
+
+
+def check_wired(repo, sha, text, slug):
+    section = re.search(r"^## " + re.escape(slug) + r"\b.*?(?=^## |\Z)", text, re.M | re.S)
+    cmd = re.search(r"Commande\s*:\s*`mise run ([\w:.-]+)", section.group(0)) if section else None
+    if cmd and cmd.group(1) not in wired_tasks(repo, sha):
+        out(f"NOT WIRED {cmd.group(1)}")
+        return False
+    return True
+
+
 def gate_green(args):
     repo, text, ids, entries, pre = prepare(args)
     before = check_replaces(args, repo)
     ok = check_entries(text, args.slug)
     ok = check_orphans(repo, text, before) and ok
+    ok = check_wired(repo, args.feat, text, args.slug) and ok
     _, head = git(repo, "rev-parse", "HEAD")
     out(f"HEAD {head.strip()} (feat {args.feat})")
     _, tfiles = git(repo, "show", "--name-only", "--format=", args.test)
@@ -663,6 +696,8 @@ def gate_characterize(args):
     if not check_orphans(repo, text, before):
         ok = False
     if not check_acceptance_paths(repo, args.test):
+        ok = False
+    if not check_wired(repo, args.test, text, args.slug):
         ok = False
     _, st = git(repo, "status", "--short")
     if st.strip():
