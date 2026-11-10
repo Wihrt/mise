@@ -39,3 +39,13 @@ def test_RPL002_lossless_replay_passes_and_leaves_nothing(repo, mutants):
     assert out.splitlines()[-1] == "PASS", out
     assert sh(repo, "git", "worktree", "list") == worktrees
     assert sh(repo, "git", "status", "--short") == status
+
+
+def test_RPL001_gained_protection_is_reported(repo, mutants):
+    base, head = stack(repo, NO_GUARD)
+    sh(repo, "git", "checkout", "-q", base)
+    make_patch(repo, mutants, "m-state", {"src/state": "fail\n"})
+    sh(repo, "git", "checkout", "-q", "main")
+    rc, out = replay(repo, head, base, mutants, "test")
+    assert rc == 0 and "GAINED m-state" in out, out
+    assert out.strip().splitlines()[-1] == "PASS", out

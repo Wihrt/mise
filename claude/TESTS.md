@@ -160,7 +160,8 @@ Branche : `feat/rejeu` · Commande : `mise run test`
   - **Alors**
     - la sortie contient `LOST` avec le nom du mutant et se termine par `FAIL`
     - relancé avec `--accept-lost <nom>`, elle contient `LOST ACCEPTED` et se termine par `PASS`
-- **Test** : `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL001_lost_protection_is_reported_then_accepted`
+    - relancé en échangeant `--base` et `--head`, elle contient `GAINED` avec le nom du mutant et se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL001_lost_protection_is_reported_then_accepted` ; `test_RPL001_gained_protection_is_reported`
 
 ### RPL-002 — Un rejeu sans perte passe et ne laisse rien derrière lui
 - **Critère** :
