@@ -920,8 +920,7 @@ def killed(args, repo, sha, patch):
         try:
             git(repo, "worktree", "add", "--detach", str(wt), sha)
             apply_mutant(wt, patch)
-            os.environ["MISE_TRUSTED_CONFIG_PATHS"] = str(wt)
-            return any(run_mise(wt, t, args.timeout)[0] != 0 for t in args.task.split(","))
+            return run_mise(wt, args.task, args.timeout)[0] != 0
         finally:
             git(repo, "worktree", "remove", "--force", str(wt))
 
@@ -938,7 +937,7 @@ def gate_replay(args):
             out(f"NEVER {name}")
         elif now:
             out(f"GAINED {name}")
-        elif name in args.accept_lost:
+        elif name == args.accept_lost:
             out(f"LOST ACCEPTED {name}")
         else:
             out(f"LOST {name}")
@@ -954,8 +953,8 @@ def build_parser():
     p.add_argument("--base", required=True, metavar="SHA")
     p.add_argument("--head", required=True, metavar="SHA")
     p.add_argument("--proofs", required=True, metavar="DIR")
-    p.add_argument("--task", required=True, help="comma list of mise tasks")
-    p.add_argument("--accept-lost", type=lambda v: v.split(","), default=[], metavar="NAME,...")
+    p.add_argument("--task", required=True, help="mise task")
+    p.add_argument("--accept-lost", metavar="NAME")
     p.add_argument("--timeout", type=int, default=540)
     for mode in ("red", "green", "characterize"):
         p = sub.add_parser(mode)
