@@ -926,7 +926,7 @@ def build_parser():
             p.add_argument("--replaces", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of slugs whose test files and TESTS.md sections may be changed or removed")
         if mode == "green":
             p.add_argument("--proofs", metavar="DIR", help="directory of proofs, run on the feat commit")
-            p.add_argument("--unneeded-ok", action="extend", type=lambda v: v.split(","), default=[], metavar="FILE:START-END", help="added block accepted although no test needs it (repeatable or comma list)")
+            p.add_argument("--unneeded-ok", action="append", default=[], metavar="FILE:START-END", help="added block accepted although no test needs it (repeatable)")
             p.add_argument("--proof-exempt", action="store_true", help="exempt from proofs")
             p.add_argument("--feat", required=True, metavar="SHA")
         p.add_argument("--task", required=True)
