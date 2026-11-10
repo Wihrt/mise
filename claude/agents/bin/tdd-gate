@@ -389,9 +389,8 @@ def check_criteria(args, repo, ids):
     out("CRITERIA: " + " ".join(crit))
     spec_n, ac_n, sec_n = ({norm(i) for i in x} for x in (crit, args.ac, ids))
     ok = True
-    rel = sp.relative_to(repo) if sp.is_relative_to(repo) else None
-    if rel and git(repo, "status", "--short", "--", str(rel))[1].strip():
-        out(f"SPEC NOT COMMITTED {rel}")
+    if git(repo, "status", "--short", "--", str(sp))[1].strip():
+        out(f"SPEC NOT COMMITTED {args.spec}")
         ok = False
     for i in args.ac:
         if norm(i) not in spec_n:
