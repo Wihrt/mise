@@ -179,6 +179,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - la sortie contient `UNNEEDED` avec le fichier et les lignes du second bloc, aucune ligne `UNNEEDED` pour le premier, et se termine par `FAIL`
   - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
+  - quand le commit `feat` supprime aussi une ligne existante d'un fichier de production et ajoute un fichier de test, aucune ligne `UNNEEDED` ne nomme la suppression ni le fichier de test
 - **Cas réel** : demande du 10/11, « une étape de refactor (comme en vrai TDD), pour réduire le code à son strict minimum », option 2 retenue (preuve par retrait dans la porte)
 
 ### FRM-001 — Le critère est écrit en toutes lettres dans l'entrée
