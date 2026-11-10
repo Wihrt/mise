@@ -802,9 +802,10 @@ def run_proofs(args, repo, text, ids, scope):
             ok = False
             continue
         problem, res, st = run_patch(args, repo, patch, "NEUTRAL", i, i)
-        failed = [c for c in res.get(norm(i), []) if c[1] == "fail"]
-        if problem:
-            out(f"NEUTRAL INVALID {i}: {problem}")
+        cases = res.get(norm(i), [])
+        failed = [c for c in cases if c[1] == "fail"]
+        if problem or not cases:
+            out(f"NEUTRAL INVALID {i}: {problem or 'no result'}")
             ok = False
         elif failed:
             out(f"BRITTLE {i}: {failed[0][0]}")
