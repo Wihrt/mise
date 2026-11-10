@@ -827,7 +827,7 @@ def added_blocks(repo, test, feat):
     blocks, path = [], None
     for line in diff.splitlines():
         if line.startswith("+++ "):
-            path = line[6:] if line.startswith("+++ b/") else None
+            path = line[6:]
         elif path and not is_test_path(path) and (m := re.match(r"@@ -\S+ \+(\d+)(?:,(\d+))? @@", line)):
             start, count = int(m.group(1)), int(m.group(2) or 1)
             if count:
@@ -842,10 +842,8 @@ def run_minimal(args, repo):
         tag = f"{path}:{start}-{end}"
         lines = (repo / path).read_text().splitlines(keepends=True)
         (repo / path).write_text("".join(lines[: start - 1] + lines[end:]))
-        try:
-            rc, _, rep = run_task_and_report(args, repo)
-        finally:
-            restore_tree(repo, [])
+        rc, _, rep = run_task_and_report(args, repo)
+        restore_tree(repo, [])
         if rc != 0 or rep.state != "ok":
             continue
         if tag in args.unneeded_ok:
