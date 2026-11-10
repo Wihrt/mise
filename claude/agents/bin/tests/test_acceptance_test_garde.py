@@ -21,3 +21,13 @@ def test_FRM002_kept_test_modified_is_reported(repo, mutants):
     assert any("KEPT TEST MODIFIED" in ln and "p_test.go" in ln and "CALC-001" in ln for ln in lines), out
     assert not [ln for ln in lines if "KEPT TEST MODIFIED" in ln and "CALC-002" in ln], out
     assert lines[-1] == "FAIL", out
+
+
+def test_FRM002_test_appended_after_kept_test_is_not_reported(repo, mutants):
+    # CALC-001 (kept, not listed) is the last test of p_test.go; the acceptance commit appends CALC-002 after a blank line.
+    base = "package x\nfunc TestCALC001_A(t *testing.T) {}\n"
+    appended = base + "\nfunc TestCALC002_B(t *testing.T) {}\n"
+    sha = char_setup(repo, md=KEPT_MD, files={"p_test.go": base}, acc_files={"p_test.go": appended})
+    make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n"})
+    rc, out = char(repo, sha, mutants, "--replaces", "pow", "--ac-changed", "CALC-002")
+    assert not [ln for ln in out.splitlines() if "KEPT TEST MODIFIED" in ln], out
