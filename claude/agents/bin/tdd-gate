@@ -735,10 +735,10 @@ def clause_count(entry_text):
 
 
 def run_patch(args, repo, patch, kind, tag, i):
-    """Apply the patch, run the task, restore the tree. Returns (problem, cases of i, tree status)."""
+    """Apply the patch, run the task, restore the tree. Returns (problem, results by criterion, tree status)."""
     problem = mutant_problem(repo, patch, args.task)
     if problem:
-        return problem, [], ""
+        return problem, {}, ""
     created = apply_mutant(repo, patch)
     try:
         out(f"{kind} {tag}: patch applied")
@@ -748,12 +748,18 @@ def run_patch(args, repo, patch, kind, tag, i):
     finally:
         restore_tree(repo, created)
     _, st = git(repo, "status", "--short")
-    return None, results_by_id(rep).get(norm(i), []), st.strip()
+    return None, results_by_id(rep), st.strip()
 
 
-def run_proofs(args, repo, text, ids):
+def redundant(kills):
+    """[(A, B)]: every mutant of A also fails a test of the other criterion B. kills: {A: [failed criteria per mutant]}."""
+    return [(a, b) for a, per_mutant in kills.items() for b in sorted(set.intersection(*per_mutant) - {a})]
+
+
+def run_proofs(args, repo, text, ids, scope):
     """True when every proof holds, False when one fails, None when the tree is left dirty."""
     ok = True
+    kills = {}
     proofs = Path(args.proofs).resolve()
     for i in ids:
         for clause in range(1, clause_count(entry_text(text, i)) + 1):
@@ -763,13 +769,16 @@ def run_proofs(args, repo, text, ids):
                 out(f"MUTANT MISSING {tag}")
                 ok = False
                 continue
-            problem, cases, st = run_patch(args, repo, patch, "MUTANT", tag, i)
+            problem, res, st = run_patch(args, repo, patch, "MUTANT", tag, i)
+            cases = res.get(norm(i), [])
             failed = [c for c in cases if c[1] == "fail"]
             if problem:
                 out(f"MUTANT INVALID {tag}: {problem}")
                 ok = False
             elif failed:
                 out(f"KILLED {tag}: {failed[0][0]}")
+                kills.setdefault(norm(i), []).append(
+                    {n for n, c in res.items() if n in scope and any(x[1] == "fail" for x in c)})
             elif cases:
                 out(f"SURVIVED {tag}")
                 ok = False
@@ -784,8 +793,8 @@ def run_proofs(args, repo, text, ids):
             out(f"NEUTRAL MISSING {i}")
             ok = False
             continue
-        problem, cases, st = run_patch(args, repo, patch, "NEUTRAL", i, i)
-        failed = [c for c in cases if c[1] == "fail"]
+        problem, res, st = run_patch(args, repo, patch, "NEUTRAL", i, i)
+        failed = [c for c in res.get(norm(i), []) if c[1] == "fail"]
         if problem:
             out(f"NEUTRAL INVALID {i}: {problem}")
             ok = False
@@ -797,6 +806,10 @@ def run_proofs(args, repo, text, ids):
         if st:
             out(f"TREE NOT CLEAN after {i} neutral:\n" + st)
             return None
+    labels = id_labels(text)
+    for a, b in redundant(kills):
+        out(f"REDUNDANT {labels[a]}: covered by {labels[b]}")
+        ok = False
     return ok
 
 
@@ -840,7 +853,7 @@ def gate_characterize(args):
             green = False
     if not green:
         return False
-    proved = run_proofs(args, repo, text, args.ac)
+    proved = run_proofs(args, repo, text, args.ac, set(all_ids(text)) - set(skipped))
     if proved is None:
         return False
     ok = ok and proved
