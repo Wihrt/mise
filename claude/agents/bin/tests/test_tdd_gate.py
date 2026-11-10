@@ -172,6 +172,9 @@ def sh(repo, *cmd):
 
 
 def commit(repo, files, msg):
+    if subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"], cwd=repo, capture_output=True).returncode:
+        # first commit: the judged task is wired in a commit hook unless set_wiring() says otherwise
+        files = {**FIRST_WIRING.get(str(repo), {".pre-commit-config.yaml": precommit("test")}), **files}
     for name, content in files.items():
         p = repo / name
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -189,10 +192,10 @@ def task_script(report, rc=None, extra=""):
     return body + f"exit {rc}\n"
 
 
-def mise_toml(check_rc=0, tools=""):
+def mise_toml(check_rc=0, tools="", task="test", check_depends=None):
     return (
-        f"[tools]\n{tools}\n[tasks.test]\nrun = \"sh run_test.sh\"\n"
-        f"[tasks.check]\nrun = \"exit {check_rc}\"\n"
+        f"[tools]\n{tools}\n[tasks.\"{task}\"]\nrun = \"sh run_test.sh\"\n"
+        f"[tasks.check]\n{f'depends = [\"{check_depends}\"]' + chr(10) if check_depends else ''}run = \"exit {check_rc}\"\n"
     )
 
 
@@ -211,6 +214,23 @@ GO_TESTS = (
     "func TestCALC002_B(t *testing.T) { Div() }\n"
     "func TestCALC003_C(t *testing.T) {}\n"
 )
+
+
+def precommit(*tasks):
+    """A .pre-commit-config.yaml whose local hooks cite `mise run <task>` for each task."""
+    hooks = "".join(
+        f"      - id: h{i}\n        name: h{i}\n        entry: mise run {t}\n        language: system\n        pass_filenames: false\n"
+        for i, t in enumerate(tasks)
+    )
+    return f"repos:\n  - repo: local\n    hooks:\n{hooks}"
+
+
+FIRST_WIRING = {}  # str(repo) -> wiring files of the repo's first commit (default: a hook citing `mise run test`)
+
+
+def set_wiring(repo, files):
+    """Choose the wiring files the repo's first commit carries; call before the setup. Files not given are absent."""
+    FIRST_WIRING[str(repo)] = files
 
 
 @pytest.fixture
@@ -306,8 +326,8 @@ def test_no_ids_and_usage_errors(repo):
     assert p.returncode == 2
 
 
-def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=None, md=TESTS_MD):
-    test_sha = base_commit(repo, junit(("TestCALC003_C", "fail")), md=md)
+def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=None, md=TESTS_MD, task="test", check_depends=None):
+    test_sha = base_commit(repo, junit(("TestCALC003_C", "fail")), md=md, mise=mise_toml(task=task, check_depends=check_depends))
     files = dict(feat_files or {})
     files["green.xml"] = feat_report or junit(("TestCALC001_A", "pass"), ("TestCALC002_B", "pass"), ("TestCALC003_C", "pass"))
     if feat_mise:
@@ -588,11 +608,11 @@ CHAR_REPORTS = {
 }
 
 
-def char_setup(repo, state="pass", md=None, task=None):
+def char_setup(repo, state="pass", md=None, task=None, mise_task="test"):
     """Base commit (pow's tests, task, spec, src/state), then an acceptance commit whose tests are already green."""
     pow_md = STAB_MD[: STAB_MD.index("## div")]
     commit(repo, {"run_test.sh": task or CHAR_TASK, "spec.md": SPEC, "src/state": state + "\n", "src/note.txt": "note\n",
-                  ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise_toml()}, "base")
+                  ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise_toml(task=mise_task)}, "base")
     return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS}, "test(div): acceptance")
 
 

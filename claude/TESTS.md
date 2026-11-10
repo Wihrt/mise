@@ -23,3 +23,16 @@ Branche : `feat/forme` · Commande : `mise run test`
   - **Quand** `tdd-gate red` ou `characterize` est lancé avec `--spec`
   - **Alors** la sortie contient `SPEC NOT COMMITTED` et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_forme.py` › `test_FRM005_red_spec_not_committed` ; `agents/bin/tests/test_acceptance_forme.py` › `test_FRM005_characterize_spec_not_committed`
+
+## branchement — Branchement de la tâche de test
+Branche : `feat/branchement` · Commande : `mise run test`
+
+### FRM-004 — La tâche de test tourne quelque part
+- **Critère** :
+  - **Étant donné** un slug dont la `Commande` est `mise run test:render`, tâche citée par aucun hook de commit ni job CI du dépôt, ni dépendance d'une tâche qui l'est
+  - **Quand** `tdd-gate characterize` ou `green` est lancé
+  - **Alors**
+    - la sortie contient `NOT WIRED test:render` et se termine par `FAIL`
+    - une fois la tâche citée dans `.pre-commit-config.yaml` ou `.gitlab-ci.yml`, la ligne `NOT WIRED` n'apparaît plus
+    - quand le hook ne cite que `mise run check` et que `test:render` est une dépendance (`depends`) de `check` dans `mise.toml`, la ligne `NOT WIRED` n'apparaît pas
+- **Test** : `agents/bin/tests/test_acceptance_branchement.py` › `test_FRM004_green_task_not_wired` ; `agents/bin/tests/test_acceptance_branchement.py` › `test_FRM004_characterize_task_not_wired` ; `agents/bin/tests/test_acceptance_branchement.py` › `test_FRM004_green_task_wired` ; `agents/bin/tests/test_acceptance_branchement.py` › `test_FRM004_characterize_task_wired` ; `agents/bin/tests/test_acceptance_branchement.py` › `test_FRM004_green_task_wired_by_dependency`
