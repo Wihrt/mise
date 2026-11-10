@@ -670,8 +670,13 @@ def mise_problem(repo, patch, task):
     """Reason why the patch changes mise.toml outside the allowed tasks, or None."""
     table = None
     old = (repo / "mise.toml").read_text().splitlines()
+    in_file = False
     for line in patch.read_text().splitlines():
-        if m := re.match(r"@@ -(\d+)", line):
+        if line.startswith("diff --git "):
+            in_file = line.endswith(" b/mise.toml")
+        elif not in_file:
+            continue
+        elif m := re.match(r"@@ -(\d+)", line):
             for prev in old[: int(m.group(1)) - 1]:
                 table = table_of(prev, table)
         elif line[:1] in " +-":
