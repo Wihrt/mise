@@ -227,6 +227,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - la sortie contient `LOST` avec le nom du mutant et se termine par `FAIL`
   - relancé avec `--accept-lost <nom>`, elle contient `LOST ACCEPTED` et se termine par `PASS`
+  - relancé en échangeant `--base` et `--head`, elle contient `GAINED` avec le nom du mutant et se termine par `PASS`
 - **Cas réel** : un chart, test retiré à tort (ExternalSecret et Deployment) ; pertes dans quatre charts sur cinq
 
 ### RPL-002 — Un rejeu sans perte passe et ne laisse rien derrière lui
