@@ -338,10 +338,13 @@ def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=N
     return test_sha, commit(repo, files, "feat(div)")
 
 
-def run_green(repo, t, f, exempt=True, proofs=None, neutral=True, ac="CALC-003"):
+def run_green(repo, t, f, exempt=True, proofs=None, neutral=True, ac="CALC-003", unneeded_ok=()):
     """Run green. By default --proof-exempt; exempt=False drops it; proofs=<dir> adds --proofs <dir>, the directory
-    being prepared as char does (valid neutral changes for each criterion of ac, see prepare_proofs)."""
+    being prepared as char does (valid neutral changes for each criterion of ac, see prepare_proofs);
+    unneeded_ok: blocks (<file>:<start>-<end>) passed each as --unneeded-ok."""
     extra = []
+    for block in unneeded_ok:
+        extra += ["--unneeded-ok", block]
     if proofs is not None:
         prepare_proofs(repo, proofs, neutral, ac)
         extra += ["--proofs", str(proofs)]

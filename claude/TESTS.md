@@ -116,3 +116,15 @@ Branche : `feat/preuves-nouveau` · Commande : `mise run test`
     - relancé avec `--proofs`, un test qui échoue sous son mutant et passe sous son changement neutre, elle contient `KILLED` et `NEUTRAL OK` pour le critère, aucune ligne `SURVIVED`, et se termine par `PASS`
     - relancé avec `--proof-exempt`, aucun mutant n'est appliqué et elle se termine par `PASS`
 - **Test** : `agents/bin/tests/test_acceptance_preuves_nouveau.py` › `test_PRV007_missing_proofs_option_fails` ; `…` › `test_PRV007_surviving_mutant_fails` ; `…` › `test_PRV007_killed_mutant_and_neutral_change_pass` ; `…` › `test_PRV007_proof_exempt_applies_no_mutant`
+
+## code-minimal — Code minimal : un bloc qu'aucun test ne demande est refusé
+Branche : `feat/code-minimal` · Commande : `mise run test`
+
+### PRV-009 — Un bloc de code qu'aucun test ne demande est refusé
+- **Critère** :
+  - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, deux blocs séparés : l'un sans lequel le test du critère échoue, l'autre dont le retrait laisse tous les tests verts
+  - **Quand** `tdd-gate green --proofs` est lancé
+  - **Alors**
+    - la sortie contient `UNNEEDED` avec le fichier et les lignes du second bloc, aucune ligne `UNNEEDED` pour le premier, et se termine par `FAIL`
+    - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_block_is_refused` ; `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_ok_accepts_the_block`
