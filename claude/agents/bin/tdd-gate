@@ -645,6 +645,12 @@ def gate_green(args):
     if crc != 0:
         out("CHECK FAILED")
         ok = False
+    if args.proofs:
+        if not run_proofs(args, repo, text, ids, ids_all - set(skipped)):
+            ok = False
+    elif not args.proof_exempt:
+        out("PROOF MISSING: --proofs DIR or --proof-exempt")
+        ok = False
     return ok
 
 
@@ -884,8 +890,8 @@ def build_parser():
             p.add_argument("--ac-changed", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of criteria IDs whose test files may change")
             p.add_argument("--replaces", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of slugs whose test files and TESTS.md sections may be changed or removed")
         if mode == "green":
-            p.add_argument("--proofs", metavar="DIR", help="directory of proofs (no effect yet)")
-            p.add_argument("--proof-exempt", action="store_true", help="exempt from proofs (no effect yet)")
+            p.add_argument("--proofs", metavar="DIR", help="directory of proofs, run on the feat commit")
+            p.add_argument("--proof-exempt", action="store_true", help="exempt from proofs")
             p.add_argument("--feat", required=True, metavar="SHA")
         p.add_argument("--task", required=True)
         p.add_argument("--repo", default=".")
