@@ -25,6 +25,7 @@ depends = ["lint:*"]
 
 # The repo owns the test:<ns> tasks (test:go, test:py, ...); `test` runs them all.
 # Each test:<ns> also writes a per-test report under .tdd/ (gitignored, see templates/gitignore):
+# `check` runs its dependencies in parallel: each test:<ns> writes its JUnit report and its temporary files to paths of its own (for example .tdd/junit-<ns>.xml, passed with `--report` to tdd-gate), never a file another test task also writes.
 #   go:   mkdir -p .tdd && gotestsum --junitfile .tdd/junit.xml -- ./...   (gotestsum in [tools])
 #   py:   uv run pytest --junitxml=.tdd/junit.xml
 #   helm: mkdir -p .tdd && helm unittest -t JUnit -o .tdd/junit.xml <chart>
