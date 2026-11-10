@@ -127,4 +127,5 @@ Branche : `feat/code-minimal` · Commande : `mise run test`
   - **Alors**
     - la sortie contient `UNNEEDED` avec le fichier et les lignes du second bloc, aucune ligne `UNNEEDED` pour le premier, et se termine par `FAIL`
     - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
-- **Test** : `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_block_is_refused` ; `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_ok_accepts_the_block`
+    - quand le commit `feat` supprime aussi une ligne existante d'un fichier de production et ajoute un fichier de test, aucune ligne `UNNEEDED` ne nomme la suppression ni le fichier de test
+- **Test** : `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_block_is_refused` ; `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_ok_accepts_the_block` ; `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_deletion_and_test_file_are_not_judged`

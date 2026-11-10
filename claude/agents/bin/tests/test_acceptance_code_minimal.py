@@ -44,3 +44,16 @@ def test_PRV009_unneeded_ok_accepts_the_block(repo, mutants):
     assert any(line.startswith(f"UNNEEDED ACCEPTED {UNNEEDED_BLOCK}") for line in lines), out
     assert all(line.startswith("UNNEEDED ACCEPTED ") for line in lines), out
     assert out.splitlines()[-1] == "PASS", out
+
+
+def test_PRV009_deletion_and_test_file_are_not_judged(repo, mutants):
+    # Base has an extra line "old" (line 3) that the feat commit deletes; the added blocks are line 2 ("needed")
+    # and line 5 ("extra"); a test file is added too and the task never reads it.
+    t = char_setup(repo, files={PROD: "header\nmiddle\nold\ntail\n"}, task=NEEDED_TASK)
+    f = commit(repo, {PROD: "header\nneeded\nmiddle\ntail\nextra\n", "tests/test_extra.py": "def test_x():\n    pass\n"},
+               "feat(div)")
+    make_patch(repo, mutants, "CALC-003", {PROD: "header\nmiddle\ntail\nextra\n"})
+    block = f"{PROD}:5-5"
+    rc, out = run_green(repo, t, f, exempt=False, proofs=mutants, unneeded_ok=[block])
+    assert [line for line in out.splitlines() if line.startswith("UNNEEDED")] == [f"UNNEEDED ACCEPTED {block}"], out
+    assert out.splitlines()[-1] == "PASS", out
