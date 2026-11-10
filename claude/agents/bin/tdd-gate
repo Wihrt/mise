@@ -140,6 +140,29 @@ def incomplete_headings(text):
     return res
 
 
+def incomplete_entries(text, slug):
+    res, inside, cur, seen = [], False, None, set()
+    for line in text.splitlines() + ["## "]:
+        if line.startswith("#"):
+            if cur and len(seen) < 3:
+                res.append(cur)
+            cur, seen = None, set()
+            if line.startswith("## "):
+                inside = line.split()[1:2] == [slug]
+            elif inside:
+                cur = line.split()[1].rstrip(":")
+        else:
+            seen |= {k for k in ("Étant donné", "Quand", "Alors") if f"**{k}**" in line}
+    return res
+
+
+def check_entries(text, slug):
+    ids = incomplete_entries(text, slug)
+    for i in ids:
+        out(f"INCOMPLETE {i}: Étant donné/Quand/Alors manquant")
+    return not ids
+
+
 def test_files(text, repo):
     files = set()
     for line in text.splitlines():
@@ -318,7 +341,10 @@ def run_task_and_report(args, repo):
     rp = path(fmt)
     loader = load_tofu_json if fmt == "tofu-json" else load_junit
     rep = loader(rp)
-    out(f"REPORT {rp}: {rep.state}, {len(rep.cases)} testcases")
+    if rep.state == "missing":
+        out(f"REPORT missing: {args.task} n'a pas écrit {args.report or DEFAULT_REPORT[fmt]}")
+    else:
+        out(f"REPORT {rp}: {rep.state}, {len(rep.cases)} testcases")
     return rc, output, rep
 
 
@@ -363,6 +389,10 @@ def check_criteria(args, repo, ids):
     out("CRITERIA: " + " ".join(crit))
     spec_n, ac_n, sec_n = ({norm(i) for i in x} for x in (crit, args.ac, ids))
     ok = True
+    rel = sp.relative_to(repo) if sp.is_relative_to(repo) else None
+    if rel and git(repo, "status", "--short", "--", str(rel))[1].strip():
+        out(f"SPEC NOT COMMITTED {rel}")
+        ok = False
     for i in args.ac:
         if norm(i) not in spec_n:
             out(f"NOT IN SPEC {i}")
@@ -379,10 +409,10 @@ def check_criteria(args, repo, ids):
 
 def gate_red(args):
     repo, text, ids, entries, pre = prepare(args)
-    ok = True
+    ok = check_entries(text, args.slug)
     acceptance = bool(args.spec)
     if acceptance:
-        ok = check_criteria(args, repo, ids)
+        ok = check_criteria(args, repo, ids) and ok
         if not check_acceptance_paths(repo, args.test):
             ok = False
     names = {e.cand for e in entries if e.cand}
@@ -523,7 +553,8 @@ def check_stability(args, repo, text, before=""):
 def gate_green(args):
     repo, text, ids, entries, pre = prepare(args)
     before = check_replaces(args, repo)
-    ok = check_orphans(repo, text, before)
+    ok = check_entries(text, args.slug)
+    ok = check_orphans(repo, text, before) and ok
     _, head = git(repo, "rev-parse", "HEAD")
     out(f"HEAD {head.strip()} (feat {args.feat})")
     _, tfiles = git(repo, "show", "--name-only", "--format=", args.test)
@@ -628,7 +659,8 @@ def mutant_problem(repo, patch):
 def gate_characterize(args):
     repo, text, ids, entries, pre = prepare(args)
     before = check_replaces(args, repo)
-    ok = check_criteria(args, repo, ids)
+    ok = check_entries(text, args.slug)
+    ok = check_criteria(args, repo, ids) and ok
     if not check_orphans(repo, text, before):
         ok = False
     if not check_acceptance_paths(repo, args.test):
