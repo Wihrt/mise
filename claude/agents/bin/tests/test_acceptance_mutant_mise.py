@@ -24,11 +24,11 @@ MISE = (
 )
 
 
-def judge(repo, mutants, mutated_mise):
+def judge(repo, mutants, mutated_mise=None, files=None, patch=None):
     set_wiring(repo, {".pre-commit-config.yaml": precommit(TASK)})
     md = STAB_MD.replace("Commande : `mise run test`", f"Commande : `mise run {TASK}`")
-    sha = char_setup(repo, md=md, mise_task=TASK, mise=MISE)
-    make_patch(repo, mutants, "CALC-003", {"mise.toml": mutated_mise})
+    sha = char_setup(repo, md=md, mise_task=TASK, mise=MISE, files=files)
+    make_patch(repo, mutants, "CALC-003", patch or {"mise.toml": mutated_mise})
     return gate(repo, "characterize", "--slug", "div", "--test", sha, "--task", TASK, "--spec", "spec.md",
                 "--ac", "CALC-003", "--mutants", str(mutants))
 
@@ -41,3 +41,19 @@ def test_PRV008_mutant_of_code_task_is_judged(repo, mutants):
 def test_PRV008_mutant_of_test_task_is_refused(repo, mutants):
     rc, out = judge(repo, mutants, MISE.replace(JUDGE, body("sh run_test.sh && true")))
     assert re.search(r"^MUTANT INVALID CALC-003.*touches test task test:bootstrap", out, re.M), out
+
+
+# Another file whose mutated line number is, in mise.toml, a line of the body of test:bootstrap.
+OTHER = "".join(f"line {i}\n" for i in range(1, 31))
+
+
+def test_PRV008_mutant_of_other_file_is_judged(repo, mutants):
+    lines = MISE.splitlines()
+    first = lines.index('[tasks."test:bootstrap"]') + 3  # 1-based number of the first body line
+    last = first + JUDGE.count("\n") - 1
+    n = first + 5  # mutated line: number inside the body of test:bootstrap
+    assert first <= n <= last and n <= len(OTHER.splitlines()), (first, last, n)
+    mutated = OTHER.replace(f"line {n}\n", f"mutated {n}\n")
+    rc, out = judge(repo, mutants, files={"src/code.txt": OTHER}, patch={"src/code.txt": mutated})
+    assert re.search(r"^(KILLED|SURVIVED) CALC-003", out, re.M), out
+    assert "MUTANT INVALID" not in out, out

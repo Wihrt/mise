@@ -47,4 +47,5 @@ Branche : `feat/mutant-mise` · Commande : `mise run test`
   - **Alors**
     - le premier est appliqué et jugé (`KILLED` ou `SURVIVED`)
     - le second est refusé par `MUTANT INVALID … touches test task test:bootstrap`
-- **Test** : `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_code_task_is_judged` ; `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_test_task_is_refused`
+    - un mutant d'un autre fichier que `mise.toml`, dont le hunk porte sur des numéros de ligne qui sont, dans `mise.toml`, ceux du corps de `test:bootstrap`, est appliqué et jugé (`KILLED` ou `SURVIVED`)
+- **Test** : `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_code_task_is_judged` ; `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_test_task_is_refused` ; `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_other_file_is_judged`
