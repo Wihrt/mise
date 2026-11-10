@@ -206,7 +206,7 @@ def scan_tests(repo, files, rev=None):
             stripped = NAME_POS.sub("", lines[i], count=1)
             m = re.match(ID_RE, stripped)
             cand = m.group(0).replace("-", "") if m else None
-            entries.append(Entry(f, i + 1, cand, "\n".join(lines[i:end])))
+            entries.append(Entry(f, i + 1, cand, "\n".join(lines[i:end]).rstrip()))
     return entries, pre
 
 
