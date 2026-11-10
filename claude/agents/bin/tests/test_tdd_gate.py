@@ -47,15 +47,24 @@ def test_norm_both_sides():
 
 TESTS_MD = """## pow — Power
 ### CALC-001 — a
-- **Spec** : x
+- **Critère** :
+  - **Étant donné** x
+  - **Quand** y
+  - **Alors** z
 - **Test** : `a_test.go` › `TestCALC001_A`
 ### CALC-002 — b
-- **Spec** : x
+- **Critère** :
+  - **Étant donné** x
+  - **Quand** y
+  - **Alors** z
 - **Test** : `a_test.go` › `TestCALC002_B`
 
 ## div — Division
 ### CALC-003 — c
-- **Spec** : x
+- **Critère** :
+  - **Étant donné** x
+  - **Quand** y
+  - **Alors** z
 - **Test** : `a_test.go` › `TestCALC003_C`
 """
 
@@ -244,7 +253,7 @@ def test_red_pass_all_fail(repo):
 
 
 def test_red_missing_test(repo):
-    md = TESTS_MD + "### CALC-009 — z\n- **Spec** : x\n- **Test** : `a_test.go` › `TestCALC009_Z`\n"  # in section div
+    md = TESTS_MD + "### CALC-009 — z\n- **Critère** :\n  - **Étant donné** x\n  - **Quand** y\n  - **Alors** z\n- **Test** : `a_test.go` › `TestCALC009_Z`\n"  # in section div
     sha = base_commit(repo, junit(("TestCALC003_C", "fail")), md=md)
     rc, out = gate(repo, "red", "--slug", "div", "--test", sha, "--task", "test")
     assert rc == 1 and "MISSING CALC-009" in out
@@ -297,8 +306,8 @@ def test_no_ids_and_usage_errors(repo):
     assert p.returncode == 2
 
 
-def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=None):
-    test_sha = base_commit(repo, junit(("TestCALC003_C", "fail")))
+def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=None, md=TESTS_MD):
+    test_sha = base_commit(repo, junit(("TestCALC003_C", "fail")), md=md)
     files = dict(feat_files or {})
     files["green.xml"] = feat_report or junit(("TestCALC001_A", "pass"), ("TestCALC002_B", "pass"), ("TestCALC003_C", "pass"))
     if feat_mise:
@@ -310,7 +319,7 @@ def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=N
 
 
 def run_green(repo, t, f):
-    return gate(repo, "green", "--slug", "div", "--test", t, "--feat", f, "--task", "test")
+    return gate(repo, "green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", "--proof-exempt")
 
 
 def test_green_pass(repo):
@@ -379,7 +388,7 @@ def test_green_check_fails(repo):
 
 
 def test_green_id_without_test_and_test_without_id(repo):
-    md = TESTS_MD + "### CALC-008 — ghost\n- **Spec** : x\n- **Test** : `a_test.go` › `TestCALC008_G`\n"
+    md = TESTS_MD + "### CALC-008 — ghost\n- **Critère** :\n  - **Étant donné** x\n  - **Quand** y\n  - **Alors** z\n- **Test** : `a_test.go` › `TestCALC008_G`\n"
     t = base_commit(repo, junit(("TestCALC003_C", "fail")), md=md)
     rc, out = run_green(repo, t, t)
     assert rc == 1 and "ID WITHOUT TEST: CALC008" in out
@@ -579,12 +588,12 @@ CHAR_REPORTS = {
 }
 
 
-def char_setup(repo, state="pass"):
+def char_setup(repo, state="pass", md=None, task=None):
     """Base commit (pow's tests, task, spec, src/state), then an acceptance commit whose tests are already green."""
     pow_md = STAB_MD[: STAB_MD.index("## div")]
-    commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": state + "\n", "src/note.txt": "note\n",
+    commit(repo, {"run_test.sh": task or CHAR_TASK, "spec.md": SPEC, "src/state": state + "\n", "src/note.txt": "note\n",
                   ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise_toml()}, "base")
-    return commit(repo, {"TESTS.md": STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS}, "test(div): acceptance")
+    return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS}, "test(div): acceptance")
 
 
 def make_patch(repo, mutants, id_, files):
@@ -717,8 +726,8 @@ def test_characterize_ac_changed_allows_earlier_test(repo, mutants):
 
 
 # ------------------------------------------------------------------ --replaces
-DIV_ONLY = "## div — Division\n### CALC-003 — c\n- **Spec** : x\n- **Test** : `d_test.go` › `TestCALC003_C`\n"
-POW_PARTIAL = ("## pow — Power\n### CALC-002 — b\n- **Spec** : x\n- **Test** : `p_test.go` › `TestCALC002_B`\n\n"
+DIV_ONLY = "## div — Division\n### CALC-003 — c\n- **Critère** :\n  - **Étant donné** x\n  - **Quand** y\n  - **Alors** z\n- **Test** : `d_test.go` › `TestCALC003_C`\n"
+POW_PARTIAL = ("## pow — Power\n### CALC-002 — b\n- **Critère** :\n  - **Étant donné** x\n  - **Quand** y\n  - **Alors** z\n- **Test** : `p_test.go` › `TestCALC002_B`\n\n"
                + DIV_ONLY)
 
 
@@ -827,7 +836,7 @@ def test_orphan_in_green(repo):
 def ext_md(command):
     return TESTS_MD + (
         f"\n## ext — External\nBranche : `feat/ext` · Commande : {command}\n"
-        "### EXT-001 — e\n- **Spec** : x\n- **Test** : `a_test.go` › `TestEXT001_E`\n"
+        "### EXT-001 — e\n- **Critère** :\n  - **Étant donné** x\n  - **Quand** y\n  - **Alors** z\n- **Test** : `a_test.go` › `TestEXT001_E`\n"
     )
 
 
@@ -854,7 +863,7 @@ def test_green_out_of_scope_section(repo):
 
 def test_green_out_of_scope_id_without_test(repo):
     ext = ("\n## ext — External\nBranche : `feat/ext` · Commande : pipeline MR, job `check`\n"
-           "### EXT-001 — e\n- **Spec** : x\n- **Test** : `.gitlab-ci.yml` › job `check`\n")
+           "### EXT-001 — e\n- **Critère** :\n  - **Étant donné** x\n  - **Quand** y\n  - **Alors** z\n- **Test** : `.gitlab-ci.yml` › job `check`\n")
     t = commit(repo, {"TESTS.md": TESTS_MD + ext, "a_test.go": GO_TESTS, "mise.toml": mise_toml(),
                       "run_test.sh": task_script("report.xml"), "report.xml": junit(("TestCALC003_C", "fail"))},
                "test(div)")
@@ -882,7 +891,7 @@ def ext_setup_failing(repo):
 
 def test_characterize_out_of_scope_baseline(repo, mutants):
     ext = "\n## ext — External\nBranche : `feat/ext` · Commande : pipeline MR, job `check`\n" \
-          "### EXT-001 — e\n- **Spec** : x\n- **Test** : `e_test.go` › `TestEXT001_E`\n"
+          "### EXT-001 — e\n- **Critère** :\n  - **Étant donné** x\n  - **Quand** y\n  - **Alors** z\n- **Test** : `e_test.go` › `TestEXT001_E`\n"
     pow_md = STAB_MD[: STAB_MD.index("## div")]
     commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", "src/note.txt": "note\n",
                   ".gitignore": ".tdd\n", "TESTS.md": pow_md + ext, "p_test.go": P_TESTS, "mise.toml": mise_toml(),

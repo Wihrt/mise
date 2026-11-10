@@ -1,0 +1,25 @@
+# Tests
+
+## forme — Forme des preuves du harnais
+Branche : `feat/forme` · Commande : `mise run test`
+
+### FRM-001 — Le critère est écrit en toutes lettres dans l'entrée
+- **Critère** :
+  - **Étant donné** un `TESTS.md` dont l'entrée `X-001` du slug jugé ne porte qu'un renvoi (`**Critère** : docs/specs/x.md › X-001`), et dont une section d'un autre slug est à l'ancien format
+  - **Quand** `tdd-gate red`, `green` ou `characterize` est lancé sur le slug
+  - **Alors** la sortie contient `INCOMPLETE X-001` et se termine par `FAIL`, sans aucune ligne `INCOMPLETE` pour l'autre section
+- **Test** : `agents/bin/tests/test_acceptance_forme.py` › `test_FRM001_red_incomplete_entry` ; `agents/bin/tests/test_acceptance_forme.py` › `test_FRM001_green_incomplete_entry` ; `agents/bin/tests/test_acceptance_forme.py` › `test_FRM001_characterize_incomplete_entry`
+
+### FRM-003 — Un rapport absent dit quoi faire
+- **Critère** :
+  - **Étant donné** une tâche de test qui sort à 0 sans écrire de rapport
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient une ligne `REPORT missing` qui nomme la tâche et le chemin `.tdd/junit.xml`, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_forme.py` › `test_FRM003_characterize_report_missing`
+
+### FRM-005 — La spec jugée est celle qui est commitée
+- **Critère** :
+  - **Étant donné** une spec située dans le dépôt, avec une modification non commitée
+  - **Quand** `tdd-gate red` ou `characterize` est lancé avec `--spec`
+  - **Alors** la sortie contient `SPEC NOT COMMITTED` et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_forme.py` › `test_FRM005_red_spec_not_committed` ; `agents/bin/tests/test_acceptance_forme.py` › `test_FRM005_characterize_spec_not_committed`
