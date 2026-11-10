@@ -182,6 +182,12 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
   - quand le commit `feat` supprime aussi une ligne existante d'un fichier de production et ajoute un fichier de test, aucune ligne `UNNEEDED` ne nomme la suppression ni le fichier de test
 - **Cas réel** : demande du 10/11, « une étape de refactor (comme en vrai TDD), pour réduire le code à son strict minimum », option 2 retenue (preuve par retrait dans la porte)
 
+### PRV-010 — Un changement neutre sans résultat est invalide
+- **Étant donné** un critère `X-001` dont le mutant est tué, et un `X-001.neutral.patch` qui s'applique mais sous lequel la tâche de test ne produit aucun résultat pour les tests du critère
+- **Quand** `tdd-gate characterize` est lancé
+- **Alors** la sortie contient `NEUTRAL INVALID X-001`, aucune ligne `NEUTRAL OK X-001`, et se termine par `FAIL`
+- **Cas réel** : un chart, `MUTANT INVALID ID-003: no result` sur une panne réseau du téléchargement des dépendances Helm ; la même panne pendant le changement neutre donnait `NEUTRAL OK`
+
 ### FRM-001 — Le critère est écrit en toutes lettres dans l'entrée
 - **Étant donné** un `TESTS.md` dont l'entrée `X-001` du slug jugé ne porte qu'un renvoi (`**Critère** : docs/specs/x.md › X-001`), et dont une section d'un autre slug est à l'ancien format
 - **Quand** `tdd-gate red`, `green` ou `characterize` est lancé sur le slug
