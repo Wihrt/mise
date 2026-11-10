@@ -49,3 +49,20 @@ Branche : `feat/mutant-mise` · Commande : `mise run test`
     - le second est refusé par `MUTANT INVALID … touches test task test:bootstrap`
     - un mutant d'un autre fichier que `mise.toml`, dont le hunk porte sur des numéros de ligne qui sont, dans `mise.toml`, ceux du corps de `test:bootstrap`, est appliqué et jugé (`KILLED` ou `SURVIVED`)
 - **Test** : `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_code_task_is_judged` ; `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_test_task_is_refused` ; `agents/bin/tests/test_acceptance_mutant_mise.py` › `test_PRV008_mutant_of_other_file_is_judged`
+
+## preuve-sensible — Un mutant par clause du « Alors »
+Branche : `feat/preuve-sensible` · Commande : `mise run test`
+
+### PRV-001 — Un mutant par clause est exigé
+- **Critère** :
+  - **Étant donné** un slug dont le critère `X-001` a un « Alors » à deux clauses, et un dossier de preuves qui contient `X-001.patch` et `X-001.neutral.patch` mais pas `X-001.2.patch`
+  - **Quand** `tdd-gate characterize` est lancé sur le commit d'acceptation
+  - **Alors** la sortie contient `MUTANT MISSING X-001 clause 2` et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_sensible.py` › `test_PRV001_missing_mutant_for_clause_2`
+
+### PRV-002 — Une clause qu'aucun test ne défend est refusée
+- **Critère** :
+  - **Étant donné** le même critère à deux clauses, les deux mutants présents, et un test qui n'échoue que sous le premier
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `KILLED X-001 clause 1` et `SURVIVED X-001 clause 2`, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_sensible.py` › `test_PRV002_clause_without_defending_test_survives`
