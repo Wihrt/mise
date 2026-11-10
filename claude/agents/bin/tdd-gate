@@ -19,7 +19,6 @@ import argparse
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -916,16 +915,15 @@ def gate_characterize(args):
 
 def killed(args, repo, sha, patch):
     """Apply the patch on a throwaway worktree of sha and run the tasks: True when a task fails."""
-    tmp = Path(tempfile.mkdtemp(prefix="tdd-replay-"))
-    wt = tmp / "wt"
-    try:
-        git(repo, "worktree", "add", "--detach", str(wt), sha)
-        apply_mutant(wt, patch)
-        os.environ["MISE_TRUSTED_CONFIG_PATHS"] = str(wt)
-        return any(run_mise(wt, t, args.timeout)[0] != 0 for t in args.task.split(","))
-    finally:
-        git(repo, "worktree", "remove", "--force", str(wt))
-        shutil.rmtree(tmp, ignore_errors=True)
+    with tempfile.TemporaryDirectory(prefix="tdd-replay-") as tmp:
+        wt = Path(tmp) / "wt"
+        try:
+            git(repo, "worktree", "add", "--detach", str(wt), sha)
+            apply_mutant(wt, patch)
+            os.environ["MISE_TRUSTED_CONFIG_PATHS"] = str(wt)
+            return any(run_mise(wt, t, args.timeout)[0] != 0 for t in args.task.split(","))
+        finally:
+            git(repo, "worktree", "remove", "--force", str(wt))
 
 
 def gate_replay(args):
