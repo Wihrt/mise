@@ -132,8 +132,10 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 ### PRV-003 — Un changement neutre par critère est exigé
 - **Étant donné** un critère `X-001` dont le mutant est présent et tué, sans `X-001.neutral.patch`
 - **Quand** `tdd-gate characterize` est lancé
-- **Alors** la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
-- **Cas réel** : 164 entrées « recopie de la configuration » dans les `scope.psv` du chantier
+- **Alors**
+  - la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
+  - relancée avec un `X-001.neutral.patch` qui ne s'applique pas au dépôt, elle contient `NEUTRAL INVALID X-001` et se termine par `FAIL`
+- **Cas réel** : changement neutre qui ne s'applique pas, vu le 10/11 sur trois dépôts de test du harnais (`NEUTRAL INVALID CALC-003: patch does not apply`) ; 164 entrées « recopie de la configuration » dans les `scope.psv` du chantier
 
 ### PRV-004 — Un test qui casse sous un changement neutre est refusé
 - **Étant donné** un critère `X-001` dont le test affirme le nom d'un élément du catalogue, et un changement neutre qui renomme cet élément
