@@ -66,3 +66,27 @@ Branche : `feat/preuve-sensible` · Commande : `mise run test`
   - **Quand** `tdd-gate characterize` est lancé
   - **Alors** la sortie contient `KILLED X-001 clause 1` et `SURVIVED X-001 clause 2`, et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_preuve_sensible.py` › `test_PRV002_clause_without_defending_test_survives`
+
+## preuve-specifique — Les preuves de spécificité (changement neutre)
+Branche : `feat/preuve-specifique` · Commande : `mise run test`
+
+### PRV-003 — Un changement neutre par critère est exigé
+- **Critère** :
+  - **Étant donné** un critère `X-001` dont le mutant est présent et tué, sans `X-001.neutral.patch`
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV003_missing_neutral_change`
+
+### PRV-004 — Un test qui casse sous un changement neutre est refusé
+- **Critère** :
+  - **Étant donné** un critère `X-001` dont le test affirme le nom d'un élément du catalogue, et un changement neutre qui renomme cet élément
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `BRITTLE X-001` avec le nom du test en échec, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV004_test_breaking_under_neutral_change_is_brittle`
+
+### PRV-005 — Un test sensible et spécifique passe
+- **Critère** :
+  - **Étant donné** un critère `X-001` dont le « Alors » a deux clauses en sous-liste, suivie de la ligne `- **Test**`, ses deux mutants, son changement neutre, et des tests qui échouent sous chaque mutant et passent sous le changement neutre
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `KILLED X-001 clause 1`, `KILLED X-001 clause 2` et `NEUTRAL OK X-001`, aucune ligne `MUTANT MISSING`, et se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV005_sensitive_and_specific_test_passes`

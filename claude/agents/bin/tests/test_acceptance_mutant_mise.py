@@ -2,7 +2,7 @@
 import re
 
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
-    STAB_MD, char_setup, gate, make_patch, mutants, precommit, repo, set_wiring,
+    STAB_MD, char, char_setup, gate, make_patch, mutants, precommit, repo, set_wiring,
 )
 
 TASK = "test:bootstrap"
@@ -29,8 +29,7 @@ def judge(repo, mutants, mutated_mise=None, files=None, patch=None):
     md = STAB_MD.replace("Commande : `mise run test`", f"Commande : `mise run {TASK}`")
     sha = char_setup(repo, md=md, mise_task=TASK, mise=MISE, files=files)
     make_patch(repo, mutants, "CALC-003", patch or {"mise.toml": mutated_mise})
-    return gate(repo, "characterize", "--slug", "div", "--test", sha, "--task", TASK, "--spec", "spec.md",
-                "--ac", "CALC-003", "--mutants", str(mutants))
+    return char(repo, sha, mutants, task=TASK)
 
 
 def test_PRV008_mutant_of_code_task_is_judged(repo, mutants):
