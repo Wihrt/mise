@@ -734,33 +734,41 @@ def clause_count(entry_text):
     return 0
 
 
+def run_patch(args, repo, patch, kind, tag, i):
+    """Apply the patch, run the task, restore the tree. Returns (problem, cases of i, tree status)."""
+    problem = mutant_problem(repo, patch, args.task)
+    if problem:
+        return problem, [], ""
+    created = apply_mutant(repo, patch)
+    try:
+        out(f"{kind} {tag}: patch applied")
+        rc, output, rep = run_task_and_report(args, repo)
+        if rc == 124:
+            raise GateError(f"{kind.lower()} {tag}: task timed out")
+    finally:
+        restore_tree(repo, created)
+    _, st = git(repo, "status", "--short")
+    return None, results_by_id(rep).get(norm(i), []), st.strip()
+
+
 def run_proofs(args, repo, text, ids):
+    """True when every proof holds, False when one fails, None when the tree is left dirty."""
     ok = True
-    mutants = Path(args.proofs).resolve()
+    proofs = Path(args.proofs).resolve()
     for i in ids:
         for clause in range(1, clause_count(entry_text(text, i)) + 1):
-            patch = mutants / (f"{i}.patch" if clause == 1 else f"{i}.{clause}.patch")
+            patch = proofs / (f"{i}.patch" if clause == 1 else f"{i}.{clause}.patch")
             tag = f"{i} clause {clause}"
             if not patch.is_file():
                 out(f"MUTANT MISSING {tag}")
                 ok = False
                 continue
-            problem = mutant_problem(repo, patch, args.task)
+            problem, cases, st = run_patch(args, repo, patch, "MUTANT", tag, i)
+            failed = [c for c in cases if c[1] == "fail"]
             if problem:
                 out(f"MUTANT INVALID {tag}: {problem}")
                 ok = False
-                continue
-            created = apply_mutant(repo, patch)
-            try:
-                out(f"MUTANT {tag}: patch applied")
-                rc, output, rep = run_task_and_report(args, repo)
-                if rc == 124:
-                    raise GateError(f"mutant {tag}: task timed out")
-            finally:
-                restore_tree(repo, created)
-            cases = results_by_id(rep).get(norm(i), [])
-            failed = [c for c in cases if c[1] == "fail"]
-            if failed:
+            elif failed:
                 out(f"KILLED {tag}: {failed[0][0]}")
             elif cases:
                 out(f"SURVIVED {tag}")
@@ -768,10 +776,27 @@ def run_proofs(args, repo, text, ids):
             else:
                 out(f"MUTANT INVALID {tag}: no result")
                 ok = False
-            _, st = git(repo, "status", "--short")
-            if st.strip():
-                out(f"TREE NOT CLEAN after {tag}:\n" + st.rstrip("\n"))
-                return False
+            if st:
+                out(f"TREE NOT CLEAN after {tag}:\n" + st)
+                return None
+        patch = proofs / f"{i}.neutral.patch"
+        if not patch.is_file():
+            out(f"NEUTRAL MISSING {i}")
+            ok = False
+            continue
+        problem, cases, st = run_patch(args, repo, patch, "NEUTRAL", i, i)
+        failed = [c for c in cases if c[1] == "fail"]
+        if problem:
+            out(f"NEUTRAL INVALID {i}: {problem}")
+            ok = False
+        elif failed:
+            out(f"BRITTLE {i}: {failed[0][0]}")
+            ok = False
+        else:
+            out(f"NEUTRAL OK {i}")
+        if st:
+            out(f"TREE NOT CLEAN after {i} neutral:\n" + st)
+            return None
     return ok
 
 
@@ -815,8 +840,10 @@ def gate_characterize(args):
             green = False
     if not green:
         return False
-    if not run_proofs(args, repo, text, args.ac):
-        ok = False
+    proved = run_proofs(args, repo, text, args.ac)
+    if proved is None:
+        return False
+    ok = ok and proved
     args.feat = args.test  # nothing is committed: stability covers the acceptance commit
     if not check_stability(args, repo, text, before):
         ok = False
