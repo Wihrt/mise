@@ -149,3 +149,24 @@ Branche : `feat/test-garde` · Commande : `mise run test`
   - **Quand** `tdd-gate characterize` est lancé
   - **Alors** la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_test_modified_is_reported`
+
+## rejeu — Rejeu des mutants sur la base et la tête d'une pile
+Branche : `feat/rejeu` · Commande : `mise run test`
+
+### RPL-001 — Une protection perdue par la pile est signalée
+- **Critère** :
+  - **Étant donné** deux commits d'un dépôt, un mutant qui fait échouer la tâche sur le premier et la laisse passer sur le second
+  - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
+  - **Alors**
+    - la sortie contient `LOST` avec le nom du mutant et se termine par `FAIL`
+    - relancé avec `--accept-lost <nom>`, elle contient `LOST ACCEPTED` et se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL001_lost_protection_is_reported_then_accepted`
+
+### RPL-002 — Un rejeu sans perte passe et ne laisse rien derrière lui
+- **Critère** :
+  - **Étant donné** deux commits et deux mutants, l'un tué des deux côtés, l'autre vivant des deux côtés
+  - **Quand** `tdd-gate replay` est lancé
+  - **Alors**
+    - la sortie contient `KEPT` pour le premier et `NEVER` pour le second, et se termine par `PASS`
+    - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
+- **Test** : `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL002_lossless_replay_passes_and_leaves_nothing`

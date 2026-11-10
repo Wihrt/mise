@@ -248,6 +248,11 @@ def gate(repo, *args):
     return p.returncode, p.stdout
 
 
+def replay(repo, base, head, proofs, tasks, *extra):
+    """Run `tdd-gate replay` on two commits of repo; tasks is a comma list."""
+    return gate(repo, "replay", "--base", base, "--head", head, "--proofs", str(proofs), "--task", tasks, *extra)
+
+
 def base_commit(repo, report, rc=None, md=TESTS_MD, extra="", mise=None):
     return commit(
         repo,
