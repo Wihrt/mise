@@ -74,8 +74,10 @@ Branche : `feat/preuve-specifique` · Commande : `mise run test`
 - **Critère** :
   - **Étant donné** un critère `X-001` dont le mutant est présent et tué, sans `X-001.neutral.patch`
   - **Quand** `tdd-gate characterize` est lancé
-  - **Alors** la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
-- **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV003_missing_neutral_change`
+  - **Alors**
+    - la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
+    - relancée avec un `X-001.neutral.patch` qui ne s'applique pas au dépôt, elle contient `NEUTRAL INVALID X-001` et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV003_missing_neutral_change` ; `…` › `test_PRV003_neutral_change_not_applying_is_invalid`
 
 ### PRV-004 — Un test qui casse sous un changement neutre est refusé
 - **Critère** :

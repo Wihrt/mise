@@ -22,6 +22,21 @@ def test_PRV003_missing_neutral_change(repo, mutants):
     assert out.splitlines()[-1] == "FAIL", out
 
 
+NOT_APPLYING = (
+    "diff --git a/src/absent.txt b/src/absent.txt\n--- a/src/absent.txt\n+++ b/src/absent.txt\n@@ -1 +1 @@\n-x\n+y\n"
+)
+
+
+def test_PRV003_neutral_change_not_applying_is_invalid(repo, mutants):
+    sha = char_setup(repo)
+    make_patch(repo, mutants, "CALC-003", KILLING)
+    (mutants / "CALC-003.neutral.patch").write_text(NOT_APPLYING)
+    rc, out = char(repo, sha, mutants)
+    assert "NEUTRAL INVALID CALC-003" in out, out
+    assert "NEUTRAL OK CALC-003" not in out, out
+    assert out.splitlines()[-1] == "FAIL", out
+
+
 def test_PRV004_test_breaking_under_neutral_change_is_brittle(repo, mutants):
     # The neutral change renames an element the test asserts: the test of CALC-003 fails under it.
     sha = char_setup(repo)
