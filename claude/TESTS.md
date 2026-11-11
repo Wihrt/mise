@@ -256,3 +256,32 @@ Branche : `feat/test-garde-dernier` · Commande : `mise run test`
   - **Quand** `tdd-gate characterize` est lancé sans `--ac-changed`
   - **Alors** la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
 - **Test** : `agents/bin/tests/test_acceptance_test_garde_dernier.py` › `test_PRV016_kept_test_becoming_last_of_file_is_not_modified`
+
+## fichiers-locaux — Fichiers locaux du harnais
+Branche : `feat/fichiers-locaux` · Commande : `mise run test`
+
+### LOC-001 — Un hôte déclaré en local donne son outil de forge
+- **Critère** :
+  - **Étant donné** un dépôt git dont `origin` vaut `https://forge.exemple.test/groupe/depot.git`, et un dossier local (variable `CLAUDE_LOCAL_DIR`) dont le fichier `forges` contient la ligne `forge.exemple.test glab`
+  - **Quand** `harness-local forge --repo <dépôt>` est lancé
+  - **Alors** la sortie est `glab` et le code de sortie est 0
+- **Test** : `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC001_declared_host_gives_its_forge_tool`
+
+### LOC-002 — Sans fichier local, seuls les hôtes publics sont connus
+- **Critère** :
+  - **Étant donné** un dossier local vide (variable `CLAUDE_LOCAL_DIR`)
+  - **Quand** `harness-local forge --repo <dépôt>` est lancé
+  - **Alors**
+    - pour un dépôt dont `origin` vaut `git@github.com:groupe/depot.git`, la sortie est `gh` et le code de sortie est 0
+    - pour un dépôt dont `origin` vaut `https://gitlab.com/groupe/depot.git`, la sortie est `glab` et le code de sortie est 0
+    - pour un dépôt dont `origin` vaut `https://forge.exemple.test/groupe/depot.git`, le code de sortie est 1 et la sortie contient `hôte forge.exemple.test inconnu`
+- **Test** : `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC002_github_host_is_gh` ; `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC002_gitlab_host_is_glab` ; `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC002_unknown_host_exits_1_and_is_named`
+
+### LOC-003 — Un cas réel local affine une règle sans être versionné
+- **Critère** :
+  - **Étant donné** un dossier local (variable `CLAUDE_LOCAL_DIR`) dont le fichier `cas-reels.md` contient une ligne `| PRV-015 | dépôt interne, critère X-103 |`
+  - **Quand** `harness-local cas-reels PRV-015` est lancé
+  - **Alors**
+    - la sortie contient la ligne du fichier qui nomme `PRV-015`, et le code de sortie est 0
+    - quand le fichier `cas-reels.md` n'existe pas, la sortie est vide et le code de sortie est 0
+- **Test** : `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC003_real_case_line_naming_the_id_is_printed` ; `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC003_missing_file_gives_empty_output`
