@@ -40,7 +40,7 @@ Unknown host (or a local-path origin): stop and say so to the user.
 ## Work without a test
 Who does what (the orchestrator still writes nothing):
 - Behaviour change (CI red on a test, behavioural review remark on a real case; a hypothetical edge case gets no fix, see step 5): if the cause is unknown, first superpowers:systematic-debugging phases 1-3 (no red/green, throwaway code); once the root cause is proven, you write the fix criterion (ID + Étant donné/Quand/Alors from the root cause) at the end of the plan's fix task under `## Critères d'acceptation`, and the acceptance-writer transcribes it (steps 3-4 on the faulty branch, `--spec` = the plan file). A wrong test follows step 5, never an in-place edit.
-- Non-behavioural fix (lint, formatting, docs, rename, CI config): the `implementer` alone, brief says "no behaviour change" and the commit type (`fix(ci)`, `refactor`, `docs`); then green mode with the branch's acceptance sha and the new sha.
+- Non-behavioural fix (lint, formatting, docs, rename, CI config): the `implementer` alone, brief says "no behaviour change" and the commit type (`fix(ci)`, `refactor`, `docs`); then green mode with the branch's acceptance sha and the new sha. A commit that touches no production or test file (docs, CI config): green with `--proof-exempt`; the proofs were judged on the `feat`/`refactor` commit. A commit that touches code (refactor, rename, lint, formatting): green with `--proofs <dir>` (the proofs are replayed), `--since` and `--spec` as in step 4.
 - `chore(tooling)`: the `implementer` applies `repo-tooling`, no `TESTS.md` section. Gate: you re-run `mise run check` and `prek run --all-files` (they are read-only) and quote them.
 
 ## Mode: rewrite
