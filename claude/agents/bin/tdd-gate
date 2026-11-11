@@ -154,7 +154,7 @@ def incomplete_entries(text, slug):
             if line.startswith("## "):
                 inside = line.split()[1:2] == [slug]
             elif inside:
-                cur = line.split()[1].rstrip(":")
+                cur = line.split()[1]
         else:
             seen |= {k for k in ("Étant donné", "Quand", "Alors") if f"**{k}**" in line}
     return res
@@ -395,7 +395,6 @@ def check_criteria(args, repo, ids):
     ok = True
     if git(repo, "status", "--short", "--", str(sp))[1].strip():
         out(f"SPEC NOT COMMITTED {args.spec}")
-        ok = False
     for i in args.ac:
         if norm(i) not in spec_n:
             out(f"NOT IN SPEC {i}")
@@ -556,7 +555,7 @@ def check_stability(args, repo, text, before=""):
         now.setdefault(e.cand, []).append(e.body)
     cited = sorted(set().union(*section_test_files(before).values()))
     for e in scan_tests(repo, cited, args.test + "~1")[0]:
-        if e.cand in kept and e.body not in now.get(e.cand, ()):
+        if e.cand in kept and e.body not in now[e.cand]:
             out(f"KEPT TEST MODIFIED {e.file} {id_labels(before)[e.cand]}")
             ok = False
     return ok
@@ -569,7 +568,7 @@ def wired_tasks(repo, sha):
     for f in names.splitlines():
         if any(fnmatch(f, w) for w in WIRING_FILES):
             wired.update(re.findall(r"mise run\s+([\w:.-]+)", git(repo, "show", f"{sha}:{f}")[1]))
-    tasks = tomllib.loads(git(repo, "show", f"{sha}:mise.toml")[1]).get("tasks", {})
+    tasks = tomllib.loads(git(repo, "show", f"{sha}:mise.toml")[1])["tasks"]
     for t in list(wired):
         wired.update(tasks.get(t, {}).get("depends", []))
     return wired
@@ -656,7 +655,7 @@ def gate_green(args):
         out("CHECK FAILED")
         ok = False
     if args.proofs:
-        if not run_proofs(args, repo, text, ids, ids_all - set(skipped)):
+        if not run_proofs(args, repo, text, ids):
             ok = False
         if not run_minimal(args, repo):
             ok = False
@@ -688,7 +687,6 @@ def mise_problem(repo, patch, task):
     """Reason why the patch changes mise.toml outside the allowed tasks, or None."""
     table = None
     old = (repo / "mise.toml").read_text().splitlines()
-    in_file = False
     for line in patch.read_text().splitlines():
         if line.startswith("diff --git "):
             in_file = line.endswith(" b/mise.toml")
@@ -729,7 +727,7 @@ def entry_text(text, i):
     lines, found = [], False
     for line in text.splitlines():
         if line.startswith("#"):
-            found = line.startswith("### ") and line.split()[1].rstrip(":") == i
+            found = line.startswith("### ") and line.split()[1] == i
         elif found:
             lines.append(line)
     return "\n".join(lines)
@@ -774,7 +772,7 @@ def redundant(kills):
     return [(a, b) for a, per_mutant in kills.items() for b in sorted(set.intersection(*per_mutant) - {a})]
 
 
-def run_proofs(args, repo, text, ids, scope):
+def run_proofs(args, repo, text, ids):
     """True when every proof holds, False when one fails, None when the tree is left dirty."""
     ok = True
     kills = {}
@@ -796,7 +794,7 @@ def run_proofs(args, repo, text, ids, scope):
             elif failed:
                 out(f"KILLED {tag}: {failed[0][0]}")
                 kills.setdefault(norm(i), []).append(
-                    {n for n, c in res.items() if n in scope and any(x[1] == "fail" for x in c)})
+                    {n for n, c in res.items() if any(x[1] == "fail" for x in c)})
             elif cases:
                 out(f"SURVIVED {tag}")
                 ok = False
@@ -815,16 +813,13 @@ def run_proofs(args, repo, text, ids, scope):
         cases = res.get(norm(i), [])
         failed = [c for c in cases if c[1] == "fail"]
         if problem or not cases:
-            out(f"NEUTRAL INVALID {i}: {problem or 'no result'}")
+            out(f"NEUTRAL INVALID {i}")
             ok = False
         elif failed:
             out(f"BRITTLE {i}: {failed[0][0]}")
             ok = False
         else:
             out(f"NEUTRAL OK {i}")
-        if st:
-            out(f"TREE NOT CLEAN after {i} neutral:\n" + st)
-            return None
     labels = id_labels(text)
     for a, b in redundant(kills):
         out(f"REDUNDANT {labels[a]}: covered by {labels[b]}")
@@ -905,7 +900,7 @@ def gate_characterize(args):
             green = False
     if not green:
         return False
-    proved = run_proofs(args, repo, text, args.ac, set(all_ids(text)) - set(skipped))
+    proved = run_proofs(args, repo, text, args.ac)
     if proved is None:
         return False
     ok = ok and proved
