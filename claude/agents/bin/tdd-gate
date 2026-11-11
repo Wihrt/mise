@@ -3,7 +3,7 @@
 
   tdd-gate red   --slug S --test SHA --task T [--repo DIR] [--spec PATH --ac ID,ID] [--allow-compile-red]
   tdd-gate green --slug S --test SHA --feat SHA --task T [--repo DIR] [--ac-changed ID,ID] [--replaces S,S]
-  tdd-gate characterize --slug S --test SHA --task T --spec PATH --ac ID,ID --mutants DIR [--repo DIR]
+  tdd-gate characterize --slug S --test SHA --task T --spec PATH --ac ID,ID --proofs|--mutants DIR [--repo DIR]
                         [--ac-changed ID,ID] [--replaces S,S]
 
 `characterize` proves tests that are already green: per criterion it applies a mutant patch
@@ -662,7 +662,7 @@ def gate_characterize(args):
             green = False
     if not green:
         return False
-    mutants = Path(args.mutants).resolve()
+    mutants = Path(args.proofs).resolve()
     for i in args.ac:
         patch = mutants / f"{i}.patch"
         problem = mutant_problem(repo, patch)
@@ -712,11 +712,15 @@ def build_parser():
         if mode == "characterize":
             p.add_argument("--spec", required=True, help="spec file (absolute or repo-relative)")
             p.add_argument("--ac", required=True, type=lambda v: [x for x in v.split(",") if x], help="comma list of criteria IDs")
-            p.add_argument("--mutants", required=True, metavar="DIR", help="directory holding <ID>.patch, one per criterion")
+            g = p.add_mutually_exclusive_group(required=True)
+            g.add_argument("--proofs", metavar="DIR", help="directory holding <ID>.patch, one per criterion")
+            g.add_argument("--mutants", dest="proofs", metavar="DIR", help="synonym of --proofs")
         if mode in ("green", "characterize"):
             p.add_argument("--ac-changed", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of criteria IDs whose test files may change")
             p.add_argument("--replaces", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of slugs whose test files and TESTS.md sections may be changed or removed")
         if mode == "green":
+            p.add_argument("--proofs", metavar="DIR", help="directory of proofs (no effect yet)")
+            p.add_argument("--proof-exempt", action="store_true", help="exempt from proofs (no effect yet)")
             p.add_argument("--feat", required=True, metavar="SHA")
         p.add_argument("--task", required=True)
         p.add_argument("--repo", default=".")
