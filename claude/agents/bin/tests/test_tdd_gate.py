@@ -192,9 +192,11 @@ def task_script(report, rc=None, extra=""):
     return body + f"exit {rc}\n"
 
 
-def mise_toml(check_rc=0, tools="", task="test", check_depends=None):
+def mise_toml(check_rc=0, tools="", task="test", check_depends=None, test_depends=False):
+    """test_depends: add the aggregate `[tasks.test] depends = ["test:*"]` (for a task such as test:render)."""
     return (
         f"[tools]\n{tools}\n[tasks.\"{task}\"]\nrun = \"sh run_test.sh\"\n"
+        f"{'[tasks.test]' + chr(10) + 'depends = [\"test:*\"]' + chr(10) if test_depends else ''}"
         f"[tasks.check]\n{f'depends = [\"{check_depends}\"]' + chr(10) if check_depends else ''}run = \"exit {check_rc}\"\n"
     )
 
@@ -331,8 +333,8 @@ def test_no_ids_and_usage_errors(repo):
     assert p.returncode == 2
 
 
-def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=None, md=TESTS_MD, task="test", check_depends=None):
-    test_sha = base_commit(repo, junit(("TestCALC003_C", "fail")), md=md, mise=mise_toml(task=task, check_depends=check_depends))
+def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=None, md=TESTS_MD, task="test", check_depends=None, test_depends=False):
+    test_sha = base_commit(repo, junit(("TestCALC003_C", "fail")), md=md, mise=mise_toml(task=task, check_depends=check_depends, test_depends=test_depends))
     files = dict(feat_files or {})
     files["green.xml"] = feat_report or junit(("TestCALC001_A", "pass"), ("TestCALC002_B", "pass"), ("TestCALC003_C", "pass"))
     if feat_mise:
@@ -656,8 +658,9 @@ def char_setup(repo, state="pass", md=None, task=None, mise_task="test", mise=No
     return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS, **(acc_files or {})}, "test(div): acceptance")
 
 
-def make_patch(repo, mutants, id_, files):
-    """Write <mutants>/<id_>.patch (git diff of `files` against HEAD), leaving the tree clean."""
+def make_patch(repo, mutants, id_, files, bare=False):
+    """Write <mutants>/<id_>.patch (git diff of `files` against HEAD), leaving the tree clean.
+    bare: drop the `diff --git` and `index` header lines (the patch starts at `--- a/<file>`)."""
     for name, content in files.items():
         p = repo / name
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -666,6 +669,8 @@ def make_patch(repo, mutants, id_, files):
     diff = subprocess.run(["git", "diff", "--cached"], cwd=repo, check=True, capture_output=True, text=True).stdout
     sh(repo, "git", "reset", "-q", "--hard")
     sh(repo, "git", "clean", "-fdq")
+    if bare:
+        diff = "".join(ln for ln in diff.splitlines(keepends=True) if not ln.startswith(("diff --git", "index ")))
     mutants.mkdir(parents=True, exist_ok=True)
     (mutants / f"{id_}.patch").write_text(diff)
 

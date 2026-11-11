@@ -68,7 +68,7 @@ Un mutant qui touche `mise.toml` est accepté quand toutes ses modifications son
 
 ### 4. Rejeu : `tdd-gate replay`
 
-`tdd-gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t1[,t2…] [--accept-lost <nom,…>]`
+`tdd-gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t [--accept-lost <nom>]`
 
 Pour chaque mutant du dossier, la porte crée deux copies de travail temporaires (base et tête), applique le mutant de chaque côté, lance les tâches, puis retire les copies. Un mutant est tué d'un côté quand une tâche y sort en erreur.
 
@@ -193,6 +193,38 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Quand** `tdd-gate red`, `green` ou `characterize` est lancé sur le slug
 - **Alors** la sortie contient `INCOMPLETE X-001` et se termine par `FAIL`, sans aucune ligne `INCOMPLETE` pour l'autre section
 - **Cas réel** : demande du 10/11 ; `templates/TESTS.md:7`
+
+### FRM-007 — Une tâche atteinte par un motif de dépendance est branchée
+- **Étant donné** un slug dont la `Commande` est `mise run test:render`, un hook de commit qui lance `mise run test`, et un `mise.toml` où `[tasks.test]` a `depends = ["test:*"]`
+- **Quand** `tdd-gate green` ou `characterize` est lancé
+- **Alors** la sortie ne contient aucune ligne `NOT WIRED`
+- **Cas réel** : un dépôt de CI (`mise.toml:92-94`, hook `mise run test`) ; gabarit `skills/repo-tooling/templates/mise.toml:33-35`
+
+### PRV-011 — Un mutant sans en-tête `diff --git` est jugé
+- **Étant donné** un dossier de preuves dont le mutant de `X-001` est un patch qui commence par `--- a/<fichier>`, sans ligne `diff --git`, et qui casse le test du critère
+- **Quand** `tdd-gate characterize` est lancé
+- **Alors** la sortie contient `KILLED X-001`
+- **Cas réel** : un mutant d'un chantier antérieur, jugé `KILLED` le 02/11, `UnboundLocalError` avec la porte du 11/11
+
+### PRV-012 — Les preuves ne s'appliquent pas sur un arbre modifié
+- **Étant donné** un dépôt dont un fichier suivi porte une modification non commitée
+- **Quand** `tdd-gate green --proofs DIR` est lancé
+- **Alors** la sortie contient `TREE NOT CLEAN`, aucune ligne `MUTANT`, se termine par `FAIL`, et la modification non commitée est toujours dans le fichier
+- **Cas réel** : 10/11, implémentation laissée non commitée avant une porte verte (registre du harnais déterministe)
+
+### PRV-013 — Le code minimal se juge depuis le début de la tâche
+- **Étant donné** un slug qui a deux commits d'acceptation, et un bloc de code de production qu'aucun test ne demande, ajouté entre les deux
+- **Quand** `tdd-gate green --proofs DIR` est lancé avec `--test <second commit d'acceptation>` et `--since <premier commit d'acceptation>`
+- **Alors** la sortie contient `UNNEEDED` avec le fichier et les lignes de ce bloc, et se termine par `FAIL`
+- **Cas réel** : auto-preuve du 11/11, slug `rejeu` : le mode `replay` (`db779fa`), écrit avant le second commit d'acceptation, n'a pas été jugé
+
+### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
+- **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
+- **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
+- **Alors**
+  - la sortie contient `BASELINE NOT GREEN base`, aucune ligne `KEPT`, et se termine par `FAIL`
+  - relancé en échangeant `--base` et `--head`, elle contient `BASELINE NOT GREEN head`, aucune ligne `KEPT`, et se termine par `FAIL`
+- **Cas réel** : un chart, panne réseau du téléchargement des dépendances Helm : la tâche échoue des deux côtés et tous les mutants paraîtraient gardés
 
 ### FRM-006 — L'entrée a autant de clauses que la spec
 - **Étant donné** une spec dont le critère `X-001` a un « Alors » en liste de deux clauses, et un `TESTS.md` dont l'entrée `X-001` du slug jugé porte ce « Alors » sur une seule ligne
