@@ -39,7 +39,7 @@ Not by default: yamllint, markdownlint.
 ## Non-conforming repo
 Open a first MR `chore(tooling)` in the stack, before any feature MR, with the baseline above, and green `mise run check` plus `prek run --all-files`. Add the CI job below unless an existing job already runs `mise run check`.
 - GitLab (image with mise is unverified): `image: docker.io/jdxcode/mise`; `variables: {GIT_DEPTH: 0}`; script `mise install`, `mise run check`, `git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"`, `b=$(git rev-list --reverse "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD" | head -1); [ -z "$b" ] || cog check "$b..HEAD"`.
-- GitHub: `actions/checkout` (`fetch-depth: 0`) and `jdx/mise-action`, both pinned by commit sha (`gh api repos/<o>/<r>/git/ref/tags/<tag>`), then `mise run check` and the same `cog check`.
+- GitHub: `actions/checkout` (`fetch-depth: 0`) and `jdx/mise-action`, both pinned by commit sha (`gh api repos/<o>/<r>/git/ref/tags/<tag>`), then `mise run check` and the same `cog check`. After a `chore(tooling)` commit, replay `mise run check` three times in a row: a task that shares a temporary file with another passes or fails by luck.
 - `cog check A..B` is inclusive of `A` (verified), hence the first MR commit as `A`; never run it on the whole history of an old repo.
 
 ## Renovate
