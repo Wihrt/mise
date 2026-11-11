@@ -855,6 +855,8 @@ def run_minimal(args, repo):
     """True when every added block is needed (or accepted): removing it alone makes the task fail."""
     ok = True
     for path, start, end in added_blocks(repo, args.since or args.test, args.feat):
+        if path == args.spec:
+            continue
         tag = f"{path}:{start}-{end}"
         lines = (repo / path).read_text().splitlines(keepends=True)
         (repo / path).write_text("".join(lines[: start - 1] + lines[end:]))
@@ -986,6 +988,7 @@ def build_parser():
             p.add_argument("--ac-changed", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of criteria IDs whose test files may change")
             p.add_argument("--replaces", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of slugs whose test files and TESTS.md sections may be changed or removed")
         if mode == "green":
+            p.add_argument("--spec", help="spec file (repo-relative), not judged by the minimal-code proof")
             p.add_argument("--proofs", metavar="DIR", help="directory of proofs, run on the feat commit")
             p.add_argument("--unneeded-ok", action="append", default=[], metavar="FILE:START-END", help="added block accepted although no test needs it (repeatable)")
             p.add_argument("--since", metavar="SHA", help="commit from which the added blocks are counted for the minimal-code proof (default: --test)")
