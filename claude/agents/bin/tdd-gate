@@ -578,7 +578,6 @@ def wired_tasks(repo, sha):
     for t in list(wired):
         for d in tasks.get(t, {}).get("depends", []):
             wired.update(n for n in tasks if fnmatch(n, d))
-            wired.add(d)
     return wired
 
 
@@ -761,7 +760,7 @@ def clause_count(entry_text):
     return 0
 
 
-def run_patch(args, repo, patch, kind, tag, i):
+def run_patch(args, repo, patch, kind, tag):
     """Apply the patch, run the task, restore the tree. Returns (problem, results by criterion, tree status)."""
     problem = mutant_problem(repo, patch, args.task)
     if problem:
@@ -796,7 +795,7 @@ def run_proofs(args, repo, text, ids):
                 out(f"MUTANT MISSING {tag}")
                 ok = False
                 continue
-            problem, res, st = run_patch(args, repo, patch, "MUTANT", tag, i)
+            problem, res, st = run_patch(args, repo, patch, "MUTANT", tag)
             cases = res.get(norm(i), [])
             failed = [c for c in cases if c[1] == "fail"]
             if problem:
@@ -820,7 +819,7 @@ def run_proofs(args, repo, text, ids):
             out(f"NEUTRAL MISSING {i}")
             ok = False
             continue
-        problem, res, st = run_patch(args, repo, patch, "NEUTRAL", i, i)
+        problem, res, st = run_patch(args, repo, patch, "NEUTRAL", i)
         cases = res.get(norm(i), [])
         failed = [c for c in cases if c[1] == "fail"]
         if problem or not cases:
