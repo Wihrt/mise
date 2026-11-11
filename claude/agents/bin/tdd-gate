@@ -204,6 +204,7 @@ def scan_tests(repo, files, rev=None):
         for n, i in enumerate(idx):
             end = idx[n + 1] if n + 1 < len(idx) else len(lines)
             end = next((j for j in range(i, end) if lines[j] == "---"), end)  # next document belongs to the neighbour
+            end = next((j for j in range(i, end) if lines[j].startswith("if __name__")), end)  # module-level trailer is no test body
             while end > i + 1 and (not lines[end - 1].strip() or lines[end - 1].lstrip().startswith("@")):
                 end -= 1  # decorators above the next test belong to it
             stripped = NAME_POS.sub("", lines[i], count=1)
