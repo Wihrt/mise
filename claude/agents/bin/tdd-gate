@@ -648,6 +648,8 @@ def gate_green(args):
     if args.proofs:
         if not run_proofs(args, repo, text, ids, ids_all - set(skipped)):
             ok = False
+        if not run_minimal(args, repo):
+            ok = False
     elif not args.proof_exempt:
         out("PROOF MISSING: --proofs DIR or --proof-exempt")
         ok = False
@@ -819,6 +821,39 @@ def run_proofs(args, repo, text, ids, scope):
     return ok
 
 
+def added_blocks(repo, test, feat):
+    """[(file, first line, last line)] of the blocks the feat commit adds to production files."""
+    _, diff = git(repo, "diff", "-U0", f"{test}..{feat}")
+    blocks, path = [], None
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            path = line[6:]
+        elif path and not is_test_path(path) and (m := re.match(r"@@ -\S+ \+(\d+)(?:,(\d+))? @@", line)):
+            start, count = int(m.group(1)), int(m.group(2) or 1)
+            if count:
+                blocks.append((path, start, start + count - 1))
+    return blocks
+
+
+def run_minimal(args, repo):
+    """True when every added block is needed (or accepted): removing it alone makes the task fail."""
+    ok = True
+    for path, start, end in added_blocks(repo, args.test, args.feat):
+        tag = f"{path}:{start}-{end}"
+        lines = (repo / path).read_text().splitlines(keepends=True)
+        (repo / path).write_text("".join(lines[: start - 1] + lines[end:]))
+        rc, _, rep = run_task_and_report(args, repo)
+        restore_tree(repo, [])
+        if rc != 0 or rep.state != "ok":
+            continue
+        if tag in args.unneeded_ok:
+            out(f"UNNEEDED ACCEPTED {tag}")
+        else:
+            out(f"UNNEEDED {tag}")
+            ok = False
+    return ok
+
+
 def gate_characterize(args):
     repo, text, ids, entries, pre = prepare(args)
     before = check_replaces(args, repo)
@@ -891,6 +926,7 @@ def build_parser():
             p.add_argument("--replaces", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of slugs whose test files and TESTS.md sections may be changed or removed")
         if mode == "green":
             p.add_argument("--proofs", metavar="DIR", help="directory of proofs, run on the feat commit")
+            p.add_argument("--unneeded-ok", action="append", default=[], metavar="FILE:START-END", help="added block accepted although no test needs it (repeatable)")
             p.add_argument("--proof-exempt", action="store_true", help="exempt from proofs")
             p.add_argument("--feat", required=True, metavar="SHA")
         p.add_argument("--task", required=True)
