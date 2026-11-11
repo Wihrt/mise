@@ -551,10 +551,12 @@ def check_stability(args, repo, text, before=""):
         for i in sorted(replaced_ids(before, text, [slug])):
             out(f"REPLACED {slug}: {i}")
     kept = (all_ids(before) & all_ids(text)) - set(allowed)
-    now = {e.cand: e.body for e in scan_tests(repo, test_files(text, repo))[0]}
+    now = {}
+    for e in scan_tests(repo, test_files(text, repo))[0]:
+        now.setdefault(e.cand, []).append(e.body)
     cited = sorted(set().union(*section_test_files(before).values()))
     for e in scan_tests(repo, cited, args.test + "~1")[0]:
-        if e.cand in kept and now.get(e.cand) != e.body:
+        if e.cand in kept and e.body not in now.get(e.cand, ()):
             out(f"KEPT TEST MODIFIED {e.file} {id_labels(before)[e.cand]}")
             ok = False
     return ok
