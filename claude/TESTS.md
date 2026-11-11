@@ -246,3 +246,13 @@ Branche : `feat/test-garde-voisin` · Commande : `mise run test`
     - quand le test qui suit est un test pytest précédé d'un décorateur (ligne `@…` au-dessus de son nom) et que le commit le retire, si bien que le test suivant, précédé d'un autre décorateur, prend sa place, la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
     - quand le fichier est un fichier helm-unittest à plusieurs documents et que le commit retire le document qui suit le test de `X-001` (séparateur `---` puis en-tête `suite:`), la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
 - **Test** : `agents/bin/tests/test_acceptance_test_garde_voisin.py` › `test_PRV015_pytest_decorated_neighbour_removed_does_not_modify_kept_test` ; `agents/bin/tests/test_acceptance_test_garde_voisin.py` › `test_PRV015_helm_unittest_following_document_removed_does_not_modify_kept_test`
+
+## test-garde-dernier — Un test gardé devenu le dernier du fichier
+Branche : `feat/test-garde-dernier` · Commande : `mise run test`
+
+### PRV-016 — Un test gardé devenu le dernier du fichier n'est pas dit modifié
+- **Critère** :
+  - **Étant donné** un fichier de test pytest qui se termine par un bloc `if __name__ == "__main__":`, où le test du critère `X-001` est suivi d'un dernier test, et un commit d'acceptation qui retire ce dernier test en laissant le test de `X-001` intact au caractère près
+  - **Quand** `tdd-gate characterize` est lancé sans `--ac-changed`
+  - **Alors** la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
+- **Test** : `agents/bin/tests/test_acceptance_test_garde_dernier.py` › `test_PRV016_kept_test_becoming_last_of_file_is_not_modified`
