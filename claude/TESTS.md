@@ -147,7 +147,10 @@ Branche : `feat/test-garde` · Commande : `mise run test`
 - **Critère** :
   - **Étant donné** un fichier de test cité par un slug remplacé (`--replaces`), où le test `X-001`, présent dans `TESTS.md` avant et après, a une ligne modifiée, et où `X-002` est modifié et listé dans `--ac-changed`
   - **Quand** `tdd-gate characterize` est lancé
-  - **Alors** la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL` ; quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED` ; quand `X-001` est porté par deux tests du fichier, tous deux laissés intacts, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
+  - **Alors**
+    - la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
+    - quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
+    - quand `X-001` est porté par deux tests du fichier, tous deux laissés intacts, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
 - **Test** : `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_test_modified_is_reported`, `test_FRM002_test_appended_after_kept_test_is_not_reported`, `test_FRM002_kept_identifier_with_two_tests_is_not_reported`
 
 ## rejeu — Rejeu des mutants sur la base et la tête d'une pile
@@ -171,3 +174,13 @@ Branche : `feat/rejeu` · Commande : `mise run test`
     - la sortie contient `KEPT` pour le premier et `NEVER` pour le second, et se termine par `PASS`
     - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
 - **Test** : `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL002_lossless_replay_passes_and_leaves_nothing`
+
+## clauses — L'entrée a autant de clauses que la spec
+Branche : `feat/clauses` · Commande : `mise run test`
+
+### FRM-006 — L'entrée a autant de clauses que la spec
+- **Critère** :
+  - **Étant donné** une spec dont le critère `X-001` a un « Alors » en liste de deux clauses, et un `TESTS.md` dont l'entrée `X-001` du slug jugé porte ce « Alors » sur une seule ligne
+  - **Quand** `tdd-gate red` ou `characterize` est lancé avec `--spec`
+  - **Alors** la sortie contient `CLAUSES X-001: 1 in TESTS.md, 2 in spec` et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_clauses.py` › `test_FRM006_red_entry_with_fewer_clauses_than_spec_fails` ; `agents/bin/tests/test_acceptance_clauses.py` › `test_FRM006_characterize_entry_with_fewer_clauses_than_spec_fails`
