@@ -33,6 +33,7 @@ Rules:
    - Never touch a test path (patterns above); the edit must be in production files only.
    - `git -C <tmp> diff > <out>/<ID>.patch` for clause 1, `<ID>.2.patch`, `<ID>.3.patch`… for the next clauses; check that each is non-empty, then reset (the gate also accepts a patch without a `diff --git` header, starting at `--- a/<file>`, but the form to produce stays `git diff`; a "Alors" on one line is one clause, so one mutant and no `<ID>.2.patch` in that case): `git -C <tmp> checkout -- . && git -C <tmp> clean -fd`.
    - Neutral change: ONE edit after which the "Alors" is still true (another valid value of a setting the criterion reads, an element added to a set meant to grow such as a catalogue or a list of environments, an order changed where none is promised, an internal element renamed). Check by a render or a run that the "Alors" still holds. Write it `<out>/<ID>.neutral.patch`. If none exists because the "Alors" copies a value, write no patch and note `NO-NEUTRAL <ID> : <reason>`.
+   - A neutral change changes the behaviour or the rendering of the object the criterion describes, on a point its "Alors" does not promise; a comment, an edit with no effect or a setting the criterion does not look at is refused.
    - If a clause cannot be broken without breaking the build, write no patch and note `NO-MUTANT <ID> clause <n>: <reason>`.
 3. At the end: `git worktree remove --force <tmp>`, then confirm `git status --short` is empty in the worktree.
 

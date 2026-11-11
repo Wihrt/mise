@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""harness-local: read the machine-local, never versioned files of the harness.
+
+  harness-local forge --repo DIR   print the forge CLI (gh, glab) for the host of DIR's origin
+  harness-local cas-reels ID       print the lines of cas-reels.md that name ID
+
+The local directory is $CLAUDE_LOCAL_DIR, default ~/.claude/local. `forges` holds `<host> <tool>` lines.
+"""
+import argparse
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+PUBLIC = {"github.com": "gh", "gitlab.com": "glab"}
+
+
+def local_dir():
+    return Path(os.environ.get("CLAUDE_LOCAL_DIR") or Path.home() / ".claude" / "local")
+
+
+def forge(repo):
+    url = subprocess.run(["git", "-C", repo, "remote", "get-url", "origin"],
+                         capture_output=True, text=True, check=True).stdout.strip()
+    host = re.sub(r"^[a-z+]+://", "", url)
+    host = re.sub(r"^[^@/]*@", "", host)
+    host = re.split(r"[:/]", host)[0]
+    tools = dict(PUBLIC)
+    forges = local_dir() / "forges"
+    if forges.exists():
+        tools.update(line.split() for line in forges.read_text().splitlines())
+    if host not in tools:
+        print(f"hôte {host} inconnu")
+        return 1
+    print(tools[host])
+    return 0
+
+
+def cas_reels(id_):
+    path = local_dir() / "cas-reels.md"
+    if path.exists():
+        for line in path.read_text().splitlines():
+            if id_ in line:
+                print(line)
+    return 0
+
+
+def main():
+    p = argparse.ArgumentParser(prog="harness-local")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    f = sub.add_parser("forge")
+    f.add_argument("--repo", required=True)
+    c = sub.add_parser("cas-reels")
+    c.add_argument("id")
+    a = p.parse_args()
+    return forge(a.repo) if a.cmd == "forge" else cas_reels(a.id)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
