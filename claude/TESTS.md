@@ -129,3 +129,13 @@ Branche : `feat/code-minimal` · Commande : `mise run test`
     - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
     - quand le commit `feat` supprime aussi une ligne existante d'un fichier de production et ajoute un fichier de test, aucune ligne `UNNEEDED` ne nomme la suppression ni le fichier de test
 - **Test** : `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_block_is_refused` ; `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_unneeded_ok_accepts_the_block` ; `agents/bin/tests/test_acceptance_code_minimal.py` › `test_PRV009_deletion_and_test_file_are_not_judged`
+
+## neutre-sans-resultat — Un changement neutre sans résultat est invalide
+Branche : `feat/neutre-sans-resultat` · Commande : `mise run test`
+
+### PRV-010 — Un changement neutre sans résultat est invalide
+- **Critère** :
+  - **Étant donné** un critère `X-001` dont le mutant est tué, et un `X-001.neutral.patch` qui s'applique mais sous lequel la tâche de test ne produit aucun résultat pour les tests du critère
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `NEUTRAL INVALID X-001`, aucune ligne `NEUTRAL OK X-001`, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_neutre_sans_resultat.py` › `test_PRV010_neutral_change_without_result_is_invalid`
