@@ -27,6 +27,7 @@ Rules:
 - Every assertion traces to the criterion's "Alors" (Then), and nothing else is asserted.
 - Partial match: select objects by role (kind, label, port name, resource type) and assert only the promised fields.
 - No test for what the repo's tooling already guarantees (compiler and type system, schema such as `values.schema.json`, `validation {}` blocks or pydantic, `tofu validate`, linters run by prek or `mise run check`). If a criterion's "Alors" only restates such a guarantee and the criterion does not explicitly say it freezes it on purpose, do not transcribe it: stop with `CRITERION-ISSUE <ID>: guaranteed by <tool>`.
+- No hypothetical edge case (template rule "Pas de cas aux limites hypothétiques"): transcribe only the cases the criterion states, never add a variant of your own. A criterion covering a case with neither a spec line nor a cited real input (`Cas réel :`): stop with `CRITERION-ISSUE <ID>: hypothetical edge case`.
 - Forbidden unless the criterion says so: full snapshot/golden file, generated names, ordering, object count, exact strings.
 - Universal criteria iterate over every profile and every matching object. Profiles are fixtures; fixtures and helpers live under a `test/`, `tests/`, `acceptance/` or `testdata/` directory (or `conftest.py`), the only non-test-named paths you can write.
 
