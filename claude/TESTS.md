@@ -77,7 +77,7 @@ Branche : `feat/preuve-specifique` · Commande : `mise run test`
   - **Alors**
     - la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
     - relancée avec un `X-001.neutral.patch` qui ne s'applique pas au dépôt, elle contient `NEUTRAL INVALID X-001` et se termine par `FAIL`
-- **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV003_missing_neutral_change` ; `…` › `test_PRV003_neutral_change_not_applying_is_invalid`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV003_missing_neutral_change` ; `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV003_neutral_change_not_applying_is_invalid`
 
 ### PRV-004 — Un test qui casse sous un changement neutre est refusé
 - **Critère** :
@@ -115,7 +115,7 @@ Branche : `feat/preuves-nouveau` · Commande : `mise run test`
     - relancé avec `--proofs` et un test qui survit à son mutant, elle contient `SURVIVED` et se termine par `FAIL`
     - relancé avec `--proofs`, un test qui échoue sous son mutant et passe sous son changement neutre, elle contient `KILLED` et `NEUTRAL OK` pour le critère, aucune ligne `SURVIVED`, et se termine par `PASS`
     - relancé avec `--proof-exempt`, aucun mutant n'est appliqué et elle se termine par `PASS`
-- **Test** : `agents/bin/tests/test_acceptance_preuves_nouveau.py` › `test_PRV007_missing_proofs_option_fails` ; `…` › `test_PRV007_surviving_mutant_fails` ; `…` › `test_PRV007_killed_mutant_and_neutral_change_pass` ; `…` › `test_PRV007_proof_exempt_applies_no_mutant`
+- **Test** : `agents/bin/tests/test_acceptance_preuves_nouveau.py` › `test_PRV007_missing_proofs_option_fails` ; `agents/bin/tests/test_acceptance_preuves_nouveau.py` › `test_PRV007_surviving_mutant_fails` ; `agents/bin/tests/test_acceptance_preuves_nouveau.py` › `test_PRV007_killed_mutant_and_neutral_change_pass` ; `agents/bin/tests/test_acceptance_preuves_nouveau.py` › `test_PRV007_proof_exempt_applies_no_mutant`
 
 ## code-minimal — Code minimal : un bloc qu'aucun test ne demande est refusé
 Branche : `feat/code-minimal` · Commande : `mise run test`
@@ -151,7 +151,7 @@ Branche : `feat/test-garde` · Commande : `mise run test`
     - la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
     - quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
     - quand `X-001` est porté par deux tests du fichier, tous deux laissés intacts, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
-- **Test** : `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_test_modified_is_reported`, `test_FRM002_test_appended_after_kept_test_is_not_reported`, `test_FRM002_kept_identifier_with_two_tests_is_not_reported`
+- **Test** : `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_test_modified_is_reported` ; `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_test_appended_after_kept_test_is_not_reported` ; `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_identifier_with_two_tests_is_not_reported`
 
 ## rejeu — Rejeu des mutants sur la base et la tête d'une pile
 Branche : `feat/rejeu` · Commande : `mise run test`
@@ -164,7 +164,7 @@ Branche : `feat/rejeu` · Commande : `mise run test`
     - la sortie contient `LOST` avec le nom du mutant et se termine par `FAIL`
     - relancé avec `--accept-lost <nom>`, elle contient `LOST ACCEPTED` et se termine par `PASS`
     - relancé en échangeant `--base` et `--head`, elle contient `GAINED` avec le nom du mutant et se termine par `PASS`
-- **Test** : `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL001_lost_protection_is_reported_then_accepted` ; `test_RPL001_gained_protection_is_reported`
+- **Test** : `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL001_lost_protection_is_reported_then_accepted` ; `agents/bin/tests/test_acceptance_rejeu.py` › `test_RPL001_gained_protection_is_reported`
 
 ### RPL-002 — Un rejeu sans perte passe et ne laisse rien derrière lui
 - **Critère** :
@@ -184,3 +184,43 @@ Branche : `feat/clauses` · Commande : `mise run test`
   - **Quand** `tdd-gate red` ou `characterize` est lancé avec `--spec`
   - **Alors** la sortie contient `CLAUSES X-001: 1 in TESTS.md, 2 in spec` et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_clauses.py` › `test_FRM006_red_entry_with_fewer_clauses_than_spec_fails` ; `agents/bin/tests/test_acceptance_clauses.py` › `test_FRM006_characterize_entry_with_fewer_clauses_than_spec_fails`
+
+## revue-finale — Corrections de la revue finale
+Branche : `feat/revue-finale` · Commande : `mise run test`
+
+### FRM-007 — Une tâche atteinte par un motif de dépendance est branchée
+- **Critère** :
+  - **Étant donné** un slug dont la `Commande` est `mise run test:render`, un hook de commit qui lance `mise run test`, et un `mise.toml` où `[tasks.test]` a `depends = ["test:*"]`
+  - **Quand** `tdd-gate green` ou `characterize` est lancé
+  - **Alors** la sortie ne contient aucune ligne `NOT WIRED`
+- **Test** : `agents/bin/tests/test_acceptance_revue_finale.py` › `test_FRM007_green_task_reached_by_dependency_pattern` ; `agents/bin/tests/test_acceptance_revue_finale.py` › `test_FRM007_characterize_task_reached_by_dependency_pattern`
+
+### PRV-011 — Un mutant sans en-tête `diff --git` est jugé
+- **Critère** :
+  - **Étant donné** un dossier de preuves dont le mutant de `X-001` est un patch qui commence par `--- a/<fichier>`, sans ligne `diff --git`, et qui casse le test du critère
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `KILLED X-001`
+- **Test** : `agents/bin/tests/test_acceptance_revue_finale.py` › `test_PRV011_mutant_without_diff_git_header_is_judged`
+
+### PRV-012 — Les preuves ne s'appliquent pas sur un arbre modifié
+- **Critère** :
+  - **Étant donné** un dépôt dont un fichier suivi porte une modification non commitée
+  - **Quand** `tdd-gate green --proofs DIR` est lancé
+  - **Alors** la sortie contient `TREE NOT CLEAN`, aucune ligne `MUTANT`, se termine par `FAIL`, et la modification non commitée est toujours dans le fichier
+- **Test** : `agents/bin/tests/test_acceptance_revue_finale.py` › `test_PRV012_proofs_not_applied_on_modified_tree`
+
+### PRV-013 — Le code minimal se juge depuis le début de la tâche
+- **Critère** :
+  - **Étant donné** un slug qui a deux commits d'acceptation, et un bloc de code de production qu'aucun test ne demande, ajouté entre les deux
+  - **Quand** `tdd-gate green --proofs DIR` est lancé avec `--test <second commit d'acceptation>` et `--since <premier commit d'acceptation>`
+  - **Alors** la sortie contient `UNNEEDED` avec le fichier et les lignes de ce bloc, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_revue_finale.py` › `test_PRV013_unneeded_block_added_between_two_acceptance_commits`
+
+### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
+- **Critère** :
+  - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
+  - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
+  - **Alors**
+    - la sortie contient `BASELINE NOT GREEN base`, aucune ligne `KEPT`, et se termine par `FAIL`
+    - relancé en échangeant `--base` et `--head`, elle contient `BASELINE NOT GREEN head`, aucune ligne `KEPT`, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_revue_finale.py` › `test_RPL003_failing_task_without_mutant_stops_the_replay` ; `agents/bin/tests/test_acceptance_revue_finale.py` › `test_RPL003_swapped_base_and_head_names_head`

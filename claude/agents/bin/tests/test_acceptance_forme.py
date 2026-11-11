@@ -64,10 +64,12 @@ def dirty_spec(repo):
 
 
 def test_FRM005_red_spec_not_committed(repo):
-    commit(repo, {"spec.md": SPEC}, "spec")
-    sha = base_commit(repo, junit(("TestCALC003_C", "fail")))
+    sha = char_setup(repo, state="fail")  # spec committed, acceptance commit holds test paths only, CALC-003 red
+    args = ("red", "--slug", "div", "--test", sha, "--task", "test", "--spec", "spec.md", "--ac", "CALC-003")
+    rc, out = gate(repo, *args)  # control: with the spec committed the gate passes
+    assert out.splitlines()[-1] == "PASS" and "SPEC NOT COMMITTED" not in out, out
     dirty_spec(repo)
-    rc, out = gate(repo, "red", "--slug", "div", "--test", sha, "--task", "test", "--spec", "spec.md", "--ac", "CALC-003")
+    rc, out = gate(repo, *args)
     assert "SPEC NOT COMMITTED" in out and out.splitlines()[-1] == "FAIL", out
 
 

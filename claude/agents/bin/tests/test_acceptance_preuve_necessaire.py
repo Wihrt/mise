@@ -22,7 +22,7 @@ TASK = (
     "mkdir -p .tdd\ns=$(cat src/state)\ncp tests/$s.xml .tdd/junit.xml\n"
     "case \"$s\" in pass) exit 0;; *) exit 1;; esac\n"
 )
-SPEC2 = SPEC.replace("### CALC-001", "### CALC-004 — d\n### CALC-001")
+SPEC2 = SPEC.replace("### CALC-001", "### CALC-004 — d\n- **Alors** x\n### CALC-001")
 
 
 def judged(repo, mutants, mutant_x1, mutant_x2):
@@ -39,4 +39,5 @@ def test_PRV006_criterion_covered_by_another_is_redundant(repo, mutants):
     redundant = [line for line in out.splitlines() if "REDUNDANT CALC-004" in line]
     assert redundant and all(X1 in line for line in redundant), out
     assert "REDUNDANT CALC-003" not in out, out
+    assert not [line for line in out.splitlines() if "CLAUSES" in line], out
     assert rc != 0 and out.splitlines()[-1] == "FAIL", out
