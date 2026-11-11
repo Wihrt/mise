@@ -200,6 +200,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
   - quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
+  - quand `X-001` est porté par deux tests du fichier, tous deux laissés intacts, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
 - **Cas réel** : comparaison bloc par bloc faite à la main à chaque tâche de l'élagage
 
 ### FRM-003 — Un rapport absent dit quoi faire

@@ -31,3 +31,15 @@ def test_FRM002_test_appended_after_kept_test_is_not_reported(repo, mutants):
     make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n"})
     rc, out = char(repo, sha, mutants, "--replaces", "pow", "--ac-changed", "CALC-002")
     assert not [ln for ln in out.splitlines() if "KEPT TEST MODIFIED" in ln], out
+
+
+def test_FRM002_kept_identifier_with_two_tests_is_not_reported(repo, mutants):
+    # CALC-001 (kept, not listed) is carried by two tests, both left intact; only CALC-002 (listed) is modified.
+    base = ("package x\nfunc TestCALC001_A(t *testing.T) { _ = 1 }\n"
+            "func TestCALC001_Other(t *testing.T) { _ = 10 }\n"
+            "func TestCALC002_B(t *testing.T) { _ = 2 }\n")
+    changed = base.replace("{ _ = 2 }", "{ _ = 3 }")
+    sha = char_setup(repo, md=KEPT_MD, files={"p_test.go": base}, acc_files={"p_test.go": changed})
+    make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n"})
+    rc, out = char(repo, sha, mutants, "--replaces", "pow", "--ac-changed", "CALC-002")
+    assert not [ln for ln in out.splitlines() if "KEPT TEST MODIFIED" in ln], out

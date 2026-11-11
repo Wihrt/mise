@@ -147,8 +147,8 @@ Branche : `feat/test-garde` · Commande : `mise run test`
 - **Critère** :
   - **Étant donné** un fichier de test cité par un slug remplacé (`--replaces`), où le test `X-001`, présent dans `TESTS.md` avant et après, a une ligne modifiée, et où `X-002` est modifié et listé dans `--ac-changed`
   - **Quand** `tdd-gate characterize` est lancé
-  - **Alors** la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL` ; quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
-- **Test** : `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_test_modified_is_reported`, `test_FRM002_test_appended_after_kept_test_is_not_reported`
+  - **Alors** la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL` ; quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED` ; quand `X-001` est porté par deux tests du fichier, tous deux laissés intacts, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
+- **Test** : `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_test_modified_is_reported`, `test_FRM002_test_appended_after_kept_test_is_not_reported`, `test_FRM002_kept_identifier_with_two_tests_is_not_reported`
 
 ## rejeu — Rejeu des mutants sur la base et la tête d'une pile
 Branche : `feat/rejeu` · Commande : `mise run test`
