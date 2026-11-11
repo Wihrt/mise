@@ -24,14 +24,9 @@ Wrapper over superpowers:subagent-driven-development (SDD, validated 6.4.2). Inv
 1. Worktree for the whole stack: superpowers:using-git-worktrees. Enter it (EnterWorktree, or start the session there) before dispatching any agent; agents `cd <worktree>` at the start of every Bash call (the worktree hook judges commits by the call's cwd).
 2. Forge, run in the repo (`gh` for GitHub, `glab` otherwise; then follow `forge-gh` / `forge-glab` for MRs, CI, status):
 ```bash
-host=$(git remote get-url origin | sed -E 's#^[a-z+]+://([^@/]*@)?##; s#^[^@/]*@##; s#[:/].*##' | tr '[:upper:]' '[:lower:]')
-case "$host" in
-  github.com) forge=gh ;;
-  gitlab.com) forge=glab ;;
-  *) if [ -n "$host" ] && glab auth status 2>&1 | grep -qxF "$host"; then forge=glab
-     else echo "hôte $host inconnu"; exit 1; fi ;;
-esac
+forge=$(~/.claude/agents/bin/harness-local forge --repo .) || exit 1
 ```
+Internal hosts are declared in `~/.claude/local/forges` (`<host> <tool>` per line), a directory that is never versioned.
 Unknown host (or a local-path origin): stop and say so to the user.
 3. Repo not conforming to `repo-tooling` (no `mise.toml` with `setup`/`test`/`check`, no prek config): feature 1 is `chore(tooling)` (see "Work without a test").
 4. No CI pipeline: stop and tell the user. Check GitLab: `glab api projects/:id | jq -r .ci_config_path` and `git ls-files .gitlab-ci.yml`; GitHub: `ls .github/workflows`. An include-only CI counts.
