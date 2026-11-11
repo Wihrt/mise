@@ -201,7 +201,8 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - la sortie contient `NOT WIRED test:render` et se termine par `FAIL`
   - une fois la tâche citée dans `.pre-commit-config.yaml` ou `.gitlab-ci.yml`, la ligne `NOT WIRED` n'apparaît plus
-- **Cas réel** : un dépôt de déploiement (`test:render`, `test:bootstrap`), trois charts d'application
+  - quand le hook ne cite que `mise run check` et que `test:render` est une dépendance (`depends`) de `check` dans `mise.toml`, la ligne `NOT WIRED` n'apparaît pas
+- **Cas réel** : un dépôt de déploiement (`test:render`, `test:bootstrap`), trois charts d'application ; dépendance : le dépôt du harnais lui-même (hook `mise run check`, `check` dépend de `test`)
 
 ### FRM-005 — La spec jugée est celle qui est commitée
 - **Étant donné** une spec située dans le dépôt, avec une modification non commitée
