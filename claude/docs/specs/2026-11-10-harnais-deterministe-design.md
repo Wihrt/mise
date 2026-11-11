@@ -232,6 +232,12 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
   - quand le fichier est un fichier helm-unittest à plusieurs documents et que le commit retire le document qui suit le test de `X-001` (séparateur `---` puis en-tête `suite:`), la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
 - **Cas réel** : deux branches d'élagage d'un chart (décorateur `@pytest.mark.parametrize` d'un test retiré ; `---` et en-tête d'une suite retirée), rejugement du 11/11
 
+### PRV-016 — Un test gardé devenu le dernier du fichier n'est pas dit modifié
+- **Étant donné** un fichier de test pytest qui se termine par un bloc `if __name__ == "__main__":`, où le test du critère `X-001` est suivi d'un dernier test, et un commit d'acceptation qui retire ce dernier test en laissant le test de `X-001` intact au caractère près
+- **Quand** `tdd-gate characterize` est lancé sans `--ac-changed`
+- **Alors** la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
+- **Cas réel** : un dépôt de déploiement, rejugement du 11/11 (le test retiré était le dernier du fichier)
+
 ### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
 - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
 - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
