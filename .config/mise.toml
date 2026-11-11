@@ -89,6 +89,7 @@ description = "Run the tdd-gate pytest suite"
 dir = "claude/agents/bin"
 env = { PYTHONDONTWRITEBYTECODE = "1" }
 run = """
+unset $(git rev-parse --local-env-vars)
 mkdir -p ../../../.tdd
 uvx --python 3.14 pytest -q -p no:cacheprovider --junitxml=../../../.tdd/tdd-gate.xml tests
 """
