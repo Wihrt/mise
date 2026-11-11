@@ -608,11 +608,11 @@ CHAR_REPORTS = {
 }
 
 
-def char_setup(repo, state="pass", md=None, task=None, mise_task="test"):
+def char_setup(repo, state="pass", md=None, task=None, mise_task="test", mise=None, files=None):
     """Base commit (pow's tests, task, spec, src/state), then an acceptance commit whose tests are already green."""
     pow_md = STAB_MD[: STAB_MD.index("## div")]
     commit(repo, {"run_test.sh": task or CHAR_TASK, "spec.md": SPEC, "src/state": state + "\n", "src/note.txt": "note\n",
-                  ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise_toml(task=mise_task)}, "base")
+                  ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise or mise_toml(task=mise_task), **(files or {})}, "base")
     return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS}, "test(div): acceptance")
 
 

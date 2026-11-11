@@ -666,7 +666,35 @@ def restore_tree(repo, created):
         (repo / f).unlink(missing_ok=True)
 
 
-def mutant_problem(repo, patch):
+def mise_problem(repo, patch, task):
+    """Reason why the patch changes mise.toml outside the allowed tasks, or None."""
+    table = None
+    old = (repo / "mise.toml").read_text().splitlines()
+    in_file = False
+    for line in patch.read_text().splitlines():
+        if line.startswith("diff --git "):
+            in_file = line.endswith(" b/mise.toml")
+        elif not in_file:
+            continue
+        elif m := re.match(r"@@ -(\d+)", line):
+            for prev in old[: int(m.group(1)) - 1]:
+                table = table_of(prev, table)
+        elif line[:1] in " +-":
+            table = table_of(line[1:], table)
+            if line[0] != " " and table == task:
+                return f"touches test task {table}"
+    return None
+
+
+def table_of(line, table):
+    """The table in force after this line of mise.toml: a task name, or None."""
+    if line.startswith("["):
+        m = re.fullmatch(r'\[tasks\.("?)(.+?)\1\]\s*', line)
+        return m.group(2) if m else None
+    return table
+
+
+def mutant_problem(repo, patch, task):
     """Reason why the patch cannot be used as a mutant, or None."""
     if not patch.is_file():
         return f"patch missing ({patch})"
@@ -676,9 +704,9 @@ def mutant_problem(repo, patch):
     _, numstat = git(repo, "apply", "--numstat", str(patch))
     for line in numstat.splitlines():
         f = line.split("\t", 2)[-1]
-        if is_test_path(f):
+        if f != "mise.toml" and is_test_path(f):
             return f"touches test path {f}"
-    return None
+    return mise_problem(repo, patch, task)
 
 
 def gate_characterize(args):
@@ -724,7 +752,7 @@ def gate_characterize(args):
     mutants = Path(args.proofs).resolve()
     for i in args.ac:
         patch = mutants / f"{i}.patch"
-        problem = mutant_problem(repo, patch)
+        problem = mutant_problem(repo, patch, args.task)
         if problem:
             out(f"MUTANT INVALID {i}: {problem}")
             ok = False

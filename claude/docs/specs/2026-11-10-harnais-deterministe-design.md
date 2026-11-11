@@ -167,7 +167,8 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - le premier est appliqué et jugé (`KILLED` ou `SURVIVED`)
   - le second est refusé par `MUTANT INVALID … touches test task test:bootstrap`
-- **Cas réel** : un dépôt de déploiement, 8 mutants sur 9 refusés pour la tâche d'amorçage
+  - un mutant d'un autre fichier que `mise.toml`, dont le hunk porte sur des numéros de ligne qui sont, dans `mise.toml`, ceux du corps de `test:bootstrap`, est appliqué et jugé (`KILLED` ou `SURVIVED`)
+- **Cas réel** : un dépôt de déploiement, 8 mutants sur 9 refusés pour la tâche d'amorçage ; `mise.toml` de 299 lignes (`test:bootstrap` ligne 62) et mutants de gabarits Helm à des lignes quelconques
 
 ### PRV-009 — Un bloc de code qu'aucun test ne demande est refusé
 - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, deux blocs séparés : l'un sans lequel le test du critère échoue, l'autre dont le retrait laisse tous les tests verts
