@@ -297,3 +297,26 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - la sortie contient `KEPT` pour le premier et `NEVER` pour le second, et se termine par `PASS`
   - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
+
+### LOC-001 — Un hôte déclaré en local donne son outil de forge
+- **Étant donné** un dépôt git dont `origin` vaut `https://forge.exemple.test/groupe/depot.git`, et un dossier local (variable `CLAUDE_LOCAL_DIR`) dont le fichier `forges` contient la ligne `forge.exemple.test glab`
+- **Quand** `harness-local forge --repo <dépôt>` est lancé
+- **Alors** la sortie est `glab` et le code de sortie est 0
+- **Cas réel** : deux forges internes retirées de la version publique du skill le 11/11 (demande de l'utilisateur : le concret vit hors Git)
+
+### LOC-002 — Sans fichier local, seuls les hôtes publics sont connus
+- **Étant donné** un dossier local vide (variable `CLAUDE_LOCAL_DIR`)
+- **Quand** `harness-local forge --repo <dépôt>` est lancé
+- **Alors**
+  - pour un dépôt dont `origin` vaut `git@github.com:groupe/depot.git`, la sortie est `gh` et le code de sortie est 0
+  - pour un dépôt dont `origin` vaut `https://gitlab.com/groupe/depot.git`, la sortie est `glab` et le code de sortie est 0
+  - pour un dépôt dont `origin` vaut `https://forge.exemple.test/groupe/depot.git`, le code de sortie est 1 et la sortie contient `hôte forge.exemple.test inconnu`
+- **Cas réel** : version publique du skill, `gitlab.com) forge=glab` et `github.com) forge=gh` ; arrêt « hôte inconnu » déjà prévu par le skill
+
+### LOC-003 — Un cas réel local affine une règle sans être versionné
+- **Étant donné** un dossier local (variable `CLAUDE_LOCAL_DIR`) dont le fichier `cas-reels.md` contient une ligne `| PRV-015 | dépôt interne, critère X-103 |`
+- **Quand** `harness-local cas-reels PRV-015` est lancé
+- **Alors**
+  - la sortie contient la ligne du fichier qui nomme `PRV-015`, et le code de sortie est 0
+  - quand le fichier `cas-reels.md` n'existe pas, la sortie est vide et le code de sortie est 0
+- **Cas réel** : les lignes « Cas réel » de la spec et de la table des règles, neutralisées avant publication le 11/11 ; les relecteurs doivent pouvoir retrouver l'exemple concret d'une règle
