@@ -644,7 +644,7 @@ def test_characterize_killed(repo, mutants):
     sha = char_setup(repo)
     make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n"})
     rc, out = char(repo, sha, mutants)
-    assert rc == 0 and "KILLED CALC-003: TestCALC003_C" in out and out.splitlines()[-1] == "PASS", out
+    assert rc == 0 and "KILLED CALC-003 clause 1: TestCALC003_C" in out and out.splitlines()[-1] == "PASS", out
     assert sh(repo, "git", "status", "--short") == ""
 
 
@@ -652,14 +652,14 @@ def test_characterize_survived(repo, mutants):
     sha = char_setup(repo)
     make_patch(repo, mutants, "CALC-003", {"src/note.txt": "# comment\n"})
     rc, out = char(repo, sha, mutants)
-    assert rc == 1 and "SURVIVED CALC-003" in out and out.splitlines()[-1] == "FAIL", out
+    assert rc == 1 and "SURVIVED CALC-003 clause 1" in out and out.splitlines()[-1] == "FAIL", out
     assert sh(repo, "git", "status", "--short") == ""
 
 
 def test_characterize_missing_patch(repo, mutants):
     sha = char_setup(repo)
     rc, out = char(repo, sha, mutants)
-    assert rc == 1 and "MUTANT INVALID CALC-003" in out and out.splitlines()[-1] == "FAIL", out
+    assert rc == 1 and "MUTANT MISSING CALC-003 clause 1" in out and out.splitlines()[-1] == "FAIL", out
 
 
 def test_characterize_patch_not_applying(repo, mutants):
@@ -669,7 +669,7 @@ def test_characterize_patch_not_applying(repo, mutants):
         "diff --git a/src/note.txt b/src/note.txt\n--- a/src/note.txt\n+++ b/src/note.txt\n"
         "@@ -1 +1 @@\n-not the real content\n+changed\n")
     rc, out = char(repo, sha, mutants)
-    assert rc == 1 and "MUTANT INVALID CALC-003" in out, out
+    assert rc == 1 and "MUTANT INVALID CALC-003 clause 1" in out, out
     assert sh(repo, "git", "status", "--short") == ""
 
 
@@ -677,7 +677,7 @@ def test_characterize_patch_touches_test_path(repo, mutants):
     sha = char_setup(repo)
     make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n", "src/x_test.go": "package x\n"})
     rc, out = char(repo, sha, mutants)
-    assert rc == 1 and "MUTANT INVALID CALC-003: touches test path src/x_test.go" in out, out
+    assert rc == 1 and "MUTANT INVALID CALC-003 clause 1: touches test path src/x_test.go" in out, out
     assert "KILLED" not in out and sh(repo, "git", "status", "--short") == ""
 
 
@@ -685,7 +685,7 @@ def test_characterize_no_result(repo, mutants):
     sha = char_setup(repo)
     make_patch(repo, mutants, "CALC-003", {"src/state": "none\n"})
     rc, out = char(repo, sha, mutants)
-    assert rc == 1 and "MUTANT INVALID CALC-003: no result" in out, out
+    assert rc == 1 and "MUTANT INVALID CALC-003 clause 1: no result" in out, out
     assert sh(repo, "git", "status", "--short") == ""
 
 
@@ -701,7 +701,7 @@ def test_characterize_restores_tree_with_new_file(repo, mutants):
     sha = char_setup(repo)
     make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n", "src/new.txt": "new\n"})
     rc, out = char(repo, sha, mutants)
-    assert rc == 0 and "KILLED CALC-003" in out, out
+    assert rc == 0 and "KILLED CALC-003 clause 1" in out, out
     assert sh(repo, "git", "status", "--short") == "" and not (repo / "src/new.txt").exists()
 
 
@@ -709,7 +709,7 @@ def test_characterize_timeout_restores_tree(repo, mutants):
     sha = char_setup(repo)
     make_patch(repo, mutants, "CALC-003", {"src/state": "slow\n", "src/new.txt": "new\n"})
     rc, out = char(repo, sha, mutants, "--timeout", "1")
-    assert rc == 2 and "MUTANT CALC-003: patch applied" in out and "TIMEOUT after 1s" in out, out
+    assert rc == 2 and "MUTANT CALC-003 clause 1: patch applied" in out and "TIMEOUT after 1s" in out, out
     assert sh(repo, "git", "status", "--short") == "" and not (repo / "src/new.txt").exists()
 
 

@@ -696,8 +696,6 @@ def table_of(line, table):
 
 def mutant_problem(repo, patch, task):
     """Reason why the patch cannot be used as a mutant, or None."""
-    if not patch.is_file():
-        return f"patch missing ({patch})"
     rc, _ = git(repo, "apply", "--check", str(patch))
     if rc != 0:
         return "patch does not apply"
@@ -707,6 +705,74 @@ def mutant_problem(repo, patch, task):
         if f != "mise.toml" and is_test_path(f):
             return f"touches test path {f}"
     return mise_problem(repo, patch, task)
+
+
+def entry_text(text, i):
+    lines, found = [], False
+    for line in text.splitlines():
+        if line.startswith("#"):
+            found = line.startswith("### ") and line.split()[1].rstrip(":") == i
+        elif found:
+            lines.append(line)
+    return "\n".join(lines)
+
+
+def clause_count(entry_text):
+    """Number of clauses of the Alors: 1 for a one-line Alors, else the items of its sub-list."""
+    lines = entry_text.splitlines()
+    for n, line in enumerate(lines):
+        if "**Alors**" in line:
+            if line.split("**Alors**", 1)[1].strip():
+                return 1
+            indent = len(line) - len(line.lstrip())
+            count = 0
+            for sub in lines[n + 1:]:
+                if len(sub) - len(sub.lstrip()) <= indent:
+                    break
+                count += sub.lstrip().startswith("- ")
+            return count
+    return 0
+
+
+def run_proofs(args, repo, text, ids):
+    ok = True
+    mutants = Path(args.proofs).resolve()
+    for i in ids:
+        for clause in range(1, clause_count(entry_text(text, i)) + 1):
+            patch = mutants / (f"{i}.patch" if clause == 1 else f"{i}.{clause}.patch")
+            tag = f"{i} clause {clause}"
+            if not patch.is_file():
+                out(f"MUTANT MISSING {tag}")
+                ok = False
+                continue
+            problem = mutant_problem(repo, patch, args.task)
+            if problem:
+                out(f"MUTANT INVALID {tag}: {problem}")
+                ok = False
+                continue
+            created = apply_mutant(repo, patch)
+            try:
+                out(f"MUTANT {tag}: patch applied")
+                rc, output, rep = run_task_and_report(args, repo)
+                if rc == 124:
+                    raise GateError(f"mutant {tag}: task timed out")
+            finally:
+                restore_tree(repo, created)
+            cases = results_by_id(rep).get(norm(i), [])
+            failed = [c for c in cases if c[1] == "fail"]
+            if failed:
+                out(f"KILLED {tag}: {failed[0][0]}")
+            elif cases:
+                out(f"SURVIVED {tag}")
+                ok = False
+            else:
+                out(f"MUTANT INVALID {tag}: no result")
+                ok = False
+            _, st = git(repo, "status", "--short")
+            if st.strip():
+                out(f"TREE NOT CLEAN after {tag}:\n" + st.rstrip("\n"))
+                return False
+    return ok
 
 
 def gate_characterize(args):
@@ -749,36 +815,8 @@ def gate_characterize(args):
             green = False
     if not green:
         return False
-    mutants = Path(args.proofs).resolve()
-    for i in args.ac:
-        patch = mutants / f"{i}.patch"
-        problem = mutant_problem(repo, patch, args.task)
-        if problem:
-            out(f"MUTANT INVALID {i}: {problem}")
-            ok = False
-            continue
-        created = apply_mutant(repo, patch)
-        try:
-            out(f"MUTANT {i}: patch applied")
-            rc, output, rep = run_task_and_report(args, repo)
-            if rc == 124:
-                raise GateError(f"mutant {i}: task timed out")
-        finally:
-            restore_tree(repo, created)
-        cases = results_by_id(rep).get(norm(i), [])
-        failed = [c for c in cases if c[1] == "fail"]
-        if failed:
-            out(f"KILLED {i}: {failed[0][0]}")
-        elif cases:
-            out(f"SURVIVED {i}")
-            ok = False
-        else:
-            out(f"MUTANT INVALID {i}: no result")
-            ok = False
-        _, st = git(repo, "status", "--short")
-        if st.strip():
-            out(f"TREE NOT CLEAN after {i}:\n" + st.rstrip("\n"))
-            return False
+    if not run_proofs(args, repo, text, args.ac):
+        ok = False
     args.feat = args.test  # nothing is committed: stability covers the acceptance commit
     if not check_stability(args, repo, text, before):
         ok = False
