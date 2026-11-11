@@ -139,3 +139,13 @@ Branche : `feat/neutre-sans-resultat` · Commande : `mise run test`
   - **Quand** `tdd-gate characterize` est lancé
   - **Alors** la sortie contient `NEUTRAL INVALID X-001`, aucune ligne `NEUTRAL OK X-001`, et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_neutre_sans_resultat.py` › `test_PRV010_neutral_change_without_result_is_invalid`
+
+## test-garde — Un test gardé ne change pas
+Branche : `feat/test-garde` · Commande : `mise run test`
+
+### FRM-002 — Un test gardé ne change pas
+- **Critère** :
+  - **Étant donné** un fichier de test cité par un slug remplacé (`--replaces`), où le test `X-001`, présent dans `TESTS.md` avant et après, a une ligne modifiée, et où `X-002` est modifié et listé dans `--ac-changed`
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_test_garde.py` › `test_FRM002_kept_test_modified_is_reported`

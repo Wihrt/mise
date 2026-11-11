@@ -574,7 +574,7 @@ def stability_setup(repo, test_edits_p=True, feat_files=None):
                   "run_test.sh": task_script("report.xml"), "report.xml": junit(("TestCALC001_A", "pass"))}, "base")
     files = {"report.xml": junit(("TestCALC003_C", "fail"))}
     if test_edits_p:
-        files["p_test.go"] = P_TESTS + "// criterion changed\n"
+        files["p_test.go"] = P_TESTS.replace("TestCALC001_A(t *testing.T) {}", "TestCALC001_A(t *testing.T) { _ = 1 }")
     t = commit(repo, files, "test(div): acceptance")
     f = commit(repo, {"green.xml": GREEN_ALL, "impl.go": "package x\n", **(feat_files or {})}, "feat(div)")
     return t, f
@@ -770,7 +770,7 @@ def test_characterize_ac_changed_parsed():
 def test_characterize_ac_changed_allows_earlier_test(repo, mutants):
     commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", "src/note.txt": "note\n", ".gitignore": ".tdd\n",
                   "TESTS.md": STAB_MD, "p_test.go": P_TESTS, "d_test.go": D_TESTS, "mise.toml": mise_toml()}, "base")
-    sha = commit(repo, {"p_test.go": P_TESTS + "// criterion changed\n", **CHAR_REPORTS}, "test(div): acceptance")
+    sha = commit(repo, {"p_test.go": P_TESTS.replace("TestCALC001_A(t *testing.T) {}", "TestCALC001_A(t *testing.T) { _ = 1 }"), **CHAR_REPORTS}, "test(div): acceptance")
     make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n"})
     rc, out = char(repo, sha, mutants)
     assert rc == 1 and "EARLIER ACCEPTANCE TEST MODIFIED: p_test.go" in out, out

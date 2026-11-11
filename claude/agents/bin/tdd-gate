@@ -193,11 +193,11 @@ class Entry:
         self.file, self.line, self.cand, self.body = file, line, cand, body
 
 
-def scan_tests(repo, files):
-    """Test names at name positions only. Returns (entries, preambles)."""
+def scan_tests(repo, files, rev=None):
+    """Test names at name positions only, in the work tree or at `rev`. Returns (entries, preambles)."""
     entries, pre = [], {}
     for f in files:
-        lines = (repo / f).read_text(errors="replace").splitlines()
+        lines = (git(repo, "show", f"{rev}:{f}")[1] if rev else (repo / f).read_text(errors="replace")).splitlines()
         idx = [i for i, ln in enumerate(lines) if NAME_POS_SELECT.match(ln)]
         pre[f] = "\n".join(lines[: idx[0]]) if idx else "\n".join(lines)
         for n, i in enumerate(idx):
@@ -549,6 +549,13 @@ def check_stability(args, repo, text, before=""):
     for slug in sorted(replaced):
         for i in sorted(replaced_ids(before, text, [slug])):
             out(f"REPLACED {slug}: {i}")
+    kept = (all_ids(before) & all_ids(text)) - set(allowed)
+    now = {e.cand: e.body for e in scan_tests(repo, test_files(text, repo))[0]}
+    cited = sorted(set().union(*section_test_files(before).values()))
+    for e in scan_tests(repo, cited, args.test + "~1")[0]:
+        if e.cand in kept and now.get(e.cand) != e.body:
+            out(f"KEPT TEST MODIFIED {e.file} {id_labels(before)[e.cand]}")
+            ok = False
     return ok
 
 
