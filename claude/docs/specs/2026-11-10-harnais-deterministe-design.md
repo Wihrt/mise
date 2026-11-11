@@ -218,6 +218,12 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors** la sortie contient `UNNEEDED` avec le fichier et les lignes de ce bloc, et se termine par `FAIL`
 - **Cas réel** : auto-preuve du 11/11, slug `rejeu` : le mode `replay` (`db779fa`), écrit avant le second commit d'acceptation, n'a pas été jugé
 
+### PRV-014 — La spec n'est pas jugée comme du code
+- **Étant donné** un slug qui a deux commits d'acceptation et, entre les deux, un commit qui ajoute des lignes au fichier de spec du dépôt
+- **Quand** `tdd-gate green --proofs --since <premier commit d'acceptation> --spec <fichier de spec>` est lancé
+- **Alors** la sortie ne contient aucune ligne `UNNEEDED` qui nomme le fichier de spec, et se termine par `PASS`
+- **Cas réel** : auto-preuve du 11/11, slug `mutant-mise`, après le changement de critère PRV-008 : `UNNEEDED docs/specs/2026-11-10-harnais-deterministe-design.md:170-171`
+
 ### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
 - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
 - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
