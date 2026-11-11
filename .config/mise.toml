@@ -9,7 +9,7 @@ bats = "1.13.0"
 node = "24.22.1"  # lint:renovate runs npx; CI has no global node
 prek = "0.5.7"
 shellcheck = "0.11.0"
-typos = "1.51.1"
+typos = "1.52.2"
 uv = "0.13.7"
 zizmor = "1.32.0"
 
