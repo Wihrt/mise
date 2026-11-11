@@ -234,3 +234,15 @@ Branche : `feat/spec-hors-code` · Commande : `mise run test`
   - **Quand** `tdd-gate green --proofs --since <premier commit d'acceptation> --spec <fichier de spec>` est lancé
   - **Alors** la sortie ne contient aucune ligne `UNNEEDED` qui nomme le fichier de spec, et se termine par `PASS`
 - **Test** : `agents/bin/tests/test_acceptance_spec_hors_code.py` › `test_PRV014_spec_lines_added_between_two_acceptance_commits_are_not_unneeded`
+
+## test-garde-voisin — Un test gardé n'est pas dit modifié quand son voisin change
+Branche : `feat/test-garde-voisin` · Commande : `mise run test`
+
+### PRV-015 — Un test gardé n'est pas dit modifié quand son voisin change
+- **Critère** :
+  - **Étant donné** un fichier de test où le test du critère `X-001` est suivi d'un autre test, et un commit d'acceptation qui laisse le test de `X-001` intact au caractère près
+  - **Quand** `tdd-gate characterize` est lancé sans `--ac-changed`
+  - **Alors**
+    - quand le test qui suit est un test pytest précédé d'un décorateur (ligne `@…` au-dessus de son nom) et que le commit le retire, si bien que le test suivant, précédé d'un autre décorateur, prend sa place, la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
+    - quand le fichier est un fichier helm-unittest à plusieurs documents et que le commit retire le document qui suit le test de `X-001` (séparateur `---` puis en-tête `suite:`), la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
+- **Test** : `agents/bin/tests/test_acceptance_test_garde_voisin.py` › `test_PRV015_pytest_decorated_neighbour_removed_does_not_modify_kept_test` ; `agents/bin/tests/test_acceptance_test_garde_voisin.py` › `test_PRV015_helm_unittest_following_document_removed_does_not_modify_kept_test`
