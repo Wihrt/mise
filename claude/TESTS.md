@@ -224,3 +224,13 @@ Branche : `feat/revue-finale` · Commande : `mise run test`
     - la sortie contient `BASELINE NOT GREEN base`, aucune ligne `KEPT`, et se termine par `FAIL`
     - relancé en échangeant `--base` et `--head`, elle contient `BASELINE NOT GREEN head`, aucune ligne `KEPT`, et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_revue_finale.py` › `test_RPL003_failing_task_without_mutant_stops_the_replay` ; `agents/bin/tests/test_acceptance_revue_finale.py` › `test_RPL003_swapped_base_and_head_names_head`
+
+## spec-hors-code — La spec n'est pas jugée comme du code
+Branche : `feat/spec-hors-code` · Commande : `mise run test`
+
+### PRV-014 — La spec n'est pas jugée comme du code
+- **Critère** :
+  - **Étant donné** un slug qui a deux commits d'acceptation et, entre les deux, un commit qui ajoute des lignes au fichier de spec du dépôt
+  - **Quand** `tdd-gate green --proofs --since <premier commit d'acceptation> --spec <fichier de spec>` est lancé
+  - **Alors** la sortie ne contient aucune ligne `UNNEEDED` qui nomme le fichier de spec, et se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_spec_hors_code.py` › `test_PRV014_spec_lines_added_between_two_acceptance_commits_are_not_unneeded`
