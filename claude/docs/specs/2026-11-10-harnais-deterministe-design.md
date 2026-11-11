@@ -194,6 +194,12 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors** la sortie contient `INCOMPLETE X-001` et se termine par `FAIL`, sans aucune ligne `INCOMPLETE` pour l'autre section
 - **Cas réel** : demande du 10/11 ; `templates/TESTS.md:7`
 
+### FRM-006 — L'entrée a autant de clauses que la spec
+- **Étant donné** une spec dont le critère `X-001` a un « Alors » en liste de deux clauses, et un `TESTS.md` dont l'entrée `X-001` du slug jugé porte ce « Alors » sur une seule ligne
+- **Quand** `tdd-gate red` ou `characterize` est lancé avec `--spec`
+- **Alors** la sortie contient `CLAUSES X-001: 1 in TESTS.md, 2 in spec` et se termine par `FAIL`
+- **Cas réel** : entrée FRM-002 de ce dépôt au commit `f1fd102`, trois clauses de la spec recopiées sur une ligne, une seule clause prouvée par mutant
+
 ### FRM-002 — Un test gardé ne change pas
 - **Étant donné** un fichier de test cité par un slug remplacé (`--replaces`), où le test `X-001`, présent dans `TESTS.md` avant et après, a une ligne modifiée, et où `X-002` est modifié et listé dans `--ac-changed`
 - **Quand** `tdd-gate characterize` est lancé
