@@ -649,10 +649,11 @@ def spec_for(md):
     return spec
 
 
-def char_setup(repo, state="pass", md=None, task=None, mise_task="test", mise=None, files=None, acc_files=None):
+def char_setup(repo, state="pass", md=None, task=None, mise_task="test", mise=None, files=None, acc_files=None, base_md=None):
     """Base commit (pow's tests, task, spec, src/state), then an acceptance commit whose tests are already green.
-    acc_files: files added to (or replacing those of) the acceptance commit, e.g. a second judged criterion."""
-    pow_md = STAB_MD[: STAB_MD.index("## div")]
+    acc_files: files added to (or replacing those of) the acceptance commit, e.g. a second judged criterion.
+    base_md: the TESTS.md of the base commit (default: pow's section of STAB_MD)."""
+    pow_md = base_md or STAB_MD[: STAB_MD.index("## div")]
     commit(repo, {"run_test.sh": task or CHAR_TASK, "spec.md": spec_for(md or STAB_MD), "src/state": state + "\n", "src/note.txt": "note\n",
                   ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise or mise_toml(task=mise_task), **(files or {})}, "base")
     return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS, **(acc_files or {})}, "test(div): acceptance")

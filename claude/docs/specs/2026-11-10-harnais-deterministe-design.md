@@ -224,6 +224,14 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors** la sortie ne contient aucune ligne `UNNEEDED` qui nomme le fichier de spec, et se termine par `PASS`
 - **Cas réel** : auto-preuve du 11/11, slug `mutant-mise`, après le changement de critère PRV-008 : `UNNEEDED docs/specs/2026-11-10-harnais-deterministe-design.md:170-171`
 
+### PRV-015 — Un test gardé n'est pas dit modifié quand son voisin change
+- **Étant donné** un fichier de test où le test du critère `X-001` est suivi d'un autre test, et un commit d'acceptation qui laisse le test de `X-001` intact au caractère près
+- **Quand** `tdd-gate characterize` est lancé sans `--ac-changed`
+- **Alors**
+  - quand le test qui suit est un test pytest précédé d'un décorateur (ligne `@…` au-dessus de son nom) et que le commit le retire, si bien que le test suivant, précédé d'un autre décorateur, prend sa place, la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
+  - quand le fichier est un fichier helm-unittest à plusieurs documents et que le commit retire le document qui suit le test de `X-001` (séparateur `---` puis en-tête `suite:`), la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
+- **Cas réel** : deux branches d'élagage d'un chart (décorateur `@pytest.mark.parametrize` d'un test retiré ; `---` et en-tête d'une suite retirée), rejugement du 11/11
+
 ### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
 - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
 - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
