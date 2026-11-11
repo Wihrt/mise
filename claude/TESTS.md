@@ -92,3 +92,13 @@ Branche : `feat/preuve-specifique` · Commande : `mise run test`
   - **Quand** `tdd-gate characterize` est lancé
   - **Alors** la sortie contient `KILLED X-001 clause 1`, `KILLED X-001 clause 2` et `NEUTRAL OK X-001`, aucune ligne `MUTANT MISSING`, et se termine par `PASS`
 - **Test** : `agents/bin/tests/test_acceptance_preuve_specifique.py` › `test_PRV005_sensitive_and_specific_test_passes`
+
+## preuve-necessaire — Un critère couvert par un autre est refusé
+Branche : `feat/preuve-necessaire` · Commande : `mise run test`
+
+### PRV-006 — Un critère couvert par un autre est refusé
+- **Critère** :
+  - **Étant donné** deux critères `X-001` et `X-002` jugés par la même tâche, où le mutant de `X-002` fait aussi échouer le test de `X-001`, et où le mutant de `X-001` ne fait pas échouer le test de `X-002`
+  - **Quand** `tdd-gate characterize` est lancé
+  - **Alors** la sortie contient `REDUNDANT X-002` en nommant `X-001`, ne contient pas `REDUNDANT X-001`, et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuve_necessaire.py` › `test_PRV006_criterion_covered_by_another_is_redundant`

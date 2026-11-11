@@ -608,12 +608,13 @@ CHAR_REPORTS = {
 }
 
 
-def char_setup(repo, state="pass", md=None, task=None, mise_task="test", mise=None, files=None):
-    """Base commit (pow's tests, task, spec, src/state), then an acceptance commit whose tests are already green."""
+def char_setup(repo, state="pass", md=None, task=None, mise_task="test", mise=None, files=None, acc_files=None):
+    """Base commit (pow's tests, task, spec, src/state), then an acceptance commit whose tests are already green.
+    acc_files: files added to (or replacing those of) the acceptance commit, e.g. a second judged criterion."""
     pow_md = STAB_MD[: STAB_MD.index("## div")]
     commit(repo, {"run_test.sh": task or CHAR_TASK, "spec.md": SPEC, "src/state": state + "\n", "src/note.txt": "note\n",
                   ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise or mise_toml(task=mise_task), **(files or {})}, "base")
-    return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS}, "test(div): acceptance")
+    return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS, **(acc_files or {})}, "test(div): acceptance")
 
 
 def make_patch(repo, mutants, id_, files):
@@ -635,17 +636,19 @@ DEFAULT_NEUTRAL = (
 )
 
 
-def char(repo, sha, mutants, *extra, neutral=True, task="test"):
-    """Run characterize on CALC-003. The proofs directory gets a valid CALC-003.neutral.patch unless one is already
+def char(repo, sha, mutants, *extra, neutral=True, task="test", ac="CALC-003"):
+    """Run characterize on CALC-003 (ac: comma list of the judged criteria, each getting its default neutral change). The proofs directory gets a valid CALC-003.neutral.patch unless one is already
     there; neutral=False leaves it out, neutral={file: content} replaces it by that change;
     task is the judged mise task."""
     if isinstance(neutral, dict):
         make_patch(repo, mutants, "CALC-003.neutral", neutral)
-    elif neutral and not (mutants / "CALC-003.neutral.patch").exists():
+    elif neutral:
         mutants.mkdir(parents=True, exist_ok=True)
-        (mutants / "CALC-003.neutral.patch").write_text(DEFAULT_NEUTRAL)
+        for id_ in ac.split(","):
+            if not (mutants / f"{id_}.neutral.patch").exists():
+                (mutants / f"{id_}.neutral.patch").write_text(DEFAULT_NEUTRAL)
     return gate(repo, "characterize", "--slug", "div", "--test", sha, "--task", task, "--spec", "spec.md",
-                "--ac", "CALC-003", "--mutants", str(mutants), *extra)
+                "--ac", ac, "--mutants", str(mutants), *extra)
 
 
 @pytest.fixture
