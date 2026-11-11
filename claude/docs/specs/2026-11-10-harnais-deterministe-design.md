@@ -132,8 +132,10 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 ### PRV-003 — Un changement neutre par critère est exigé
 - **Étant donné** un critère `X-001` dont le mutant est présent et tué, sans `X-001.neutral.patch`
 - **Quand** `tdd-gate characterize` est lancé
-- **Alors** la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
-- **Cas réel** : 164 entrées « recopie de la configuration » dans les `scope.psv` du chantier
+- **Alors**
+  - la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
+  - relancée avec un `X-001.neutral.patch` qui ne s'applique pas au dépôt, elle contient `NEUTRAL INVALID X-001` et se termine par `FAIL`
+- **Cas réel** : changement neutre qui ne s'applique pas, vu le 10/11 sur trois dépôts de test du harnais (`NEUTRAL INVALID CALC-003: patch does not apply`) ; 164 entrées « recopie de la configuration » dans les `scope.psv` du chantier
 
 ### PRV-004 — Un test qui casse sous un changement neutre est refusé
 - **Étant donné** un critère `X-001` dont le test affirme le nom d'un élément du catalogue, et un changement neutre qui renomme cet élément
@@ -142,9 +144,9 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Cas réel** : un critère d'un dépôt de déploiement nommait une application du catalogue
 
 ### PRV-005 — Un test sensible et spécifique passe
-- **Étant donné** un critère `X-001` à une clause, son mutant, son changement neutre, et un test qui échoue sous le mutant et passe sous le changement neutre
+- **Étant donné** un critère `X-001` dont le « Alors » a deux clauses en sous-liste, suivie de la ligne `- **Test**`, ses deux mutants, son changement neutre, et des tests qui échouent sous chaque mutant et passent sous le changement neutre
 - **Quand** `tdd-gate characterize` est lancé
-- **Alors** la sortie contient `KILLED X-001 clause 1` et `NEUTRAL OK X-001`, et se termine par `PASS`
+- **Alors** la sortie contient `KILLED X-001 clause 1`, `KILLED X-001 clause 2` et `NEUTRAL OK X-001`, aucune ligne `MUTANT MISSING`, et se termine par `PASS`
 
 ### PRV-006 — Un critère couvert par un autre est refusé
 - **Étant donné** deux critères `X-001` et `X-002` jugés par la même tâche, où le mutant de `X-002` fait aussi échouer le test de `X-001`, et où le mutant de `X-001` ne fait pas échouer le test de `X-002`

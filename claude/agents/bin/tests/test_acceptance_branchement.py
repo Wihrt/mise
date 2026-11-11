@@ -2,7 +2,7 @@
 import pytest
 
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
-    STAB_MD, TESTS_MD, gate, green_setup, char_setup, make_patch, mutants, precommit, repo, set_wiring,
+    STAB_MD, char, TESTS_MD, gate, green_setup, char_setup, make_patch, mutants, precommit, repo, set_wiring,
 )
 
 TASK = "test:render"
@@ -22,8 +22,7 @@ def run_green(repo, check_depends=None):
 def run_char(repo, mutants):
     sha = char_setup(repo, md=with_command(STAB_MD), mise_task=TASK)
     make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n"})
-    return gate(repo, "characterize", "--slug", "div", "--test", sha, "--task", TASK, "--spec", "spec.md",
-                "--ac", "CALC-003", "--mutants", str(mutants))
+    return char(repo, sha, mutants, task=TASK)
 
 
 # The task is cited by no commit hook nor CI job (a hook cites another task only).

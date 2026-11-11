@@ -630,8 +630,21 @@ def make_patch(repo, mutants, id_, files):
     (mutants / f"{id_}.patch").write_text(diff)
 
 
-def char(repo, sha, mutants, *extra):
-    return gate(repo, "characterize", "--slug", "div", "--test", sha, "--task", "test", "--spec", "spec.md",
+DEFAULT_NEUTRAL = (
+    "diff --git a/src/note.txt b/src/note.txt\n--- a/src/note.txt\n+++ b/src/note.txt\n@@ -1 +1 @@\n-note\n+neutral\n"
+)
+
+
+def char(repo, sha, mutants, *extra, neutral=True, task="test"):
+    """Run characterize on CALC-003. The proofs directory gets a valid CALC-003.neutral.patch unless one is already
+    there; neutral=False leaves it out, neutral={file: content} replaces it by that change;
+    task is the judged mise task."""
+    if isinstance(neutral, dict):
+        make_patch(repo, mutants, "CALC-003.neutral", neutral)
+    elif neutral and not (mutants / "CALC-003.neutral.patch").exists():
+        mutants.mkdir(parents=True, exist_ok=True)
+        (mutants / "CALC-003.neutral.patch").write_text(DEFAULT_NEUTRAL)
+    return gate(repo, "characterize", "--slug", "div", "--test", sha, "--task", task, "--spec", "spec.md",
                 "--ac", "CALC-003", "--mutants", str(mutants), *extra)
 
 
@@ -735,7 +748,7 @@ def test_characterize_ac_changed_parsed():
 
 
 def test_characterize_ac_changed_allows_earlier_test(repo, mutants):
-    commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", ".gitignore": ".tdd\n",
+    commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", "src/note.txt": "note\n", ".gitignore": ".tdd\n",
                   "TESTS.md": STAB_MD, "p_test.go": P_TESTS, "d_test.go": D_TESTS, "mise.toml": mise_toml()}, "base")
     sha = commit(repo, {"p_test.go": P_TESTS + "// criterion changed\n", **CHAR_REPORTS}, "test(div): acceptance")
     make_patch(repo, mutants, "CALC-003", {"src/state": "fail\n"})
@@ -809,7 +822,7 @@ def test_replaces_partial_section(repo):
 
 
 def test_characterize_replaces(repo, mutants):
-    commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", ".gitignore": ".tdd\n",
+    commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", "src/note.txt": "note\n", ".gitignore": ".tdd\n",
                   "TESTS.md": STAB_MD, "p_test.go": P_TESTS, "d_test.go": D_TESTS, "mise.toml": mise_toml()}, "base")
     (repo / "p_test.go").unlink()
     reports = {**CHAR_REPORTS, "tests/pass.xml": junit(("TestCALC003_C", "pass")),
@@ -824,7 +837,7 @@ def test_characterize_replaces(repo, mutants):
 
 
 def orphan_char(repo, mutants, keep):
-    commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", ".gitignore": ".tdd\n",
+    commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", "src/note.txt": "note\n", ".gitignore": ".tdd\n",
                   "TESTS.md": STAB_MD, "p_test.go": P_TESTS, "d_test.go": D_TESTS, "mise.toml": mise_toml()}, "base")
     if not keep:
         (repo / "p_test.go").unlink()
