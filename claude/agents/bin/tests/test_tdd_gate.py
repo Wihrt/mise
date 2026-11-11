@@ -467,7 +467,7 @@ def test_default_timeout_is_540(mode):
 
 # ------------------------------------------------------------ acceptance mode
 SPEC = ("# s\n## Critères d'acceptation\n### CALC-003 — c\n- **Alors** x\n"
-        "### CALC-001 — a\n### CALC-002 — b\n## Annexe\n### CALC-009 — not a criterion\n")
+        "### CALC-001 — a\n- **Alors** x\n### CALC-002 — b\n- **Alors** x\n## Annexe\n### CALC-009 — not a criterion\n")
 CRIT = ["CALC-003", "CALC-001", "CALC-002"]
 
 
@@ -624,11 +624,34 @@ CHAR_REPORTS = {
 }
 
 
+def spec_for(md):
+    """SPEC with, for each criterion whose entry in md has a sub-list Alors, as many clauses as that entry has
+    (a one-line Alors keeps SPEC's single line)."""
+    spec = SPEC
+    for id_ in ("CALC-001", "CALC-002", "CALC-003"):
+        marker = f"### {id_} — "
+        if marker not in md:
+            continue
+        lines = md.split(marker, 1)[1].split("\n")
+        n = 1
+        for i, line in enumerate(lines):
+            if line.strip() == "- **Alors**":
+                n = 0
+                while lines[i + 1 + n].startswith("    - "):
+                    n += 1
+                break
+        if n != 1:
+            head, sep, tail = spec.partition(marker)
+            tail = tail.replace("- **Alors** x\n", "- **Alors**\n" + "".join(f"  - clause {k}\n" for k in range(n)), 1)
+            spec = head + sep + tail
+    return spec
+
+
 def char_setup(repo, state="pass", md=None, task=None, mise_task="test", mise=None, files=None, acc_files=None):
     """Base commit (pow's tests, task, spec, src/state), then an acceptance commit whose tests are already green.
     acc_files: files added to (or replacing those of) the acceptance commit, e.g. a second judged criterion."""
     pow_md = STAB_MD[: STAB_MD.index("## div")]
-    commit(repo, {"run_test.sh": task or CHAR_TASK, "spec.md": SPEC, "src/state": state + "\n", "src/note.txt": "note\n",
+    commit(repo, {"run_test.sh": task or CHAR_TASK, "spec.md": spec_for(md or STAB_MD), "src/state": state + "\n", "src/note.txt": "note\n",
                   ".gitignore": ".tdd\n", "TESTS.md": pow_md, "p_test.go": P_TESTS, "mise.toml": mise or mise_toml(task=mise_task), **(files or {})}, "base")
     return commit(repo, {"TESTS.md": md or STAB_MD, "d_test.go": D_TESTS, **CHAR_REPORTS, **(acc_files or {})}, "test(div): acceptance")
 
