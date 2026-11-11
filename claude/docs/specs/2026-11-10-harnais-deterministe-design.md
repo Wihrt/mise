@@ -160,6 +160,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - la sortie contient `PROOF MISSING` et se termine par `FAIL`
   - relancé avec `--proofs` et un test qui survit à son mutant, elle contient `SURVIVED` et se termine par `FAIL`
+  - relancé avec `--proofs`, un test qui échoue sous son mutant et passe sous son changement neutre, elle contient `KILLED` et `NEUTRAL OK` pour le critère, aucune ligne `SURVIVED`, et se termine par `PASS`
   - relancé avec `--proof-exempt`, aucun mutant n'est appliqué et elle se termine par `PASS`
 - **Cas réel** : en mode nouveau, la porte `green` n'applique aucun mutant aujourd'hui (`tdd-gate:523-592`)
 

@@ -338,8 +338,16 @@ def green_setup(repo, feat_files=None, feat_report=None, check_rc=0, feat_mise=N
     return test_sha, commit(repo, files, "feat(div)")
 
 
-def run_green(repo, t, f):
-    return gate(repo, "green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", "--proof-exempt")
+def run_green(repo, t, f, exempt=True, proofs=None, neutral=True, ac="CALC-003"):
+    """Run green. By default --proof-exempt; exempt=False drops it; proofs=<dir> adds --proofs <dir>, the directory
+    being prepared as char does (valid neutral changes for each criterion of ac, see prepare_proofs)."""
+    extra = []
+    if proofs is not None:
+        prepare_proofs(repo, proofs, neutral, ac)
+        extra += ["--proofs", str(proofs)]
+    if exempt:
+        extra.append("--proof-exempt")
+    return gate(repo, "green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", *extra)
 
 
 def test_green_pass(repo):
@@ -577,7 +585,7 @@ def test_green_stability_blocks_earlier_test(repo):
 
 def test_green_stability_includes_acceptance_commit(repo):
     t, f = stability_setup(repo)
-    rc, out = gate(repo, "green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", "--ac-changed", "CALC-001")
+    rc, out = gate(repo, "green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", "--ac-changed", "CALC-001", "--proof-exempt")
     assert rc == 0 and "CRITERION CHANGE ALLOWED: p_test.go (CALC-001)" in out
 
 
@@ -636,10 +644,9 @@ DEFAULT_NEUTRAL = (
 )
 
 
-def char(repo, sha, mutants, *extra, neutral=True, task="test", ac="CALC-003"):
-    """Run characterize on CALC-003 (ac: comma list of the judged criteria, each getting its default neutral change). The proofs directory gets a valid CALC-003.neutral.patch unless one is already
-    there; neutral=False leaves it out, neutral={file: content} replaces it by that change;
-    task is the judged mise task."""
+def prepare_proofs(repo, mutants, neutral=True, ac="CALC-003"):
+    """Complete the proofs directory with a neutral change for each criterion of ac (comma list), unless one is
+    already there; neutral=False leaves them out, neutral={file: content} replaces CALC-003's by that change."""
     if isinstance(neutral, dict):
         make_patch(repo, mutants, "CALC-003.neutral", neutral)
     elif neutral:
@@ -647,6 +654,13 @@ def char(repo, sha, mutants, *extra, neutral=True, task="test", ac="CALC-003"):
         for id_ in ac.split(","):
             if not (mutants / f"{id_}.neutral.patch").exists():
                 (mutants / f"{id_}.neutral.patch").write_text(DEFAULT_NEUTRAL)
+
+
+def char(repo, sha, mutants, *extra, neutral=True, task="test", ac="CALC-003"):
+    """Run characterize on CALC-003 (ac: comma list of the judged criteria, each getting its default neutral change). The proofs directory gets a valid CALC-003.neutral.patch unless one is already
+    there; neutral=False leaves it out, neutral={file: content} replaces it by that change;
+    task is the judged mise task."""
+    prepare_proofs(repo, mutants, neutral, ac)
     return gate(repo, "characterize", "--slug", "div", "--test", sha, "--task", task, "--spec", "spec.md",
                 "--ac", ac, "--mutants", str(mutants), *extra)
 
@@ -787,7 +801,7 @@ def replaces_setup(repo, partial=False, keep_pow=False):
 
 
 def green_args(t, f, *extra):
-    return ("green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", *extra)
+    return ("green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", "--proof-exempt", *extra)
 
 
 def test_replaced_ids():

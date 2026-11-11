@@ -102,3 +102,17 @@ Branche : `feat/preuve-necessaire` · Commande : `mise run test`
   - **Quand** `tdd-gate characterize` est lancé
   - **Alors** la sortie contient `REDUNDANT X-002` en nommant `X-001`, ne contient pas `REDUNDANT X-001`, et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_preuve_necessaire.py` › `test_PRV006_criterion_covered_by_another_is_redundant`
+
+## preuves-nouveau — Les preuves en mode nouveau
+Branche : `feat/preuves-nouveau` · Commande : `mise run test`
+
+### PRV-007 — Les preuves valent aussi pour une fonctionnalité nouvelle
+- **Critère** :
+  - **Étant donné** un commit d'acceptation et un commit `feat` qui rend ses tests verts
+  - **Quand** `tdd-gate green` est lancé sans `--proofs` ni `--proof-exempt`
+  - **Alors**
+    - la sortie contient `PROOF MISSING` et se termine par `FAIL`
+    - relancé avec `--proofs` et un test qui survit à son mutant, elle contient `SURVIVED` et se termine par `FAIL`
+    - relancé avec `--proofs`, un test qui échoue sous son mutant et passe sous son changement neutre, elle contient `KILLED` et `NEUTRAL OK` pour le critère, aucune ligne `SURVIVED`, et se termine par `PASS`
+    - relancé avec `--proof-exempt`, aucun mutant n'est appliqué et elle se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_preuves_nouveau.py` › `test_PRV007_missing_proofs_option_fails` ; `…` › `test_PRV007_surviving_mutant_fails` ; `…` › `test_PRV007_killed_mutant_and_neutral_change_pass` ; `…` › `test_PRV007_proof_exempt_applies_no_mutant`
