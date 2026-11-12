@@ -74,6 +74,15 @@
             "command": "~/.local/bin/harness hook cluster-guard"
           }
         ]
+      },
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/bin/harness hook search-hint"
+          }
+        ]
       }
     ],
     "SessionStart": [

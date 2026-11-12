@@ -37,6 +37,8 @@ func policy(name, arg string, getenv func(string) string) app.Policy {
 		return app.NewNeverMerge(parser, repo)
 	case "guard-subagent-model":
 		return app.NewSubagentModel(agentfile.NewDir(agents), getenv("CLAUDE_CODE_SUBAGENT_MODEL"))
+	case "search-hint":
+		return app.NewSearchHint(parser)
 	case "agent-guard":
 		return app.NewAgentGuard(parser, arg)
 	case "cluster-guard":

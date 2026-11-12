@@ -82,6 +82,12 @@ if [[ ! -x "$(npm prefix --global)/bin/oco" ]]; then
 fi
 rtk init --global --auto-patch >/dev/null
 
+# Serveur MCP de Semble, déclaré une fois à Claude Code (portée utilisateur).
+# Sans sous-commande, `semble` est ce serveur ; Claude Code le démarre lui-même.
+if ! claude mcp get semble >/dev/null 2>&1; then
+  claude mcp add semble --scope user -- "$shims/semble" >/dev/null
+fi
+
 # Hook prepare-commit-msg d'OpenCommit, copié par git dans chaque dépôt créé
 # par `git init` ou `git clone`. core.hooksPath désactiverait les hooks propres
 # à chaque dépôt (prek), d'où init.templateDir.
