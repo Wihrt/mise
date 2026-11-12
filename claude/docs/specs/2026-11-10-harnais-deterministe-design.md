@@ -68,7 +68,7 @@ Un mutant qui touche `mise.toml` est accepté quand toutes ses modifications son
 
 ### 4. Rejeu : `tdd-gate replay`
 
-`tdd-gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t [--accept-lost <nom>]`
+`tdd-gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t [--accept-lost <nom>]...` (une fois par perte acceptée)
 
 Pour chaque mutant du dossier, la porte crée deux copies de travail temporaires (base et tête), applique le mutant de chaque côté, lance les tâches, puis retire les copies. Un mutant est tué d'un côté quand une tâche y sort en erreur.
 
@@ -297,6 +297,14 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors**
   - la sortie contient `KEPT` pour le premier et `NEVER` pour le second, et se termine par `PASS`
   - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
+
+### RPL-004 — Plusieurs pertes acceptées se nomment chacune
+- **Étant donné** deux commits d'un dépôt et deux mutants, chacun fait échouer la tâche sur le premier et la laisse passer sur le second
+- **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé avec `--accept-lost <mutant 1> --accept-lost <mutant 2>`
+- **Alors**
+  - la sortie contient `LOST ACCEPTED` avec le nom de chacun des deux mutants et se termine par `PASS`
+  - relancé avec le seul `--accept-lost <mutant 1>`, elle contient `LOST` avec le nom du mutant 2 et se termine par `FAIL`
+- **Cas réel** : rejeu de fin de pile d'un dépôt de déploiement, 12 pertes acceptées sur une tâche et 4 sur une autre ; avec `--accept-lost` répété, seul le dernier nom était retenu et le rejeu finissait en `FAIL`
 
 ### LOC-001 — Un hôte déclaré en local donne son outil de forge
 - **Étant donné** un dépôt git dont `origin` vaut `https://forge.exemple.test/groupe/depot.git`, et un dossier local (variable `CLAUDE_LOCAL_DIR`) dont le fichier `forges` contient la ligne `forge.exemple.test glab`

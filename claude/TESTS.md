@@ -285,3 +285,15 @@ Branche : `feat/fichiers-locaux` · Commande : `mise run test`
     - la sortie contient la ligne du fichier qui nomme `PRV-015`, et le code de sortie est 0
     - quand le fichier `cas-reels.md` n'existe pas, la sortie est vide et le code de sortie est 0
 - **Test** : `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC003_real_case_line_naming_the_id_is_printed` ; `agents/bin/tests/test_acceptance_fichiers_locaux.py` › `test_LOC003_missing_file_gives_empty_output`
+
+## accept-lost-multiple — Plusieurs pertes acceptées se nomment chacune
+Branche : `feat/harness-accept-lost-multiple` · Commande : `mise run test`
+
+### RPL-004 — Plusieurs pertes acceptées se nomment chacune
+- **Critère** :
+  - **Étant donné** deux commits d'un dépôt et deux mutants, chacun fait échouer la tâche sur le premier et la laisse passer sur le second
+  - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé avec `--accept-lost <mutant 1> --accept-lost <mutant 2>`
+  - **Alors**
+    - la sortie contient `LOST ACCEPTED` avec le nom de chacun des deux mutants et se termine par `PASS`
+    - relancé avec le seul `--accept-lost <mutant 1>`, elle contient `LOST` avec le nom du mutant 2 et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_accept_lost_multiple.py` › `test_RPL004_each_accepted_loss_is_named`

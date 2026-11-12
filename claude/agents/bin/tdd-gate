@@ -955,7 +955,7 @@ def gate_replay(args):
             out(f"NEVER {name}")
         elif now:
             out(f"GAINED {name}")
-        elif name == args.accept_lost:
+        elif name in args.accept_lost:
             out(f"LOST ACCEPTED {name}")
         else:
             out(f"LOST {name}")
@@ -972,7 +972,7 @@ def build_parser():
     p.add_argument("--head", required=True, metavar="SHA")
     p.add_argument("--proofs", required=True, metavar="DIR")
     p.add_argument("--task", required=True, help="mise task")
-    p.add_argument("--accept-lost", metavar="NAME")
+    p.add_argument("--accept-lost", metavar="NAME", action="append", default=[])
     p.add_argument("--timeout", type=int, default=540)
     for mode in ("red", "green", "characterize"):
         p = sub.add_parser(mode)
