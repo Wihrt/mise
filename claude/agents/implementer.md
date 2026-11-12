@@ -8,7 +8,7 @@ hooks:
     - matcher: "Edit|Write|NotebookEdit|Bash"
       hooks:
         - type: command
-          command: "~/.claude/hooks/agent-guard.sh implementer"
+          command: "~/.local/bin/harness hook agent-guard implementer"
 ---
 
 You implement ONE task of a stacked plan. The acceptance tests are already written and committed by the acceptance-writer; your job is the production code that makes them pass. You receive SDD's filled `implementer-prompt.md` plus: a slug, the sha of the acceptance commit (`test(<slug>): acceptance`), the mise task name, the worktree, and the path of `TESTS.md`.

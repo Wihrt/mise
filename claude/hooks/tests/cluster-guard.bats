@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# Tests for cluster-guard.sh: writes on a cluster or on real infrastructure ask the user.
-HOOK=$BATS_TEST_DIRNAME/../cluster-guard.sh
+# Tests for cluster-guard: writes on a cluster or on real infrastructure ask the user.
+hook() { "${HARNESS:?set HARNESS to the harness binary}" hook cluster-guard "$@"; }
 
 setup_file() {
   printf 'apiVersion: v1\ncurrent-context: prod-eu\n' >"$BATS_FILE_TMPDIR/prod"
@@ -10,7 +10,7 @@ cmd() { jq -nc --arg k "$1" '{tool_name:"Bash",cwd:"/tmp",tool_input:{command:$k
 # decision <kubeconfig name> <command> -> ask | allow
 decision() {
   local out
-  out=$(KUBECONFIG=$BATS_FILE_TMPDIR/$1 "$HOOK" <<<"$(cmd "$2")")
+  out=$(KUBECONFIG=$BATS_FILE_TMPDIR/$1 hook <<<"$(cmd "$2")")
   if jq -e '.hookSpecificOutput.permissionDecision == "ask"' >/dev/null 2>&1 <<<"$out"; then echo ask; else echo allow; fi
 }
 check() { [ "$(decision "$2" "$3")" = "$1" ]; }

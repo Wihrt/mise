@@ -106,6 +106,19 @@ nouvelle version : hook Claude Code dans `~/.claude/settings.json` et
 `~/.claude/RTK.md`, sans question. La tâche `bootstrap` le relance aussi pour
 une version déjà installée ; la commande est idempotente.
 
+## Harnais
+
+Les hooks Claude Code sont un binaire Go, `harness`, dont les sources sont dans
+[`harness/`](harness/) (architecture hexagonale : `internal/domain`,
+`internal/app`, `internal/adapters`, assemblage dans `cmd/harness/main.go`).
+La tâche `bootstrap` le compile dans `~/.local/bin/harness` à chaque passage :
+après un changement de hook, relancez `mise bootstrap --update`.
+
+Sa configuration vient de l'environnement : `HOME`, `KUBECONFIG`,
+`CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_AGENTS_DIR`. Il lit l'appel d'outil sur
+l'entrée standard, écrit sa décision sur la sortie standard et ses erreurs sur
+la sortie d'erreur.
+
 ## Caches partagés
 
 `[env]` fixe `TF_PLUGIN_CACHE_DIR` sur `~/.cache/opentofu/providers`, créé par

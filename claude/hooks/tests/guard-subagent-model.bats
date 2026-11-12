@@ -1,13 +1,13 @@
 #!/usr/bin/env bats
-# Tests for guard-subagent-model.sh.
-HOOK=$BATS_TEST_DIRNAME/../guard-subagent-model.sh
+# Tests for guard-subagent-model.
+hook() { "${HARNESS:?set HARNESS to the harness binary}" hook guard-subagent-model "$@"; }
 
 agent() { # tool [model] [subagent_type]
   jq -nc --arg t "$1" --arg m "${2:-}" --arg s "${3:-}" \
     '{tool_name:$t,tool_input:({prompt:"x"} + (if $m!="" then {model:$m} else {} end) + (if $s!="" then {subagent_type:$s} else {} end))}'
 }
 decision() {
-  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 <<<"$("$HOOK" <<<"$1")"; then echo deny; else echo allow; fi
+  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 <<<"$(hook <<<"$1")"; then echo deny; else echo allow; fi
 }
 
 @test "denies opus, fable and their full ids" {

@@ -8,7 +8,7 @@ hooks:
     - matcher: "Edit|Write|NotebookEdit|Bash"
       hooks:
         - type: command
-          command: "~/.claude/hooks/agent-guard.sh acceptance-writer"
+          command: "~/.local/bin/harness hook agent-guard acceptance-writer"
 ---
 
 You transcribe the acceptance criteria of ONE task into acceptance tests, as a consumer of the deliverable who has never seen its code. You receive: a spec path, criterion IDs, a slug, an ID prefix, the mise task name, the worktree, the branch and the report file.

@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/require-worktree.sh"
+            "command": "~/.local/bin/harness hook require-worktree"
           }
         ]
       },
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/guard-subagent-model.sh"
+            "command": "~/.local/bin/harness hook guard-subagent-model"
           }
         ]
       },
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/never-merge.sh"
+            "command": "~/.local/bin/harness hook never-merge"
           }
         ]
       },
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/cluster-guard.sh"
+            "command": "~/.local/bin/harness hook cluster-guard"
           }
         ]
       }

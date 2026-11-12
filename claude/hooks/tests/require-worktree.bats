@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# Tests for require-worktree.sh.
-HOOK=$BATS_TEST_DIRNAME/../require-worktree.sh
+# Tests for require-worktree.
+hook() { "${HARNESS:?set HARNESS to the harness binary}" hook require-worktree "$@"; }
 
 load helpers
 
@@ -15,7 +15,7 @@ setup_file() {
 edit() { jq -nc --arg t "$1" --arg c "$2" '{tool_name:$t,cwd:$c,tool_input:{file_path:($c+"/f")}}'; }
 cmd() { jq -nc --arg k "$1" --arg c "$2" '{tool_name:"Bash",cwd:$c,tool_input:{command:$k}}'; }
 decision() {
-  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 <<<"$("$HOOK" <<<"$1")"; then echo deny; else echo allow; fi
+  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 <<<"$(hook <<<"$1")"; then echo deny; else echo allow; fi
 }
 
 @test "edit tools: denied in main checkout" {
@@ -39,6 +39,6 @@ decision() {
 @test "edit of a git-ignored file in the main checkout: allowed; tracked-style file: denied" {
   W=$BATS_FILE_TMPDIR
   j() { jq -nc --arg c "$W/main" --arg p "$1" '{tool_name:"Edit",cwd:$c,tool_input:{file_path:$p}}'; }
-  [ "$(decide "$HOOKS/require-worktree.sh" <<<"$(j "$W/main/ignored.txt")")" = allow ]
-  [ "$(decide "$HOOKS/require-worktree.sh" <<<"$(j "$W/main/other.txt")")" = deny ]
+  [ "$(decide "$HARNESS" hook require-worktree <<<"$(j "$W/main/ignored.txt")")" = allow ]
+  [ "$(decide "$HARNESS" hook require-worktree <<<"$(j "$W/main/other.txt")")" = deny ]
 }
