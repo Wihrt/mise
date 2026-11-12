@@ -1,4 +1,4 @@
-"""Acceptance tests, slug test-bruno: FRM-008. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug test-bruno: FRM-008. Boundary: the harness gate command line."""
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
     TESTS_MD, base_commit, commit, gate, junit, repo,
 )

@@ -1,4 +1,4 @@
-"""Acceptance tests, slug test-garde: FRM-002. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug test-garde: FRM-002. Boundary: the harness gate command line."""
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
     D_TESTS, P_TESTS, STAB_MD, char, char_setup, make_patch, mutants, repo,
 )

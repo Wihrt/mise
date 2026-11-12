@@ -1,4 +1,4 @@
-"""Acceptance tests, slug spec-hors-code: PRV-014. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug spec-hors-code: PRV-014. Boundary: the harness gate command line."""
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
     char_setup, commit, gate, make_patch, mutants, prepare_proofs, repo,
 )

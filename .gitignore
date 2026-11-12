@@ -2,7 +2,7 @@
 config.local.toml
 *.local.toml
 
-# Rapports par test écrits par les tâches test:* (lus par tdd-gate)
+# Rapports par test écrits par les tâches test:* (lus par harness gate)
 .tdd/
 
 # Preuves et journaux de session des skills (locaux, jamais versionnés)

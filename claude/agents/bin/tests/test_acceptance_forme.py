@@ -1,4 +1,4 @@
-"""Acceptance tests, slug forme: FRM-001, FRM-003, FRM-005. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug forme: FRM-001, FRM-003, FRM-005. Boundary: the harness gate command line."""
 import pytest
 
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)

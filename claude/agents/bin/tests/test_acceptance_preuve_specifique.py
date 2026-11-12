@@ -1,4 +1,4 @@
-"""Acceptance tests, slug preuve-specifique: PRV-003, PRV-004, PRV-005. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug preuve-specifique: PRV-003, PRV-004, PRV-005. Boundary: the harness gate command line."""
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
     STAB_MD, char, char_setup, make_patch, mutants, repo,
 )

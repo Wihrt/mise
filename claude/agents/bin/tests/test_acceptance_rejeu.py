@@ -1,4 +1,4 @@
-"""Acceptance tests, slug rejeu: RPL-001, RPL-002. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug rejeu: RPL-001, RPL-002. Boundary: the harness gate command line."""
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
     commit, make_patch, mise_toml, mutants, replay, repo, sh,
 )

@@ -1,2 +1,2 @@
-# Per-test reports written by the test tasks (read by ~/.claude/agents/bin/tdd-gate).
+# Per-test reports written by the test tasks (read by ~/.local/bin/harness gate).
 .tdd/

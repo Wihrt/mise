@@ -1,4 +1,4 @@
-"""Acceptance tests, slug fichiers-locaux: LOC-001..003. Boundary: the harness-local command line."""
+"""Acceptance tests, slug fichiers-locaux: LOC-001..003. Boundary: the harness local command line."""
 import os
 import subprocess
 from pathlib import Path
