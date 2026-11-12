@@ -30,10 +30,11 @@
 - Acceptance tests, written by `acceptance-writer` from the criteria, are the guarantee: proven red then green by `tdd-gate` and listed in `TESTS.md`. Unit tests are free scaffolding.
 - Every repo follows `repo-tooling` (mise, prek, Renovate).
 - Every dependency is declared in the repo, whatever it is (`repo-tooling`). My global mise config is for my daily work: a repo never relies on it. A missing tool is added to the repo's `mise.toml`, never installed on the workstation only.
+- Direct fix: when I say `fix direct` or `sans TDD`, skip brainstorming, spec, plan and `stacked-tdd-mr`: no criterion, no acceptance test, no `TESTS.md` entry, no proof. Follow "Direct fix" in `stacked-tdd-mr` ("Work without a test"). Worktree, merge request and green CI still apply. Never pick this mode yourself; when a request looks like one, ask in one line.
 
 ## Debugging
 - Bug or unexplained red CI: `superpowers:systematic-debugging`, phases 1 to 3 only (no red/green loop; throwaway code, never committed).
-- Once the root cause is proven, Phase 4 is replaced by `stacked-tdd-mr`: the reproduction becomes the fix task's criterion and acceptance test.
+- Once the root cause is proven, Phase 4 is replaced by `stacked-tdd-mr`: the reproduction becomes the fix task's criterion and acceptance test. Under a direct fix, Phase 4 is the fix itself.
 
 ## Reports
 - A status report (on request, and at the end of a stack) is one Docs artifact per task, updated at the same link: where we are (MRs re-read via `gh`/`glab` just before), what remains, what awaits my decision, evidence.
