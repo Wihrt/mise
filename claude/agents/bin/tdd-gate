@@ -22,8 +22,10 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import tomllib
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -41,8 +43,16 @@ class GateError(Exception):
     """Usage or environment problem (exit 2)."""
 
 
+CAPTURE = threading.local()  # .lines: output of a proof judged in parallel, printed when its turn comes
+WORKTREES = threading.Lock()  # git worktree add/remove, one at a time
+
+
 def out(msg=""):
-    print(msg, flush=True)
+    lines = getattr(CAPTURE, "lines", None)
+    if lines is None:
+        print(msg, flush=True)
+    else:
+        lines.append(msg)
 
 
 # ---------------------------------------------------------------- names / IDs
@@ -673,7 +683,11 @@ def gate_green(args):
     elif args.proofs:
         if not run_proofs(args, repo, text, ids):
             ok = False
-        if not run_minimal(args, repo):
+        if args.no_neutral:
+            out("NEUTRAL SKIPPED")
+        if args.no_minimal:
+            out("MINIMAL SKIPPED")
+        elif not run_minimal(args, repo):
             ok = False
     elif not args.proof_exempt:
         out("PROOF MISSING: --proofs DIR or --proof-exempt")
@@ -768,6 +782,11 @@ def clause_count(entry_text):
 
 def run_patch(args, repo, patch, kind, tag):
     """Apply the patch, run the task, restore the tree. Returns (problem, results by criterion, tree status)."""
+    if patch in getattr(args, "judged", {}):
+        result, lines = args.judged[patch]
+        for line in lines:
+            out(line)
+        return result
     problem = mutant_problem(repo, patch, args.task)
     if problem:
         return problem, {}, ""
@@ -783,6 +802,37 @@ def run_patch(args, repo, patch, kind, tag):
     return None, results_by_id(rep), st.strip()
 
 
+def proof_patches(args, proofs, text, ids):
+    """(patch, kind, tag) of every proof run_proofs judges, in its order."""
+    for i in ids:
+        for clause in range(1, clause_count(entry_text(text, i)) + 1):
+            yield proofs / (f"{i}.patch" if clause == 1 else f"{i}.{clause}.patch"), "MUTANT", f"{i} clause {clause}"
+        if not getattr(args, "no_neutral", False):
+            yield proofs / f"{i}.neutral.patch", "NEUTRAL", i
+
+
+def judge_in_worktree(args, repo, patch, kind, tag):
+    """run_patch on a throwaway worktree of HEAD, the repository untouched. Returns (run_patch's result, output lines)."""
+    CAPTURE.lines = []
+    with tempfile.TemporaryDirectory(prefix="tdd-proof-") as tmp:
+        wt = Path(tmp) / "wt"
+        try:
+            with WORKTREES:
+                git(repo, "worktree", "add", "--detach", str(wt), "HEAD")
+            problem = mutant_problem(wt, patch, args.task)
+            if problem:
+                return (problem, {}, ""), CAPTURE.lines
+            apply_mutant(wt, patch)
+            out(f"{kind} {tag}: patch applied")
+            rc, _, rep = run_task_and_report(args, wt)
+            if rc == 124:
+                raise GateError(f"{kind.lower()} {tag}: task timed out")
+            return (None, results_by_id(rep), ""), CAPTURE.lines
+        finally:
+            with WORKTREES:
+                git(repo, "worktree", "remove", "--force", str(wt))
+
+
 def redundant(kills):
     """[(A, B)]: every mutant of A also fails a test of the other criterion B. kills: {A: [failed criteria per mutant]}."""
     return [(a, b) for a, per_mutant in kills.items() for b in sorted(set.intersection(*per_mutant) - {a})]
@@ -793,6 +843,11 @@ def run_proofs(args, repo, text, ids):
     ok = True
     kills = {}
     proofs = Path(args.proofs).resolve()
+    if args.jobs > 1:
+        with ThreadPoolExecutor(args.jobs) as pool:
+            futures = {p: pool.submit(judge_in_worktree, args, repo, p, kind, tag)
+                       for p, kind, tag in proof_patches(args, proofs, text, ids) if p.is_file()}
+            args.judged = {p: f.result() for p, f in futures.items()}
     for i in ids:
         for clause in range(1, clause_count(entry_text(text, i)) + 1):
             patch = proofs / (f"{i}.patch" if clause == 1 else f"{i}.{clause}.patch")
@@ -820,6 +875,8 @@ def run_proofs(args, repo, text, ids):
             if st:
                 out(f"TREE NOT CLEAN after {tag}:\n" + st)
                 return None
+        if getattr(args, "no_neutral", False):
+            continue
         patch = proofs / f"{i}.neutral.patch"
         if not patch.is_file():
             out(f"NEUTRAL MISSING {i}")
@@ -993,12 +1050,15 @@ def build_parser():
         if mode in ("green", "characterize"):
             p.add_argument("--ac-changed", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of criteria IDs whose test files may change")
             p.add_argument("--replaces", type=lambda v: [x for x in v.split(",") if x], default=[], help="comma list of slugs whose test files and TESTS.md sections may be changed or removed")
+            p.add_argument("--jobs", type=int, default=1, metavar="N", help="judge N proofs at a time, each on a throwaway worktree of HEAD (default 1: one after the other, in the working tree)")
         if mode == "green":
             p.add_argument("--spec", help="spec file (repo-relative), not judged by the minimal-code proof")
             p.add_argument("--proofs", metavar="DIR", help="directory of proofs, run on the feat commit")
             p.add_argument("--unneeded-ok", action="append", default=[], metavar="FILE:START-END", help="added block accepted although no test needs it (repeatable)")
             p.add_argument("--since", metavar="SHA", help="commit from which the added blocks are counted for the minimal-code proof (default: --test)")
             p.add_argument("--proof-exempt", action="store_true", help="exempt from proofs")
+            p.add_argument("--no-neutral", action="store_true", help="with --proofs: skip the neutral change of each criterion")
+            p.add_argument("--no-minimal", action="store_true", help="with --proofs: skip the minimal-code proof")
             p.add_argument("--feat", required=True, metavar="SHA")
         p.add_argument("--task", required=True)
         p.add_argument("--repo", default=".")
