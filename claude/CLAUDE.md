@@ -25,6 +25,7 @@
 
 ## Development
 - Always use superpowers: brainstorming, spec, `superpowers:writing-plans`, then execution.
+- A design that makes an architectural decision gets an ADR (skill `adr`), in the same merge request as its spec.
 - Execute plans with `stacked-tdd-mr` (wrapper over `subagent-driven-development`).
 - Every spec has a `Critères d'acceptation` section (`stacked-tdd-mr/templates/acceptance-criteria.md`); each plan task lists its criterion IDs and contains no acceptance test code.
 - Acceptance tests, written by `acceptance-writer` from the criteria, are the guarantee: proven red then green by `tdd-gate` and listed in `TESTS.md`. Unit tests are free scaffolding.
