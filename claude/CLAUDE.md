@@ -44,7 +44,7 @@
 - In chat, give only the link and the choice expected.
 
 ## Reading files
-- A whole-file Read of more than 50 lines is refused by the RTK hook and redirected to Haiku. Pick the route up front:
+- A whole-file Read of more than 350 lines is refused by the RTK hook and redirected to Haiku. Pick the route up front:
   - To understand a file (what it does, where something is): `rtk bulk-read --question "..." <paths...>`.
   - To edit a file: Read only the region you will change, with `offset` and `limit` (a partial Read is enough for Edit).
 

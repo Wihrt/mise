@@ -22,10 +22,10 @@ upstream = "haiku"
 kind     = "generate"
 upstream = "haiku"
 
-# Lectures entières > 50 lignes : refusées, renvoyées vers bulk-read (Haiku).
+# Lectures entières > 350 lignes : refusées, renvoyées vers bulk-read (Haiku).
 # Les lectures avec offset/limit passent toujours (whole_file = false).
 [override.shunt-large-read]
-when = { file_lines_gt = 50, whole_file = true }
+when = { file_lines_gt = 350, whole_file = true }
 
 # Candidat shadow : retire les anciens arguments d'outils (Write/Edit volumineux) derrière un pointeur.
 [[proxy.request.tool_use]]
