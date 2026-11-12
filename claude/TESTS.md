@@ -297,3 +297,24 @@ Branche : `feat/harness-accept-lost-multiple` · Commande : `mise run test`
     - la sortie contient `LOST ACCEPTED` avec le nom de chacun des deux mutants et se termine par `PASS`
     - relancé avec le seul `--accept-lost <mutant 1>`, elle contient `LOST` avec le nom du mutant 2 et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_accept_lost_multiple.py` › `test_RPL004_each_accepted_loss_is_named`
+
+## preuves-optionnelles — Le changement neutre et le code minimal se sautent sur demande
+Branche : `feat/harness-preuves-optionnelles` · Commande : `mise run test`
+
+### PRV-017 — Le changement neutre se saute sur demande
+- **Critère** :
+  - **Étant donné** un commit d'acceptation, un commit `feat` vert, et un dossier de preuves qui contient un mutant tuant le test du critère et aucun changement neutre
+  - **Quand** `tdd-gate green --proofs` est lancé avec `--no-neutral`
+  - **Alors**
+    - la sortie contient `KILLED` pour le critère et `NEUTRAL SKIPPED`, aucune ligne `NEUTRAL MISSING`, et se termine par `PASS`
+    - relancé sans `--no-neutral`, elle contient `NEUTRAL MISSING` pour le critère et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuves_optionnelles.py` › `test_PRV017_neutral_change_is_skipped_on_request`
+
+### PRV-018 — Le code minimal se saute sur demande
+- **Critère** :
+  - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, un bloc dont le retrait laisse tous les tests verts
+  - **Quand** `tdd-gate green --proofs` est lancé avec `--no-minimal`
+  - **Alors**
+    - la sortie contient `MINIMAL SKIPPED`, aucune ligne `UNNEEDED`, et se termine par `PASS`
+    - relancé sans `--no-minimal`, elle contient `UNNEEDED` avec le fichier et les lignes du bloc et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuves_optionnelles.py` › `test_PRV018_minimal_code_is_skipped_on_request`

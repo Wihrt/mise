@@ -11,3 +11,6 @@ claude/skills/*/.ledger.jsonl
 claude/skills/*/.sidecar.json.lock
 # Motifs internes à ne pas publier
 .config/harness-denylist.local
+
+# Caches Python des tests de la porte
+__pycache__/

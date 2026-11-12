@@ -671,7 +671,11 @@ def gate_green(args):
     elif args.proofs:
         if not run_proofs(args, repo, text, ids):
             ok = False
-        if not run_minimal(args, repo):
+        if args.no_neutral:
+            out("NEUTRAL SKIPPED")
+        if args.no_minimal:
+            out("MINIMAL SKIPPED")
+        elif not run_minimal(args, repo):
             ok = False
     elif not args.proof_exempt:
         out("PROOF MISSING: --proofs DIR or --proof-exempt")
@@ -818,6 +822,8 @@ def run_proofs(args, repo, text, ids):
             if st:
                 out(f"TREE NOT CLEAN after {tag}:\n" + st)
                 return None
+        if getattr(args, "no_neutral", False):
+            continue
         patch = proofs / f"{i}.neutral.patch"
         if not patch.is_file():
             out(f"NEUTRAL MISSING {i}")
@@ -997,6 +1003,8 @@ def build_parser():
             p.add_argument("--unneeded-ok", action="append", default=[], metavar="FILE:START-END", help="added block accepted although no test needs it (repeatable)")
             p.add_argument("--since", metavar="SHA", help="commit from which the added blocks are counted for the minimal-code proof (default: --test)")
             p.add_argument("--proof-exempt", action="store_true", help="exempt from proofs")
+            p.add_argument("--no-neutral", action="store_true", help="with --proofs: skip the neutral change of each criterion")
+            p.add_argument("--no-minimal", action="store_true", help="with --proofs: skip the minimal-code proof")
             p.add_argument("--feat", required=True, metavar="SHA")
         p.add_argument("--task", required=True)
         p.add_argument("--repo", default=".")
