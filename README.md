@@ -106,6 +106,17 @@ nouvelle version : hook Claude Code dans `~/.claude/settings.json` et
 `~/.claude/RTK.md`, sans question. La tâche `bootstrap` le relance aussi pour
 une version déjà installée ; la commande est idempotente.
 
+## Caches partagés
+
+`[env]` fixe `TF_PLUGIN_CACHE_DIR` sur `~/.cache/opentofu/providers`, créé par
+la tâche `bootstrap` : chaque `tofu init`, dans un dépôt ou dans une copie de
+travail jetable, relie le provider déjà téléchargé. OpenTofu verrouille ce
+dossier, plusieurs `init` peuvent tourner en même temps.
+
+Les autres outils partagent déjà leur cache par utilisateur, sans réglage : uv
+(`~/.cache/uv`), npm (`~/.npm`), Go (`~/go/pkg/mod`), Helm (`~/.cache/helm`),
+navigateurs Playwright (`~/.cache/ms-playwright`).
+
 ## Docker
 
 Docker Engine vient d'apt : `docker.io`, `docker-compose-v2` pour

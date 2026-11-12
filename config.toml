@@ -84,6 +84,10 @@ CLAUDE_CODE_AUTO_COMPACT_WINDOW = "400000"
 # Pas de requête de fond pour le titre du terminal ni pour les suggestions de prompt.
 CLAUDE_CODE_DISABLE_TERMINAL_TITLE = "1"
 CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION = "false"
+# Cache des providers OpenTofu, partagé entre dépôts et copies de travail : un
+# `tofu init` relie le provider déjà téléchargé au lieu de le reprendre.
+# tasks/bootstrap crée le dossier.
+TF_PLUGIN_CACHE_DIR = "{{env.HOME}}/.cache/opentofu/providers"
 OCO_AI_PROVIDER = "anthropic"
 OCO_MODEL = "claude-sonnet-5-5"
 
