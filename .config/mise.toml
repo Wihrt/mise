@@ -110,11 +110,13 @@ mv .tdd/report.xml .tdd/junit.xml
 """
 
 [tasks."test:tdd-gate"]
-description = "Run the tdd-gate pytest suite"
+description = "Run the gate acceptance tests (pytest) against the harness binary"
+depends = ["build:harness"]
 dir = "claude/agents/bin"
 env = { PYTHONDONTWRITEBYTECODE = "1" }
 run = """
 unset $(git rev-parse --local-env-vars)
 mkdir -p ../../../.tdd
+export HARNESS="$(cd ../../.. && pwd)/.tdd/harness"
 uvx --python 3.14 pytest -q -p no:cacheprovider --junitxml=../../../.tdd/tdd-gate.xml tests
 """
