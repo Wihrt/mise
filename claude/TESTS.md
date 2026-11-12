@@ -297,3 +297,46 @@ Branche : `feat/harness-accept-lost-multiple` · Commande : `mise run test`
     - la sortie contient `LOST ACCEPTED` avec le nom de chacun des deux mutants et se termine par `PASS`
     - relancé avec le seul `--accept-lost <mutant 1>`, elle contient `LOST` avec le nom du mutant 2 et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_accept_lost_multiple.py` › `test_RPL004_each_accepted_loss_is_named`
+
+## test-bruno — Un test Bruno porte son ID
+Branche : `feat/harness-outils-de-test` · Commande : `mise run test`
+
+### FRM-008 — Un test Bruno porte son ID
+- **Critère** :
+  - **Étant donné** un `TESTS.md` dont l'entrée `X-001` du slug jugé cite un fichier Bruno (`tests/api/x.bru`), ce fichier contenant `test("[X-001] <quoi>", function() {`, et un rapport JUnit dont le cas `[X-001] <quoi>` échoue
+  - **Quand** `tdd-gate red` est lancé sur le slug
+  - **Alors** la sortie contient `RED X-001`, aucune ligne `MISSING X-001`, et se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_test_bruno.py` › `test_FRM008_bruno_test_carries_its_id`
+## preuves-optionnelles — Le changement neutre et le code minimal se sautent sur demande
+Branche : `feat/harness-preuves-optionnelles` · Commande : `mise run test`
+
+### PRV-017 — Le changement neutre se saute sur demande
+- **Critère** :
+  - **Étant donné** un commit d'acceptation, un commit `feat` vert, et un dossier de preuves qui contient un mutant tuant le test du critère et aucun changement neutre
+  - **Quand** `tdd-gate green --proofs` est lancé avec `--no-neutral`
+  - **Alors**
+    - la sortie contient `KILLED` pour le critère et `NEUTRAL SKIPPED`, aucune ligne `NEUTRAL MISSING`, et se termine par `PASS`
+    - relancé sans `--no-neutral`, elle contient `NEUTRAL MISSING` pour le critère et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuves_optionnelles.py` › `test_PRV017_neutral_change_is_skipped_on_request`
+
+### PRV-018 — Le code minimal se saute sur demande
+- **Critère** :
+  - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, un bloc dont le retrait laisse tous les tests verts
+  - **Quand** `tdd-gate green --proofs` est lancé avec `--no-minimal`
+  - **Alors**
+    - la sortie contient `MINIMAL SKIPPED`, aucune ligne `UNNEEDED`, et se termine par `PASS`
+    - relancé sans `--no-minimal`, elle contient `UNNEEDED` avec le fichier et les lignes du bloc et se termine par `FAIL`
+- **Test** : `agents/bin/tests/test_acceptance_preuves_optionnelles.py` › `test_PRV018_minimal_code_is_skipped_on_request`
+
+## mutants-paralleles — Les mutants se jugent en parallèle sur demande
+Branche : `feat/harness-mutants-paralleles` · Commande : `mise run test`
+
+### PRV-019 — Les mutants se jugent en parallèle sur demande
+- **Critère** :
+  - **Étant donné** un critère à deux clauses, un mutant par clause, et une tâche de test qui, sous mutant, n'aboutit que si une autre exécution est en cours au même moment
+  - **Quand** `tdd-gate characterize --proofs` est lancé avec `--jobs 2`
+  - **Alors**
+    - la sortie contient `KILLED` pour chacune des deux clauses et se termine par `PASS`
+    - les deux exécutions sous mutant ont eu lieu dans deux dossiers distincts, hors du dépôt
+    - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
+- **Test** : `agents/bin/tests/test_acceptance_mutants_paralleles.py` › `test_PRV019_mutants_are_judged_in_parallel`

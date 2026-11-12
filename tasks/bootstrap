@@ -104,6 +104,9 @@ repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 install -d "$HOME/.local/bin"
 (cd "$repo/harness" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$HOME/.local/bin/harness" ./cmd/harness)
 
+# Cache partagé des providers OpenTofu (TF_PLUGIN_CACHE_DIR dans config.toml).
+install -d "$HOME/.cache/opentofu/providers"
+
 # Docker sans sudo ; effectif à la prochaine connexion (ou `newgrp docker`).
 if getent group docker >/dev/null && ! id -nG "$USER" | tr ' ' '\n' | grep -qx docker; then
   sudo usermod --append --groups docker "$USER"
