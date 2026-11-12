@@ -1,6 +1,5 @@
 # Shared helpers for the hook tests. Pure bash JSON builders: bats re-sources the
 # test file for every test, so the load-time cost has to stay low.
-HOOKS=$(cd "${BATS_TEST_DIRNAME}/.." && pwd)
 
 _j() { local s=${1//\\/\\\\}; s=${s//\"/\\\"}; printf '%s' "$s"; }
 file_json() { printf '{"tool_name":"%s","cwd":"%s","tool_input":{"file_path":"%s"}}' "$(_j "$1")" "$(_j "$3")" "$(_j "$2")"; }

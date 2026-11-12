@@ -70,7 +70,7 @@ run = "npx --yes --package renovate@${RENOVATE_VERSION} -- renovate-config-valid
 
 [tasks."lint:shell"]
 description = "Shellcheck the shell scripts"
-run = "shellcheck tasks/* claude/hooks/*.sh"
+run = "shellcheck tasks/*"
 
 [tasks."lint:ci"]
 description = "Lint the GitHub Actions workflows"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# Tests for the push-to-default-branch rule of never-merge.sh.
-HOOK=$BATS_TEST_DIRNAME/../never-merge.sh
+# Tests for the push-to-default-branch rule of never-merge.
+hook() { "${HARNESS:?set HARNESS to the harness binary}" hook never-merge "$@"; }
 
 setup_file() {
   R=$BATS_FILE_TMPDIR/r
@@ -10,7 +10,7 @@ setup_file() {
 }
 cmd() { jq -nc --arg k "$1" --arg c "$2" '{tool_name:"Bash",cwd:$c,tool_input:{command:$k}}'; }
 decision() {
-  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 <<<"$("$HOOK" <<<"$1")"; then echo deny; else echo allow; fi
+  if jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 <<<"$(hook <<<"$1")"; then echo deny; else echo allow; fi
 }
 check() { [ "$(decision "$(cmd "$2" "$BATS_FILE_TMPDIR/$3")")" = "$1" ]; }
 

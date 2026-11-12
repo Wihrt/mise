@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for agent-guard.sh and never-merge.sh. Each case is one registered bats test.
+# Tests for agent-guard and never-merge. Each case is one registered bats test.
 load helpers
 
 WORK=$BATS_FILE_TMPDIR
@@ -22,12 +22,12 @@ setup_file() {
 guard() { # role expected name generator args...
   local role=$1 exp=$2 name=$3
   shift 3
-  case_ "$name" "$exp" "$HOOKS/agent-guard.sh $role" "$@"
+  case_ "$name" "$exp" "$HARNESS hook agent-guard $role" "$@"
 }
 merge() { # expected name generator args...
   local exp=$1 name=$2
   shift 2
-  case_ "$name" "$exp" "$HOOKS/never-merge.sh" "$@"
+  case_ "$name" "$exp" "$HARNESS hook never-merge" "$@"
 }
 
 # ---- implementer ----
