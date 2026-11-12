@@ -98,6 +98,12 @@ else
   echo "bootstrap: init.templateDir vaut déjà $current_template ; hook OpenCommit non installé" >&2
 fi
 
+# Binaire du harnais (hooks Claude Code), compilé depuis harness/ à chaque passage :
+# un changement de hook est pris en compte par `mise bootstrap --update`.
+repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+install -d "$HOME/.local/bin"
+(cd "$repo/harness" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$HOME/.local/bin/harness" ./cmd/harness)
+
 # Docker sans sudo ; effectif à la prochaine connexion (ou `newgrp docker`).
 if getent group docker >/dev/null && ! id -nG "$USER" | tr ' ' '\n' | grep -qx docker; then
   sudo usermod --append --groups docker "$USER"

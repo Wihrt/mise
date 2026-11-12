@@ -4,6 +4,9 @@
 cocogitto = "7.0.0"
 editorconfig-checker = "4.0.2"
 gitleaks = "8.30.1"
+go = "1.27.4"
+golangci-lint = "2.15.0"
+gotestsum = "1.13.0"
 actionlint = "1.7.12"
 bats = "1.14.0"
 node = "24.22.2"  # lint:renovate runs npx; CI has no global node
@@ -76,10 +79,32 @@ actionlint
 zizmor --offline .github/workflows
 """
 
+[tasks."build:harness"]
+description = "Build the harness binary the hook tests run"
+run = "go build -C harness -o ../.tdd/harness ./cmd/harness"
+
+[tasks."lint:go"]
+description = "Lint the harness (layers included) and check go.mod is tidy"
+dir = "harness"
+run = """
+golangci-lint run ./...
+go mod tidy -diff
+"""
+
+[tasks."test:go"]
+description = "Run the harness unit tests"
+dir = "harness"
+run = """
+mkdir -p ../.tdd
+gotestsum --junitfile ../.tdd/go.xml -- ./...
+"""
+
 [tasks."test:hooks"]
-description = "Run the hook bats tests"
+description = "Run the hook bats tests against the harness binary"
+depends = ["build:harness"]
 run = """
 mkdir -p .tdd
+export HARNESS="$PWD/.tdd/harness"
 bats --report-formatter junit --output .tdd claude/hooks/tests/
 mv .tdd/report.xml .tdd/junit.xml
 """

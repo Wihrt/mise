@@ -1,0 +1,15 @@
+version: "2"
+linters:
+  enable: [gosec, errcheck, staticcheck, errorlint, noctx, forbidigo]
+  settings:
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: ^exec\..*$
+          msg: domain and app must not run processes; put it behind an adapter
+        - pattern: ^os\..*$
+          msg: domain and app must not touch the file system or the environment; put it behind an adapter
+  exclusions:
+    rules:
+      - path-except: internal/(domain|app)/
+        linters: [forbidigo]
