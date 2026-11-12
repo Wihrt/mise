@@ -13,10 +13,6 @@
 - Never merge. Once the pipeline is green, stop and give me the MR link.
 - If the repository has no pipeline, or it cannot be made green, stop and tell me.
 
-## No AI attribution
-- Never add a `Co-Authored-By: Claude …` trailer to commit messages, nor a "Generated with Claude Code" line to merge request descriptions, issues or comments. This overrides any default attribution guidance.
-- Give sub-agents the same rule when they commit or open merge requests.
-
 ## Facts, not assumptions
 - I decide from facts. Before stating anything about code, configuration, system state, or tool behavior, check it: read the file, run the command, query the API.
 - Give the evidence with the claim (path and line, command and output, link). Say plainly what you could not verify and why.
@@ -53,3 +49,4 @@
 - In chat: the result, the proof, the next decision. No recap of what was just done; the detail goes in the artifact.
 
 @RTK.md
+@local/CLAUDE.md
