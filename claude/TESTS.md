@@ -340,3 +340,22 @@ Branche : `feat/harness-mutants-paralleles` · Commande : `mise run test`
     - les deux exécutions sous mutant ont eu lieu dans deux dossiers distincts, hors du dépôt
     - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
 - **Test** : `agents/bin/tests/test_acceptance_mutants_paralleles.py` › `test_PRV019_mutants_are_judged_in_parallel`
+
+## recherche-semble — Une recherche d'exploration reçoit un rappel de Semble
+Branche : `feat/semble` · Commande : `mise run test`
+
+### RCH-001 — Une recherche qui se lit comme une question passe avec un rappel de Semble
+- **Critère** :
+  - **Étant donné** un appel `Grep` de motif `where are tokens refreshed`, un appel Bash `grep -rn "how is the stack merged" harness` et un appel Bash `rtk proxy rg "auth|login|session" src`
+  - **Quand** le hook `search-hint` juge chacun
+  - **Alors**
+    - la réponse porte un `additionalContext` qui nomme `semble search`
+    - elle ne porte aucune `permissionDecision`
+- **Test** : `hooks/tests/search-hint.bats` › `RCH-001 a search that reads like a question passes with a reminder of semble`
+
+### RCH-002 — Une recherche exacte passe en silence
+- **Critère** :
+  - **Étant donné** un appel `Grep` de motif `TF_PLUGIN_CACHE_DIR`, et les appels Bash `grep -rn "func NewMergeStack" harness`, `rg -A 3 "permissionDecision.*ask" claude` et `git log --oneline -5`
+  - **Quand** le hook `search-hint` juge chacun
+  - **Alors** il n'écrit rien et sort à 0
+- **Test** : `hooks/tests/search-hint.bats` › `RCH-002 an exact search passes in silence`
