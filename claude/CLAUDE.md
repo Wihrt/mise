@@ -29,6 +29,7 @@
 - Every spec has a `Critères d'acceptation` section (`stacked-tdd-mr/templates/acceptance-criteria.md`); each plan task lists its criterion IDs and contains no acceptance test code.
 - Acceptance tests, written by `acceptance-writer` from the criteria, are the guarantee: proven red then green by `tdd-gate` and listed in `TESTS.md`. Unit tests are free scaffolding.
 - Every repo follows `repo-tooling` (mise, prek, Renovate).
+- Every dependency is declared in the repo, whatever it is (`repo-tooling`). My global mise config is for my daily work: a repo never relies on it. A missing tool is added to the repo's `mise.toml`, never installed on the workstation only.
 
 ## Debugging
 - Bug or unexplained red CI: `superpowers:systematic-debugging`, phases 1 to 3 only (no red/green loop; throwaway code, never committed).
