@@ -33,6 +33,7 @@ WIRING_FILES = (".pre-commit-config.yaml", ".gitlab-ci.yml", ".github/workflows/
 ID_RE = r"[A-Z]+-?[0-9]{3,}(?![A-Za-z0-9])"
 NAME_POS = re.compile(r"^\s*(?:func Test|def test_?|- ?it:\s*\"?\[?|it:\s*\"?\[?|run \"|@test \")")
 NAME_POS_SELECT = re.compile(r"^\s*(func Test|def test|- ?it:|it:|run \"|@test \")")
+BRU_NAME_POS = re.compile(r"^\s*test\(\s*[\"'`]\[?")  # Bruno: test("[ID] what", ...) inside a tests {} block
 DEFAULT_REPORT = {"junit": ".tdd/junit.xml", "tofu-json": ".tdd/tofu.json"}
 
 
@@ -199,7 +200,8 @@ def scan_tests(repo, files, rev=None):
     entries, pre = [], {}
     for f in files:
         lines = (git(repo, "show", f"{rev}:{f}")[1] if rev else (repo / f).read_text(errors="replace")).splitlines()
-        idx = [i for i, ln in enumerate(lines) if NAME_POS_SELECT.match(ln)]
+        select, name_pos = (BRU_NAME_POS, BRU_NAME_POS) if f.endswith(".bru") else (NAME_POS_SELECT, NAME_POS)
+        idx = [i for i, ln in enumerate(lines) if select.match(ln)]
         pre[f] = "\n".join(lines[: idx[0]]) if idx else "\n".join(lines)
         for n, i in enumerate(idx):
             end = idx[n + 1] if n + 1 < len(idx) else len(lines)
@@ -207,7 +209,7 @@ def scan_tests(repo, files, rev=None):
             end = next((j for j in range(i, end) if lines[j].startswith("if __name__")), end)  # module-level trailer is no test body
             while end > i + 1 and (not lines[end - 1].strip() or lines[end - 1].lstrip().startswith("@")):
                 end -= 1  # decorators above the next test belong to it
-            stripped = NAME_POS.sub("", lines[i], count=1)
+            stripped = name_pos.sub("", lines[i], count=1)
             m = re.match(ID_RE, stripped)
             cand = m.group(0).replace("-", "") if m else None
             entries.append(Entry(f, i + 1, cand, "\n".join(lines[i:end]).rstrip()))
