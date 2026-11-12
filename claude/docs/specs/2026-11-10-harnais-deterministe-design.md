@@ -200,6 +200,12 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors** la sortie ne contient aucune ligne `NOT WIRED`
 - **Cas réel** : un dépôt de CI (`mise.toml:92-94`, hook `mise run test`) ; gabarit `skills/repo-tooling/templates/mise.toml:33-35`
 
+### FRM-008 — Un test Bruno porte son ID
+- **Étant donné** un `TESTS.md` dont l'entrée `X-001` du slug jugé cite un fichier Bruno (`tests/api/x.bru`), ce fichier contenant `test("[X-001] <quoi>", function() {`, et un rapport JUnit dont le cas `[X-001] <quoi>` échoue
+- **Quand** `tdd-gate red` est lancé sur le slug
+- **Alors** la sortie contient `RED X-001`, aucune ligne `MISSING X-001`, et se termine par `PASS`
+- **Cas réel** : Bruno CLI 4.3.0, essai du 12/11 : le rapport `--reporter-junit` nomme le cas `[API-002] the index is an error`, que la porte lit, mais elle ne trouvait aucun nom de test dans `ping.bru`
+
 ### PRV-011 — Un mutant sans en-tête `diff --git` est jugé
 - **Étant donné** un dossier de preuves dont le mutant de `X-001` est un patch qui commence par `--- a/<fichier>`, sans ligne `diff --git`, et qui casse le test du critère
 - **Quand** `tdd-gate characterize` est lancé
