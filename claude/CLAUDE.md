@@ -29,6 +29,7 @@
 - Every spec has a `Critères d'acceptation` section (`stacked-tdd-mr/templates/acceptance-criteria.md`); each plan task lists its criterion IDs and contains no acceptance test code.
 - Acceptance tests, written by `acceptance-writer` from the criteria, are the guarantee: proven red then green by `tdd-gate` and listed in `TESTS.md`. Unit tests are free scaffolding.
 - Every repo follows `repo-tooling` (mise, prek, Renovate).
+- Every dependency is declared in the repo, whatever it is (`repo-tooling`). My global mise config is for my daily work: a repo never relies on it. A missing tool is added to the repo's `mise.toml`, never installed on the workstation only.
 - Direct fix: when I say `fix direct` or `sans TDD`, skip brainstorming, spec, plan and `stacked-tdd-mr`: no criterion, no acceptance test, no `TESTS.md` entry, no proof. Follow "Direct fix" in `stacked-tdd-mr` ("Work without a test"). Worktree, merge request and green CI still apply. Never pick this mode yourself; when a request looks like one, ask in one line.
 
 ## Debugging
