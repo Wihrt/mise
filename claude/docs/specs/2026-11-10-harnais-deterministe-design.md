@@ -238,6 +238,22 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 - **Alors** la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
 - **Cas réel** : un dépôt de déploiement, rejugement du 11/11 (le test retiré était le dernier du fichier)
 
+### PRV-017 — Le changement neutre se saute sur demande
+- **Étant donné** un commit d'acceptation, un commit `feat` vert, et un dossier de preuves qui contient un mutant tuant le test du critère et aucun changement neutre
+- **Quand** `tdd-gate green --proofs` est lancé avec `--no-neutral`
+- **Alors**
+  - la sortie contient `KILLED` pour le critère et `NEUTRAL SKIPPED`, aucune ligne `NEUTRAL MISSING`, et se termine par `PASS`
+  - relancé sans `--no-neutral`, elle contient `NEUTRAL MISSING` pour le critère et se termine par `FAIL`
+- **Cas réel** : pile du harnais déterministe (MR 25 à 54) : le changement neutre relance la suite une fois par critère à chaque tâche, pour une preuve qui ne protège d'aucune régression (elle détecte un test qui fige un détail)
+
+### PRV-018 — Le code minimal se saute sur demande
+- **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, un bloc dont le retrait laisse tous les tests verts
+- **Quand** `tdd-gate green --proofs` est lancé avec `--no-minimal`
+- **Alors**
+  - la sortie contient `MINIMAL SKIPPED`, aucune ligne `UNNEEDED`, et se termine par `PASS`
+  - relancé sans `--no-minimal`, elle contient `UNNEEDED` avec le fichier et les lignes du bloc et se termine par `FAIL`
+- **Cas réel** : pile du harnais déterministe (MR 25 à 54) : la preuve du code minimal relance la suite une fois par bloc ajouté à chaque tâche, après que l'implementer a fait le même retrait
+
 ### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
 - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
 - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
