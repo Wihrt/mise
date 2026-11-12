@@ -297,3 +297,13 @@ Branche : `feat/harness-accept-lost-multiple` · Commande : `mise run test`
     - la sortie contient `LOST ACCEPTED` avec le nom de chacun des deux mutants et se termine par `PASS`
     - relancé avec le seul `--accept-lost <mutant 1>`, elle contient `LOST` avec le nom du mutant 2 et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_accept_lost_multiple.py` › `test_RPL004_each_accepted_loss_is_named`
+
+## test-bruno — Un test Bruno porte son ID
+Branche : `feat/harness-outils-de-test` · Commande : `mise run test`
+
+### FRM-008 — Un test Bruno porte son ID
+- **Critère** :
+  - **Étant donné** un `TESTS.md` dont l'entrée `X-001` du slug jugé cite un fichier Bruno (`tests/api/x.bru`), ce fichier contenant `test("[X-001] <quoi>", function() {`, et un rapport JUnit dont le cas `[X-001] <quoi>` échoue
+  - **Quand** `tdd-gate red` est lancé sur le slug
+  - **Alors** la sortie contient `RED X-001`, aucune ligne `MISSING X-001`, et se termine par `PASS`
+- **Test** : `agents/bin/tests/test_acceptance_test_bruno.py` › `test_FRM008_bruno_test_carries_its_id`
