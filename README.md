@@ -113,6 +113,11 @@ et la lecture des fichiers locaux (`harness local forge|cas-reels`) sont un
 binaire Go, `harness`, dont les sources sont dans [`harness/`](harness/)
 (architecture hexagonale : `internal/domain`, `internal/app`,
 `internal/adapters`, assemblage dans `cmd/harness/`).
+Ses tests sont en Go : tests unitaires à côté du code, tests d'acceptation en
+boîte noire dans [`harness/acceptance/`](harness/acceptance/) (ils compilent le
+binaire et le lancent sur des dépôts git jetables ; un test `Test<ID>_…` prouve
+le critère `<ID>` de [`claude/TESTS.md`](claude/TESTS.md)).
+
 La tâche `bootstrap` le compile dans `~/.local/bin/harness` à chaque passage :
 après un changement de hook, relancez `mise bootstrap --update`.
 
