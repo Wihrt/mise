@@ -65,6 +65,15 @@
             "command": "~/.claude/hooks/never-merge.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/cluster-guard.sh"
+          }
+        ]
       }
     ],
     "SessionStart": [
