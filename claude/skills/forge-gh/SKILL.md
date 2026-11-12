@@ -3,7 +3,7 @@ name: forge-gh
 description: Use when opening, stacking or checking PRs, or fixing a red PR and watching its CI, on github.com with gh.
 ---
 
-Serves github.com or any GitHub Enterprise host known to `gh auth status`. Work in a worktree. Never merge: stop at green and give the PR `url`. Never push the default branch.
+Serves github.com or any GitHub Enterprise host known to `gh auth status`. Work in a worktree. Never merge on your own: stop at green and give the PR `url`. When the user asks for the merge: `harness merge-stack <top PR>`, never `gh pr merge` (`stacked-tdd-mr`, "Merging a stack"). Never push the default branch.
 
 ## Open a PR
 1. Before pushing: `git log --oneline origin/<base>..HEAD`, `git status --short`, `git log --format='%h %an <%ae> %s' origin/<base>..HEAD` (identity on every commit). Grep the range for `ghp_|github_pat_|AKIA|-----BEGIN`; on a hit do not push, report SHA and pattern only.
