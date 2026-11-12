@@ -98,6 +98,9 @@ else
   echo "bootstrap: init.templateDir vaut déjà $current_template ; hook OpenCommit non installé" >&2
 fi
 
+# Cache partagé des providers OpenTofu (TF_PLUGIN_CACHE_DIR dans config.toml).
+install -d "$HOME/.cache/opentofu/providers"
+
 # Docker sans sudo ; effectif à la prochaine connexion (ou `newgrp docker`).
 if getent group docker >/dev/null && ! id -nG "$USER" | tr ' ' '\n' | grep -qx docker; then
   sudo usermod --append --groups docker "$USER"
