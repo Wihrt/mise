@@ -70,7 +70,20 @@ run = "npx --yes --package renovate@${RENOVATE_VERSION} -- renovate-config-valid
 
 [tasks."lint:shell"]
 description = "Shellcheck the shell scripts"
-run = "shellcheck tasks/*"
+run = "shellcheck tasks/* .config/lint-harness"
+
+[tasks."lint:harness"]
+description = "Check that every skill is deployed by [dotfiles] and every source exists"
+run = ".config/lint-harness"
+
+[tasks."test:dotfiles"]
+description = "Deploy the harness in a throwaway HOME and check the links"
+run = """
+# Its own report directory: test:hooks writes .tdd/report.xml at the same time.
+mkdir -p .tdd/dotfiles
+bats --report-formatter junit --output .tdd/dotfiles .config/tests/
+mv .tdd/dotfiles/report.xml .tdd/dotfiles.xml
+"""
 
 [tasks."lint:ci"]
 description = "Lint the GitHub Actions workflows"
