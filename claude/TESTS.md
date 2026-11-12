@@ -318,3 +318,16 @@ Branche : `feat/harness-preuves-optionnelles` · Commande : `mise run test`
     - la sortie contient `MINIMAL SKIPPED`, aucune ligne `UNNEEDED`, et se termine par `PASS`
     - relancé sans `--no-minimal`, elle contient `UNNEEDED` avec le fichier et les lignes du bloc et se termine par `FAIL`
 - **Test** : `agents/bin/tests/test_acceptance_preuves_optionnelles.py` › `test_PRV018_minimal_code_is_skipped_on_request`
+
+## mutants-paralleles — Les mutants se jugent en parallèle sur demande
+Branche : `feat/harness-mutants-paralleles` · Commande : `mise run test`
+
+### PRV-019 — Les mutants se jugent en parallèle sur demande
+- **Critère** :
+  - **Étant donné** un critère à deux clauses, un mutant par clause, et une tâche de test qui, sous mutant, n'aboutit que si une autre exécution est en cours au même moment
+  - **Quand** `tdd-gate characterize --proofs` est lancé avec `--jobs 2`
+  - **Alors**
+    - la sortie contient `KILLED` pour chacune des deux clauses et se termine par `PASS`
+    - les deux exécutions sous mutant ont eu lieu dans deux dossiers distincts, hors du dépôt
+    - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
+- **Test** : `agents/bin/tests/test_acceptance_mutants_paralleles.py` › `test_PRV019_mutants_are_judged_in_parallel`

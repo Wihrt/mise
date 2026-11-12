@@ -254,6 +254,15 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
   - relancé sans `--no-minimal`, elle contient `UNNEEDED` avec le fichier et les lignes du bloc et se termine par `FAIL`
 - **Cas réel** : pile du harnais déterministe (MR 25 à 54) : la preuve du code minimal relance la suite une fois par bloc ajouté à chaque tâche, après que l'implementer a fait le même retrait
 
+### PRV-019 — Les mutants se jugent en parallèle sur demande
+- **Étant donné** un critère à deux clauses, un mutant par clause, et une tâche de test qui, sous mutant, n'aboutit que si une autre exécution est en cours au même moment
+- **Quand** `tdd-gate characterize --proofs` est lancé avec `--jobs 2`
+- **Alors**
+  - la sortie contient `KILLED` pour chacune des deux clauses et se termine par `PASS`
+  - les deux exécutions sous mutant ont eu lieu dans deux dossiers distincts, hors du dépôt
+  - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
+- **Cas réel** : pile du harnais déterministe (MR 25 à 54) : la porte relance la suite en séquence, une fois par clause, dans l'arbre de travail
+
 ### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
 - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
 - **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
