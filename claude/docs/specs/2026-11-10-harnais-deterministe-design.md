@@ -68,7 +68,7 @@ Un mutant qui touche `mise.toml` est accepté quand toutes ses modifications son
 
 ### 4. Rejeu : `tdd-gate replay`
 
-`tdd-gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t [--accept-lost <nom>]`
+`tdd-gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t [--accept-lost <nom>]...` (une fois par perte acceptée)
 
 Pour chaque mutant du dossier, la porte crée deux copies de travail temporaires (base et tête), applique le mutant de chaque côté, lance les tâches, puis retire les copies. Un mutant est tué d'un côté quand une tâche y sort en erreur.
 
