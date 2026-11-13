@@ -53,24 +53,24 @@
 ```go
 // Line 4 ("extra") is a block no test needs: it is no longer judged.
 func TestPRV020_UnneededBlockIsNoLongerJudged(t *testing.T) {
-	r := newRepo(t)
-	test, feat := feature(r, "header\nneeded\nmiddle\nextra\n")
-	code, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: []string{"--no-neutral"}})
-	with(t, out, "KILLED CALC-003")
-	without(t, out, "UNNEEDED", "MINIMAL")
-	ends(t, code, out, 0, "PASS")
+    r := newRepo(t)
+    test, feat := feature(r, "header\nneeded\nmiddle\nextra\n")
+    code, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: []string{"--no-neutral"}})
+    with(t, out, "KILLED CALC-003")
+    without(t, out, "UNNEEDED", "MINIMAL")
+    ends(t, code, out, 0, "PASS")
 }
 
 func TestPRV020_RetiredOptionsAreRefused(t *testing.T) {
-	for _, option := range [][]string{{"--no-minimal"}, {"--since", "HEAD"}, {"--unneeded-ok", prod + ":4-4"}} {
-		r := newRepo(t)
-		test, feat := feature(r, "header\nneeded\nmiddle\nextra\n")
-		code, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: append([]string{"--no-neutral"}, option...)})
-		if code != 2 {
-			t.Errorf("%s: exit code = %d, want 2\n%s", option[0], code, out)
-		}
-		with(t, out, strings.TrimLeft(option[0], "-"))
-	}
+    for _, option := range [][]string{{"--no-minimal"}, {"--since", "HEAD"}, {"--unneeded-ok", prod + ":4-4"}} {
+        r := newRepo(t)
+        test, feat := feature(r, "header\nneeded\nmiddle\nextra\n")
+        code, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: append([]string{"--no-neutral"}, option...)})
+        if code != 2 {
+            t.Errorf("%s: exit code = %d, want 2\n%s", option[0], code, out)
+        }
+        with(t, out, strings.TrimLeft(option[0], "-"))
+    }
 }
 ```
 
