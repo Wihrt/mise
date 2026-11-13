@@ -28,7 +28,7 @@ Go hexagonal layout, kept small. For code style (naming, errors, concurrency, st
 - Test names carry the TESTS.md ID: `Test<PREFIX><DIGITS>_<Behavior>`, e.g. `TestCALC001_Add` for `CALC-001`. Subtests may add detail but the top-level name keeps the ID.
 
 ## Security and verification
-Commands live in `mise.toml` (see `repo-tooling`); `lint:go` and `test:go` run them. `test:go` writes the JUnit report that `tdd-gate` reads: `gotestsum --junitfile .tdd/junit.xml -- ./...` with `gotestsum = "1.13.0"` in `[tools]` (registry `aqua:gotestyourself/gotestsum`; verified on the e2e fixture: a compile error gives a report holding only a `TestMain` failure, and the output carries `undefined: <symbol>`). `.tdd/` is gitignored.
+Commands live in `mise.toml` (see `repo-tooling`); `lint:go` and `test:go` run them. `test:go` writes the JUnit report that `harness gate` reads: `gotestsum --junitfile .tdd/junit.xml -- ./...` with `gotestsum = "1.13.0"` in `[tools]` (registry `aqua:gotestyourself/gotestsum`; verified on the e2e fixture: a compile error gives a report holding only a `TestMain` failure, and the output carries `undefined: <symbol>`). `.tdd/` is gitignored.
 
 | Layer | Control | Where |
 |---|---|---|
@@ -65,4 +65,4 @@ linters:
 When a principle conflicts with a simple function, keep the function and say so in the review.
 
 ## Acceptance tests
-- Written by the `acceptance-writer` from spec criteria (catalogue: `~/.claude/agents/acceptance-writer.md`). CLI: a test package that imports nothing of the module, builds the binary in `TestMain` and runs it as a subprocess; moving code into `internal/` keeps it green (dry run 2026-10-28). Go caches such tests across source changes: `tdd-gate` runs with `GOFLAGS=-count=1`; do the same in CI.
+- Written by the `acceptance-writer` from spec criteria (catalogue: `~/.claude/agents/acceptance-writer.md`). CLI: a test package that imports nothing of the module, builds the binary in `TestMain` and runs it as a subprocess; moving code into `internal/` keeps it green (dry run 2026-10-28). Go caches such tests across source changes: `harness gate` runs with `GOFLAGS=-count=1`; do the same in CI.

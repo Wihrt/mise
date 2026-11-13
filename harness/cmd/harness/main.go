@@ -1,8 +1,11 @@
-// Command harness runs the Claude Code hooks of the harness.
+// Command harness runs the Claude Code hooks, the TDD gates and the local-file
+// lookups of the harness.
 //
-// Usage: harness hook <name> [argument], with the hook input on stdin.
+// Usage: harness hook <name> [argument], with the hook input on stdin;
+// harness gate <red|green|characterize|replay> ...; harness local <forge|cas-reels> ...
 // Configuration comes from the environment: HOME, KUBECONFIG,
-// CLAUDE_CODE_SUBAGENT_MODEL, and CLAUDE_AGENTS_DIR (default <HOME>/.claude/agents).
+// CLAUDE_CODE_SUBAGENT_MODEL, CLAUDE_AGENTS_DIR (default <HOME>/.claude/agents)
+// and CLAUDE_LOCAL_DIR (default <HOME>/.claude/local).
 package main
 
 import (
@@ -46,8 +49,14 @@ func policy(name, arg string, getenv func(string) string) app.Policy {
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer, getenv func(string) string) int {
+	if len(args) > 0 && args[0] == "gate" {
+		return runGate(args[1:], stdout, stderr)
+	}
+	if len(args) > 0 && args[0] == "local" {
+		return runLocal(args[1:], stdout, stderr, getenv)
+	}
 	if len(args) < 2 || args[0] != "hook" {
-		_, _ = fmt.Fprintln(stderr, "usage: harness hook <name> [argument]")
+		_, _ = fmt.Fprintln(stderr, "usage: harness hook <name> [argument] | harness gate <mode> ... | harness local ...")
 		return 2
 	}
 	arg := ""

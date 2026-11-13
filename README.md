@@ -132,14 +132,21 @@ travail. Un nouveau skill demande sa ligne dans `[dotfiles]` ;
 
 ## Harnais
 
-Les hooks Claude Code sont un binaire Go, `harness`, dont les sources sont dans
-[`harness/`](harness/) (architecture hexagonale : `internal/domain`,
-`internal/app`, `internal/adapters`, assemblage dans `cmd/harness/main.go`).
+Les hooks Claude Code, les portes TDD (`harness gate red|green|characterize|replay`)
+et la lecture des fichiers locaux (`harness local forge|cas-reels`) sont un
+binaire Go, `harness`, dont les sources sont dans [`harness/`](harness/)
+(architecture hexagonale : `internal/domain`, `internal/app`,
+`internal/adapters`, assemblage dans `cmd/harness/`).
+Ses tests sont en Go : tests unitaires à côté du code, tests d'acceptation en
+boîte noire dans [`harness/acceptance/`](harness/acceptance/) (ils compilent le
+binaire et le lancent sur des dépôts git jetables ; un test `Test<ID>_…` prouve
+le critère `<ID>` de [`claude/TESTS.md`](claude/TESTS.md)).
+
 La tâche `bootstrap` le compile dans `~/.local/bin/harness` à chaque passage :
 après un changement de hook, relancez `mise bootstrap --update`.
 
 Sa configuration vient de l'environnement : `HOME`, `KUBECONFIG`,
-`CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_AGENTS_DIR`. Il lit l'appel d'outil sur
+`CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_AGENTS_DIR`, `CLAUDE_LOCAL_DIR`. Il lit l'appel d'outil sur
 l'entrée standard, écrit sa décision sur la sortie standard et ses erreurs sur
 la sortie d'erreur.
 

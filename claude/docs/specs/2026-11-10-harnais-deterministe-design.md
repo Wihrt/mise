@@ -1,6 +1,6 @@
 # Harnais de test déterministe — spec
 
-Date : 2026-11-10. Périmètre : `~/.claude/agents/bin/tdd-gate` et ses tests, `~/.claude/skills/stacked-tdd-mr/` (compétence et gabarits), `~/.claude/agents/{acceptance-writer,mutant-writer,implementer}.md`, deux lignes de `~/.claude/skills/repo-tooling/`.
+Date : 2026-11-10. Périmètre : `~/.local/bin/harness gate` et ses tests, `~/.claude/skills/stacked-tdd-mr/` (compétence et gabarits), `~/.claude/agents/{acceptance-writer,mutant-writer,implementer}.md`, deux lignes de `~/.claude/skills/repo-tooling/`.
 
 État des lieux et cas réels : `.superpowers/sdd/2026-11-10-elagage-tests/harnais/etat-des-lieux.md` et https://claude.ai/artifact/P1gsNTBiE2eStS5PyVo8TD.
 
@@ -66,9 +66,9 @@ Un mutant qui touche `mise.toml` est accepté quand toutes ses modifications son
 | La tâche de la ligne `Commande` du slug est lancée par un hook de commit ou un job CI du dépôt, directement ou par une tâche qui en dépend | `green`, `characterize` | `NOT WIRED <tâche>` |
 | La spec passée à `--spec`, quand elle est dans le dépôt, est commitée sans modification en attente | `red`, `characterize` | `SPEC NOT COMMITTED` |
 
-### 4. Rejeu : `tdd-gate replay`
+### 4. Rejeu : `harness gate replay`
 
-`tdd-gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t [--accept-lost <nom>]...` (une fois par perte acceptée)
+`harness gate replay --repo R --base <sha> --head <sha> --proofs DIR --task t [--accept-lost <nom>]...` (une fois par perte acceptée)
 
 Pour chaque mutant du dossier, la porte crée deux copies de travail temporaires (base et tête), applique le mutant de chaque côté, lance les tâches, puis retire les copies. Un mutant est tué d'un côté quand une tâche y sort en erreur.
 
@@ -103,7 +103,7 @@ Cette spec livre la procédure. Son application dépôt par dépôt se planifie 
 
 ### Contraintes
 
-- Les 87 tests actuels de la porte restent verts à chaque étape ; chaque contrôle nouveau arrive avec ses tests dans `bin/tests/test_tdd_gate.py`, écrits et vus rouges avant le code.
+- Les 87 tests actuels de la porte restent verts à chaque étape ; chaque contrôle nouveau arrive avec ses tests dans `harness/acceptance/` (à l'origine `bin/tests/test_tdd_gate.py`, en pytest), écrits et vus rouges avant le code.
 - Les sections de `TESTS.md` autres que le slug jugé ne sont soumises à aucun contrôle nouveau, sauf « test gardé inchangé » et la redondance, qui les lisent sans les juger.
 - Coût accepté : une exécution de mutant-writer de plus par tâche en mode nouveau ; durée de la porte environ doublée (un lancement de tâche par mutant et par changement neutre).
 
@@ -115,23 +115,23 @@ Cette spec livre la procédure. Son application dépôt par dépôt se planifie 
 
 ## Critères d'acceptation
 
-Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépôt git jetable (sortie standard et code de sortie).
+Frontière de tous les critères : la ligne de commande `harness gate` sur un dépôt git jetable (sortie standard et code de sortie).
 
 ### PRV-001 — Un mutant par clause est exigé
 - **Étant donné** un slug dont le critère `X-001` a un « Alors » à deux clauses, et un dossier de preuves qui contient `X-001.patch` et `X-001.neutral.patch` mais pas `X-001.2.patch`
-- **Quand** `tdd-gate characterize` est lancé sur le commit d'acceptation
+- **Quand** `harness gate characterize` est lancé sur le commit d'acceptation
 - **Alors** la sortie contient `MUTANT MISSING X-001 clause 2` et se termine par `FAIL`
 - **Cas réel** : un critère d'un dépôt de déploiement, clause « politique restricted » non visée par le mutant
 
 ### PRV-002 — Une clause qu'aucun test ne défend est refusée
 - **Étant donné** le même critère à deux clauses, les deux mutants présents, et un test qui n'échoue que sous le premier
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors** la sortie contient `KILLED X-001 clause 1` et `SURVIVED X-001 clause 2`, et se termine par `FAIL`
 - **Cas réel** : un critère d'un dépôt de déploiement, clause déjà imposée par le schéma
 
 ### PRV-003 — Un changement neutre par critère est exigé
 - **Étant donné** un critère `X-001` dont le mutant est présent et tué, sans `X-001.neutral.patch`
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors**
   - la sortie contient `NEUTRAL MISSING X-001` et se termine par `FAIL`
   - relancée avec un `X-001.neutral.patch` qui ne s'applique pas au dépôt, elle contient `NEUTRAL INVALID X-001` et se termine par `FAIL`
@@ -139,34 +139,34 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### PRV-004 — Un test qui casse sous un changement neutre est refusé
 - **Étant donné** un critère `X-001` dont le test affirme le nom d'un élément du catalogue, et un changement neutre qui renomme cet élément
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors** la sortie contient `BRITTLE X-001` avec le nom du test en échec, et se termine par `FAIL`
 - **Cas réel** : un critère d'un dépôt de déploiement nommait une application du catalogue
 
 ### PRV-005 — Un test sensible et spécifique passe
 - **Étant donné** un critère `X-001` dont le « Alors » a deux clauses en sous-liste, suivie de la ligne `- **Test**`, ses deux mutants, son changement neutre, et des tests qui échouent sous chaque mutant et passent sous le changement neutre
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors** la sortie contient `KILLED X-001 clause 1`, `KILLED X-001 clause 2` et `NEUTRAL OK X-001`, aucune ligne `MUTANT MISSING`, et se termine par `PASS`
 
 ### PRV-006 — Un critère couvert par un autre est refusé
 - **Étant donné** deux critères `X-001` et `X-002` jugés par la même tâche, où le mutant de `X-002` fait aussi échouer le test de `X-001`, et où le mutant de `X-001` ne fait pas échouer le test de `X-002`
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors** la sortie contient `REDUNDANT X-002` en nommant `X-001`, ne contient pas `REDUNDANT X-001`, et se termine par `FAIL`
 - **Cas réel** : un critère d'un dépôt de déploiement, jugé doublon à la main ; 100 entrées « doublon » dans les `scope.psv`
 
 ### PRV-007 — Les preuves valent aussi pour une fonctionnalité nouvelle
 - **Étant donné** un commit d'acceptation et un commit `feat` qui rend ses tests verts
-- **Quand** `tdd-gate green` est lancé sans `--proofs` ni `--proof-exempt`
+- **Quand** `harness gate green` est lancé sans `--proofs` ni `--proof-exempt`
 - **Alors**
   - la sortie contient `PROOF MISSING` et se termine par `FAIL`
   - relancé avec `--proofs` et un test qui survit à son mutant, elle contient `SURVIVED` et se termine par `FAIL`
   - relancé avec `--proofs`, un test qui échoue sous son mutant et passe sous son changement neutre, elle contient `KILLED` et `NEUTRAL OK` pour le critère, aucune ligne `SURVIVED`, et se termine par `PASS`
   - relancé avec `--proof-exempt`, aucun mutant n'est appliqué et elle se termine par `PASS`
-- **Cas réel** : en mode nouveau, la porte `green` n'applique aucun mutant aujourd'hui (`tdd-gate:523-592`)
+- **Cas réel** : en mode nouveau, la porte `green` n'applique aucun mutant aujourd'hui (script Python d'origine, lignes 523 à 592)
 
 ### PRV-008 — Un mutant du code écrit dans une tâche mise est jugé
 - **Étant donné** un dépôt dont le code testé est le corps de la tâche `[tasks."bootstrap:agent"]` de `mise.toml`, jugé par la tâche `test:bootstrap`
-- **Quand** `tdd-gate characterize` reçoit un mutant qui modifie le corps de `bootstrap:agent`, puis un mutant qui modifie le corps de `test:bootstrap`
+- **Quand** `harness gate characterize` reçoit un mutant qui modifie le corps de `bootstrap:agent`, puis un mutant qui modifie le corps de `test:bootstrap`
 - **Alors**
   - le premier est appliqué et jugé (`KILLED` ou `SURVIVED`)
   - le second est refusé par `MUTANT INVALID … touches test task test:bootstrap`
@@ -175,7 +175,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### PRV-009 — Un bloc de code qu'aucun test ne demande est refusé
 - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, deux blocs séparés : l'un sans lequel le test du critère échoue, l'autre dont le retrait laisse tous les tests verts
-- **Quand** `tdd-gate green --proofs` est lancé
+- **Quand** `harness gate green --proofs` est lancé
 - **Alors**
   - la sortie contient `UNNEEDED` avec le fichier et les lignes du second bloc, aucune ligne `UNNEEDED` pour le premier, et se termine par `FAIL`
   - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
@@ -184,55 +184,55 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### PRV-010 — Un changement neutre sans résultat est invalide
 - **Étant donné** un critère `X-001` dont le mutant est tué, et un `X-001.neutral.patch` qui s'applique mais sous lequel la tâche de test ne produit aucun résultat pour les tests du critère
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors** la sortie contient `NEUTRAL INVALID X-001`, aucune ligne `NEUTRAL OK X-001`, et se termine par `FAIL`
 - **Cas réel** : un chart, `MUTANT INVALID ID-003: no result` sur une panne réseau du téléchargement des dépendances Helm ; la même panne pendant le changement neutre donnait `NEUTRAL OK`
 
 ### FRM-001 — Le critère est écrit en toutes lettres dans l'entrée
 - **Étant donné** un `TESTS.md` dont l'entrée `X-001` du slug jugé ne porte qu'un renvoi (`**Critère** : docs/specs/x.md › X-001`), et dont une section d'un autre slug est à l'ancien format
-- **Quand** `tdd-gate red`, `green` ou `characterize` est lancé sur le slug
+- **Quand** `harness gate red`, `green` ou `characterize` est lancé sur le slug
 - **Alors** la sortie contient `INCOMPLETE X-001` et se termine par `FAIL`, sans aucune ligne `INCOMPLETE` pour l'autre section
 - **Cas réel** : demande du 10/11 ; `templates/TESTS.md:7`
 
 ### FRM-007 — Une tâche atteinte par un motif de dépendance est branchée
 - **Étant donné** un slug dont la `Commande` est `mise run test:render`, un hook de commit qui lance `mise run test`, et un `mise.toml` où `[tasks.test]` a `depends = ["test:*"]`
-- **Quand** `tdd-gate green` ou `characterize` est lancé
+- **Quand** `harness gate green` ou `characterize` est lancé
 - **Alors** la sortie ne contient aucune ligne `NOT WIRED`
 - **Cas réel** : un dépôt de CI (`mise.toml:92-94`, hook `mise run test`) ; gabarit `skills/repo-tooling/templates/mise.toml:33-35`
 
 ### FRM-008 — Un test Bruno porte son ID
 - **Étant donné** un `TESTS.md` dont l'entrée `X-001` du slug jugé cite un fichier Bruno (`tests/api/x.bru`), ce fichier contenant `test("[X-001] <quoi>", function() {`, et un rapport JUnit dont le cas `[X-001] <quoi>` échoue
-- **Quand** `tdd-gate red` est lancé sur le slug
+- **Quand** `harness gate red` est lancé sur le slug
 - **Alors** la sortie contient `RED X-001`, aucune ligne `MISSING X-001`, et se termine par `PASS`
 - **Cas réel** : Bruno CLI 4.3.0, essai du 12/11 : le rapport `--reporter-junit` nomme le cas `[API-002] the index is an error`, que la porte lit, mais elle ne trouvait aucun nom de test dans `ping.bru`
 
 ### PRV-011 — Un mutant sans en-tête `diff --git` est jugé
 - **Étant donné** un dossier de preuves dont le mutant de `X-001` est un patch qui commence par `--- a/<fichier>`, sans ligne `diff --git`, et qui casse le test du critère
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors** la sortie contient `KILLED X-001`
 - **Cas réel** : un mutant d'un chantier antérieur, jugé `KILLED` le 02/11, `UnboundLocalError` avec la porte du 11/11
 
 ### PRV-012 — Les preuves ne s'appliquent pas sur un arbre modifié
 - **Étant donné** un dépôt dont un fichier suivi porte une modification non commitée
-- **Quand** `tdd-gate green --proofs DIR` est lancé
+- **Quand** `harness gate green --proofs DIR` est lancé
 - **Alors** la sortie contient `TREE NOT CLEAN`, aucune ligne `MUTANT`, se termine par `FAIL`, et la modification non commitée est toujours dans le fichier
 - **Cas réel** : 10/11, implémentation laissée non commitée avant une porte verte (registre du harnais déterministe)
 
 ### PRV-013 — Le code minimal se juge depuis le début de la tâche
 - **Étant donné** un slug qui a deux commits d'acceptation, et un bloc de code de production qu'aucun test ne demande, ajouté entre les deux
-- **Quand** `tdd-gate green --proofs DIR` est lancé avec `--test <second commit d'acceptation>` et `--since <premier commit d'acceptation>`
+- **Quand** `harness gate green --proofs DIR` est lancé avec `--test <second commit d'acceptation>` et `--since <premier commit d'acceptation>`
 - **Alors** la sortie contient `UNNEEDED` avec le fichier et les lignes de ce bloc, et se termine par `FAIL`
 - **Cas réel** : auto-preuve du 11/11, slug `rejeu` : le mode `replay` (`db779fa`), écrit avant le second commit d'acceptation, n'a pas été jugé
 
 ### PRV-014 — La spec n'est pas jugée comme du code
 - **Étant donné** un slug qui a deux commits d'acceptation et, entre les deux, un commit qui ajoute des lignes au fichier de spec du dépôt
-- **Quand** `tdd-gate green --proofs --since <premier commit d'acceptation> --spec <fichier de spec>` est lancé
+- **Quand** `harness gate green --proofs --since <premier commit d'acceptation> --spec <fichier de spec>` est lancé
 - **Alors** la sortie ne contient aucune ligne `UNNEEDED` qui nomme le fichier de spec, et se termine par `PASS`
 - **Cas réel** : auto-preuve du 11/11, slug `mutant-mise`, après le changement de critère PRV-008 : `UNNEEDED docs/specs/2026-11-10-harnais-deterministe-design.md:170-171`
 
 ### PRV-015 — Un test gardé n'est pas dit modifié quand son voisin change
 - **Étant donné** un fichier de test où le test du critère `X-001` est suivi d'un autre test, et un commit d'acceptation qui laisse le test de `X-001` intact au caractère près
-- **Quand** `tdd-gate characterize` est lancé sans `--ac-changed`
+- **Quand** `harness gate characterize` est lancé sans `--ac-changed`
 - **Alors**
   - quand le test qui suit est un test pytest précédé d'un décorateur (ligne `@…` au-dessus de son nom) et que le commit le retire, si bien que le test suivant, précédé d'un autre décorateur, prend sa place, la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
   - quand le fichier est un fichier helm-unittest à plusieurs documents et que le commit retire le document qui suit le test de `X-001` (séparateur `---` puis en-tête `suite:`), la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
@@ -240,13 +240,13 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### PRV-016 — Un test gardé devenu le dernier du fichier n'est pas dit modifié
 - **Étant donné** un fichier de test pytest qui se termine par un bloc `if __name__ == "__main__":`, où le test du critère `X-001` est suivi d'un dernier test, et un commit d'acceptation qui retire ce dernier test en laissant le test de `X-001` intact au caractère près
-- **Quand** `tdd-gate characterize` est lancé sans `--ac-changed`
+- **Quand** `harness gate characterize` est lancé sans `--ac-changed`
 - **Alors** la sortie ne contient aucune ligne `KEPT TEST MODIFIED` qui nomme `X-001`
 - **Cas réel** : un dépôt de déploiement, rejugement du 11/11 (le test retiré était le dernier du fichier)
 
 ### PRV-017 — Le changement neutre se saute sur demande
 - **Étant donné** un commit d'acceptation, un commit `feat` vert, et un dossier de preuves qui contient un mutant tuant le test du critère et aucun changement neutre
-- **Quand** `tdd-gate green --proofs` est lancé avec `--no-neutral`
+- **Quand** `harness gate green --proofs` est lancé avec `--no-neutral`
 - **Alors**
   - la sortie contient `KILLED` pour le critère et `NEUTRAL SKIPPED`, aucune ligne `NEUTRAL MISSING`, et se termine par `PASS`
   - relancé sans `--no-neutral`, elle contient `NEUTRAL MISSING` pour le critère et se termine par `FAIL`
@@ -254,7 +254,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### PRV-018 — Le code minimal se saute sur demande
 - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, un bloc dont le retrait laisse tous les tests verts
-- **Quand** `tdd-gate green --proofs` est lancé avec `--no-minimal`
+- **Quand** `harness gate green --proofs` est lancé avec `--no-minimal`
 - **Alors**
   - la sortie contient `MINIMAL SKIPPED`, aucune ligne `UNNEEDED`, et se termine par `PASS`
   - relancé sans `--no-minimal`, elle contient `UNNEEDED` avec le fichier et les lignes du bloc et se termine par `FAIL`
@@ -262,7 +262,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### PRV-019 — Les mutants se jugent en parallèle sur demande
 - **Étant donné** un critère à deux clauses, un mutant par clause, et une tâche de test qui, sous mutant, n'aboutit que si une autre exécution est en cours au même moment
-- **Quand** `tdd-gate characterize --proofs` est lancé avec `--jobs 2`
+- **Quand** `harness gate characterize --proofs` est lancé avec `--jobs 2`
 - **Alors**
   - la sortie contient `KILLED` pour chacune des deux clauses et se termine par `PASS`
   - les deux exécutions sous mutant ont eu lieu dans deux dossiers distincts, hors du dépôt
@@ -271,7 +271,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
 - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
-- **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
+- **Quand** `harness gate replay --base <premier> --head <second>` est lancé
 - **Alors**
   - la sortie contient `BASELINE NOT GREEN base`, aucune ligne `KEPT`, et se termine par `FAIL`
   - relancé en échangeant `--base` et `--head`, elle contient `BASELINE NOT GREEN head`, aucune ligne `KEPT`, et se termine par `FAIL`
@@ -279,13 +279,13 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### FRM-006 — L'entrée a autant de clauses que la spec
 - **Étant donné** une spec dont le critère `X-001` a un « Alors » en liste de deux clauses, et un `TESTS.md` dont l'entrée `X-001` du slug jugé porte ce « Alors » sur une seule ligne
-- **Quand** `tdd-gate red` ou `characterize` est lancé avec `--spec`
+- **Quand** `harness gate red` ou `characterize` est lancé avec `--spec`
 - **Alors** la sortie contient `CLAUSES X-001: 1 in TESTS.md, 2 in spec` et se termine par `FAIL`
 - **Cas réel** : entrée FRM-002 de ce dépôt au commit `f1fd102`, trois clauses de la spec recopiées sur une ligne, une seule clause prouvée par mutant
 
 ### FRM-002 — Un test gardé ne change pas
 - **Étant donné** un fichier de test cité par un slug remplacé (`--replaces`), où le test `X-001`, présent dans `TESTS.md` avant et après, a une ligne modifiée, et où `X-002` est modifié et listé dans `--ac-changed`
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors**
   - la sortie contient `KEPT TEST MODIFIED` avec le fichier et `X-001`, aucune ligne de ce type pour `X-002`, et se termine par `FAIL`
   - quand `X-001` est laissé intact et qu'un test de `X-002` est ajouté à la fin du fichier, après une ligne vide, la sortie ne contient aucune ligne `KEPT TEST MODIFIED`
@@ -294,13 +294,13 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### FRM-003 — Un rapport absent dit quoi faire
 - **Étant donné** une tâche de test qui sort à 0 sans écrire de rapport
-- **Quand** `tdd-gate characterize` est lancé
+- **Quand** `harness gate characterize` est lancé
 - **Alors** la sortie contient une ligne `REPORT missing` qui nomme la tâche et le chemin `.tdd/junit.xml`, et se termine par `FAIL`
 - **Cas réel** : `test:render` et `test:bootstrap` d'un dépôt de déploiement
 
 ### FRM-004 — La tâche de test tourne quelque part
 - **Étant donné** un slug dont la `Commande` est `mise run test:render`, tâche citée par aucun hook de commit ni job CI du dépôt, ni dépendance d'une tâche qui l'est
-- **Quand** `tdd-gate characterize` ou `green` est lancé
+- **Quand** `harness gate characterize` ou `green` est lancé
 - **Alors**
   - la sortie contient `NOT WIRED test:render` et se termine par `FAIL`
   - une fois la tâche citée dans `.pre-commit-config.yaml` ou `.gitlab-ci.yml`, la ligne `NOT WIRED` n'apparaît plus
@@ -309,13 +309,13 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### FRM-005 — La spec jugée est celle qui est commitée
 - **Étant donné** une spec située dans le dépôt, avec une modification non commitée
-- **Quand** `tdd-gate red` ou `characterize` est lancé avec `--spec`
+- **Quand** `harness gate red` ou `characterize` est lancé avec `--spec`
 - **Alors** la sortie contient `SPEC NOT COMMITTED` et se termine par `FAIL`
 - **Cas réel** : deux critères, commit de spec inséré après coup
 
 ### RPL-001 — Une protection perdue par la pile est signalée
 - **Étant donné** deux commits d'un dépôt, un mutant qui fait échouer la tâche sur le premier et la laisse passer sur le second
-- **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé
+- **Quand** `harness gate replay --base <premier> --head <second>` est lancé
 - **Alors**
   - la sortie contient `LOST` avec le nom du mutant et se termine par `FAIL`
   - relancé avec `--accept-lost <nom>`, elle contient `LOST ACCEPTED` et se termine par `PASS`
@@ -324,14 +324,14 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### RPL-002 — Un rejeu sans perte passe et ne laisse rien derrière lui
 - **Étant donné** deux commits et deux mutants, l'un tué des deux côtés, l'autre vivant des deux côtés
-- **Quand** `tdd-gate replay` est lancé
+- **Quand** `harness gate replay` est lancé
 - **Alors**
   - la sortie contient `KEPT` pour le premier et `NEVER` pour le second, et se termine par `PASS`
   - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
 
 ### RPL-004 — Plusieurs pertes acceptées se nomment chacune
 - **Étant donné** deux commits d'un dépôt et deux mutants, chacun fait échouer la tâche sur le premier et la laisse passer sur le second
-- **Quand** `tdd-gate replay --base <premier> --head <second>` est lancé avec `--accept-lost <mutant 1> --accept-lost <mutant 2>`
+- **Quand** `harness gate replay --base <premier> --head <second>` est lancé avec `--accept-lost <mutant 1> --accept-lost <mutant 2>`
 - **Alors**
   - la sortie contient `LOST ACCEPTED` avec le nom de chacun des deux mutants et se termine par `PASS`
   - relancé avec le seul `--accept-lost <mutant 1>`, elle contient `LOST` avec le nom du mutant 2 et se termine par `FAIL`
@@ -339,13 +339,13 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### LOC-001 — Un hôte déclaré en local donne son outil de forge
 - **Étant donné** un dépôt git dont `origin` vaut `https://forge.exemple.test/groupe/depot.git`, et un dossier local (variable `CLAUDE_LOCAL_DIR`) dont le fichier `forges` contient la ligne `forge.exemple.test glab`
-- **Quand** `harness-local forge --repo <dépôt>` est lancé
+- **Quand** `harness local forge --repo <dépôt>` est lancé
 - **Alors** la sortie est `glab` et le code de sortie est 0
 - **Cas réel** : deux forges internes retirées de la version publique du skill le 11/11 (demande de l'utilisateur : le concret vit hors Git)
 
 ### LOC-002 — Sans fichier local, seuls les hôtes publics sont connus
 - **Étant donné** un dossier local vide (variable `CLAUDE_LOCAL_DIR`)
-- **Quand** `harness-local forge --repo <dépôt>` est lancé
+- **Quand** `harness local forge --repo <dépôt>` est lancé
 - **Alors**
   - pour un dépôt dont `origin` vaut `git@github.com:groupe/depot.git`, la sortie est `gh` et le code de sortie est 0
   - pour un dépôt dont `origin` vaut `https://gitlab.com/groupe/depot.git`, la sortie est `glab` et le code de sortie est 0
@@ -354,7 +354,7 @@ Frontière de tous les critères : la ligne de commande `tdd-gate` sur un dépô
 
 ### LOC-003 — Un cas réel local affine une règle sans être versionné
 - **Étant donné** un dossier local (variable `CLAUDE_LOCAL_DIR`) dont le fichier `cas-reels.md` contient une ligne `| PRV-015 | dépôt interne, critère X-103 |`
-- **Quand** `harness-local cas-reels PRV-015` est lancé
+- **Quand** `harness local cas-reels PRV-015` est lancé
 - **Alors**
   - la sortie contient la ligne du fichier qui nomme `PRV-015`, et le code de sortie est 0
   - quand le fichier `cas-reels.md` n'existe pas, la sortie est vide et le code de sortie est 0
