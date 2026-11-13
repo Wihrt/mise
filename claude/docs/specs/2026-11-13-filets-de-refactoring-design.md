@@ -1,6 +1,6 @@
 # Filets de refactoring — spec
 
-Date : 2026-11-13. Périmètre : le binaire `harness` (`harness/`, porte `gate`), `claude/TESTS.md`, `claude/agents/{implementer,acceptance-writer}.md`, `claude/skills/{stacked-tdd-mr,repo-tooling,hexagonal-go,hexagonal-py}/`, deux skills nouveaux (`compose-dev`, `twelve-factor`), `claude/docs/regles-generiques.md`, `config.toml` (`[dotfiles]`).
+Date : 2026-11-13. Périmètre : le binaire `harness` (`harness/`, porte `gate`), `claude/TESTS.md`, `claude/agents/{implementer,acceptance-writer}.md`, `claude/skills/{stacked-tdd-mr,repo-tooling,hexagonal-go,hexagonal-py}/`, cinq skills nouveaux (`repo-stack`, `stack-go-app`, `stack-py-app`, `compose-dev`, `twelve-factor`), `claude/docs/regles-generiques.md`, `config.toml` (`[dotfiles]`).
 
 Remplace, dans `2026-11-10-harnais-deterministe-design.md`, la preuve « Code minimal » et le temps « refactor par retrait mesuré » (PRV-009, PRV-013, PRV-014, PRV-018).
 
@@ -31,13 +31,14 @@ Décisions de l'utilisateur :
 - D5 : un skill dédié à Docker Compose, à côté de ceux sur Docker. Le compose avec watch est un prérequis pour l'applicatif Go et Python, pas pour l'infrastructure as code (Helm, OpenTofu, Ansible), qui a d'autres moyens de test.
 - D6 : une API se teste avec Bruno, un front avec Playwright (déjà au catalogue depuis le 12/11).
 - D7 : `repo-tooling` porte les contraintes nouvelles.
+- D10 : pas de contrôle nouveau dans la porte pour exiger le socle. Un skill détecte le type de dépôt et impose le skill de la stack, qui dit ce que l'utilisateur veut pour ce type (« un skill qui va être la détection du repo, et qui impose un autre skill qui spécifie la stack technique que je veux »). Si un agent saute la détection, on durcira à ce moment-là.
 - D9 : les changements de la porte se font en TDD à la main sur ce dépôt, sans `harness gate` ; appliquer le harnais à lui-même est un autre projet, plus tard.
-- D8 : façon de forcer, proposée par Claude et acceptée : architecture forcée par un contrôle rapide prouvé par un cas faux ; douze facteurs forcés par un socle de critères d'acceptation testés sur le conteneur lancé par le compose ; SOLID en règle écrite et à la revue ; la porte refuse quand le socle manque.
+- D8 : façon de forcer, proposée par Claude et acceptée : architecture forcée par un contrôle rapide prouvé par un cas faux ; douze facteurs forcés par un socle de critères d'acceptation testés sur le conteneur lancé par le compose ; SOLID en règle écrite et à la revue.
 
 Choix de Claude (non discutés, à relire) :
 
 - C1 : le contrôle d'architecture est un **test** qui porte un ID de critère, pas une tâche de lint à part. Annoncé à l'utilisateur comme « une tâche `lint:arch` » ; changé parce qu'un critère est prouvé par mutant, rejoué par `replay`, et que sa tâche est déjà tenue par `NOT WIRED`. Il tourne dans `test:go` ou `test:py`, en quelques secondes.
-- C2 : la porte reconnaît un dépôt qui porte du code de production, pas un dépôt qui n'a qu'un manifeste pour ses tests (un chart ou un dépôt OpenTofu a un `pyproject.toml` pour pytest, ou un `go.mod` pour Terratest). À la racine du commit jugé : `go.mod` avec un dossier `cmd/` ou `internal/`, ou `pyproject.toml` avec un dossier `src/` → socle d'architecture ; avec en plus un `Dockerfile` → socle des douze facteurs. Limites connues : un dépôt dont le code est dans un sous-dossier n'est pas reconnu (cas du dépôt du harnais lui-même, `harness/go.mod`), ni une bibliothèque Go dont les paquets sont à la racine.
+- C2 : signaux de détection, lus à la racine du dépôt par le skill `repo-stack` : du code de production, pas le seul manifeste (un chart ou un dépôt OpenTofu a un `pyproject.toml` pour pytest, ou un `go.mod` pour Terratest). `go.mod` avec un dossier `cmd/` ou `internal/` → `stack-go-app` ; `pyproject.toml` avec un dossier `src/` → `stack-py-app` ; dans les deux cas, un `Dockerfile` en plus ajoute le socle des douze facteurs et le compose. Limites connues : un dépôt dont le code est dans un sous-dossier n'est pas reconnu (cas du dépôt du harnais lui-même, `harness/go.mod`), ni une bibliothèque Go dont les paquets sont à la racine.
 - C3 : les IDs du socle sont réservés et fixes : `ARC-001` à `ARC-003`, `FAC-001` à `FAC-005`.
 - C4 : les options `--no-minimal`, `--unneeded-ok` et `--since` sont supprimées, pas tolérées : la porte les refuse comme toute option inconnue.
 - C5 : le temps « refactor » reste, facultatif, et change de sens : améliorer la structure sous des tests verts, sans retrait mesuré.
@@ -45,14 +46,14 @@ Choix de Claude (non discutés, à relire) :
 - C7 : rien ne détecte « cette API n'a pas de test Bruno » : la porte ne sait pas qu'un critère parle de HTTP. La règle reste au catalogue.
 - C9 : la liste des bibliothèques permises au domaine (ARC-001) est écrite dans le fichier du test d'architecture, donc protégée : l'implementer ne peut pas l'élargir, et une dépendance nouvelle du domaine est un changement de critère (`--ac-changed ARC-001`).
 - C10 : aucun dépôt jetable n'est poussé sur une forge pour vérifier le job CI qui fournit Docker. La ligne GitHub est vérifiée sur le premier dépôt d'application réel ; la ligne GitLab est notée « unverified », comme l'image mise l'est déjà dans `repo-tooling`.
-- C8 : noms des skills (`compose-dev`, `twelve-factor`), des tâches (`dev`, `lint:compose`, `test:container`, `test:api`, `test:ui`) et du gabarit (`templates/socle-application.md`).
+- C8 : noms des skills (`repo-stack`, `stack-go-app`, `stack-py-app`, `compose-dev`, `twelve-factor`), des tâches (`dev`, `lint:compose`, `test:container`, `test:api`, `test:ui`) et du gabarit (`templates/socle-application.md`).
 
 ## Ce qui n'est pas voulu
 
 Hors périmètre :
 
 - Mettre les dépôts existants en conformité. Le socle s'impose à chaque dépôt à sa prochaine pile, par la porte.
-- Un contrôle de la porte pour SOLID, pour le watch, pour la présence de Bruno ou Playwright.
+- Un contrôle de la porte pour SOLID, pour le watch, pour la présence de Bruno ou Playwright, ou pour exiger le socle (D10).
 - Appliquer le socle au dépôt du harnais (non reconnu, voir C2).
 - Rendre la porte capable de juger le dépôt du harnais (D9).
 - Toucher aux preuves « spécifique » (changement neutre) et « nécessaire » (redondance), à `replay`, à `--jobs`.
@@ -65,7 +66,7 @@ Hors périmètre :
 
 ## Conception
 
-Trois chantiers, dans cet ordre. Le premier est indépendant et rend la vitesse tout de suite.
+Deux chantiers, dans cet ordre. Le premier est le seul qui touche au binaire ; il est indépendant et rend la vitesse tout de suite.
 
 ### 1. Retirer la preuve du code minimal
 
@@ -73,7 +74,7 @@ Trois chantiers, dans cet ordre. Le premier est indépendant et rend la vitesse 
 
 **Critères retirés.** PRV-009, PRV-013, PRV-014, PRV-018 : leurs entrées de `claude/TESTS.md` et leurs tests de `harness/acceptance/preuves_green_test.go` (`TestPRV009_*`, `TestPRV013_*`, `TestPRV014_*`, `TestPRV018_*`), l'aide `unneededOK` de `helpers_test.go`. PRV-017 (`--no-neutral`) reste ; le titre de sa section ne parle plus du code minimal. Le nouveau critère PRV-020 donne le rouge de départ.
 
-**Comment, sur ce dépôt (D9).** La porte ne sait pas juger ce dépôt-ci : elle lit `<repo>/TESTS.md` (`internal/app/gate/gate.go`, `prepare`) et `<sha>:mise.toml`, alors que le dépôt a `claude/TESTS.md` et `.config/mise.toml` ; `--replaces` lit `<sha>~1:TESTS.md` à la racine git ; `test:go` écrit `.tdd/go.xml` et non `.tdd/junit.xml`. Les chantiers 1 et 3 se font donc en TDD à la main : le test d'acceptation de chaque critère est écrit et commité d'abord, lancé et vu rouge (sortie citée), puis le code, puis `mise run check` vert (sortie citée). Les entrées de `claude/TESTS.md` sont ajoutées et retirées dans les mêmes commits que leurs tests. Aucun mutant n'est exigé pour ces critères.
+**Comment, sur ce dépôt (D9).** La porte ne sait pas juger ce dépôt-ci : elle lit `<repo>/TESTS.md` (`internal/app/gate/gate.go`, `prepare`) et `<sha>:mise.toml`, alors que le dépôt a `claude/TESTS.md` et `.config/mise.toml` ; `--replaces` lit `<sha>~1:TESTS.md` à la racine git ; `test:go` écrit `.tdd/go.xml` et non `.tdd/junit.xml`. Ce chantier se fait donc en TDD à la main : le test d'acceptation du critère est écrit et commité d'abord, lancé et vu rouge (sortie citée), puis le code, puis `mise run check` vert (sortie citée). Les entrées de `claude/TESTS.md` sont ajoutées et retirées dans les mêmes commits que leurs tests. Aucun mutant n'est exigé pour ce critère.
 
 **Implementer** (`agents/implementer.md`). Restent : « the smallest production code that makes them pass », pas de code pour un cas hypothétique, les lignes `UNTESTED <élément> : <pourquoi>`, et la preuve par retrait d'un test ajouté après coup et vert d'emblée (un seul lancement). Disparaissent : le retrait bloc par bloc, `NOTHING TO REDUCE`, la consigne de dispatch `no measured removal`. Le refactor devient facultatif (C5) : un commit `refactor(<slug>)`, tests intouchés, quand la structure le demande (couche, interface, duplication). Réponse : `DONE <sha feat>` ou `DONE <sha feat> <sha refactor>`, puis les lignes `UNTESTED`.
 
@@ -81,7 +82,7 @@ Trois chantiers, dans cet ordre. Le premier est indépendant et rend la vitesse 
 
 **Autres textes.** `docs/regles-generiques.md` : les lignes dont le contrôle est `UNNEEDED` passent à « retiré le 13/11 : trop lent » et renvoient ici. `2026-11-10-harnais-deterministe-design.md` : une ligne en tête du paragraphe « Code minimal » et une sous « Rouge, vert, refactor » disent « retiré le 13/11, voir `2026-11-13-filets-de-refactoring-design.md` » ; le reste de cette spec n'est pas réécrit.
 
-### 2. Skills, gabarits et socle
+### 2. Détection, skills de stack, gabarits et socle
 
 Aucun critère d'acceptation pour ces textes (règle de la spec du 10/11 : un test qui vérifie qu'un fichier contient une phrase est une recopie). Chaque affirmation technique d'un skill est vérifiée sur une application d'essai et notée « verified » avec la version de l'outil, comme dans les skills actuels. Deux applications d'essai, jetables et hors dépôt : une API Go et une API Python, chacune avec ses couches, son `Dockerfile`, son `compose.yaml`.
 
@@ -101,7 +102,11 @@ Aucun critère d'acceptation pour ces textes (règle de la spec du 10/11 : un te
 - **FAC-004** — L'arrêt est propre (IX). Sur SIGTERM, le conteneur sort avec le code 0 avant la fin du délai d'arrêt.
 - **FAC-005** — Aucun état local (VI). Le service tourne avec un système de fichiers racine en lecture seule et un utilisateur non root, et sert son cas nominal.
 
-Un critère qui ne s'applique pas (FAC-001 pour un worker sans port) est écarté par `--socle-exempt` après un `Ruling:`. Les facteurs I, II, IV, V, VIII, X, XII ne se testent pas ainsi : ils sont des règles écrites dans `twelve-factor` (II est déjà tenu par `repo-tooling` : toute dépendance déclarée dans le dépôt).
+Un critère qui ne s'applique pas (FAC-001 pour un worker sans port) est écarté par un `Ruling:` consigné. Les facteurs I, II, IV, V, VIII, X, XII ne se testent pas ainsi : ils sont des règles écrites dans `twelve-factor` (II est déjà tenu par `repo-tooling` : toute dépendance déclarée dans le dépôt).
+
+**`repo-stack`** (nouveau, détection). Lit la racine du dépôt (signaux de C2) et nomme le skill de stack à charger ; il ne décrit aucune stack lui-même. Sa description le déclenche dès qu'une session écrit ou relit du code dans un dépôt Go ou Python ; `stacked-tdd-mr` l'appelle dans son Setup. Aucun signal reconnu : il le dit et n'impose rien (infrastructure as code, dépôt hors stack). Une stack de plus (Helm, OpenTofu) sera une ligne de plus dans sa table, sans toucher au binaire.
+
+**`stack-go-app`, `stack-py-app`** (nouveaux, un par stack). La stack voulue pour ce type de dépôt, en une liste courte dont chaque ligne renvoie au skill qui la détaille : architecture hexagonale et SOLID (`hexagonal-go` ou `hexagonal-py`), douze facteurs (`twelve-factor`), compose avec watch (`compose-dev`), outillage (`repo-tooling`, section « Application Go ou Python »), socle de critères (`templates/socle-application.md` : `architecture` toujours, `douze-facteurs` avec un `Dockerfile`), Bruno pour une API et Playwright pour un front (catalogue de l'acceptance-writer). Ces skills ne répètent pas le contenu des autres.
 
 **Test d'architecture.** Exigences : liste blanche par couche ; fermeture transitive des imports (un intermédiaire ne masque rien) ; insensible aux alias d'import ; un résultat par critère, nommé avec l'ID, dans le rapport JUnit de `test:go` ou `test:py`. Pistes, à vérifier sur les applications d'essai et laissées au constructeur : en Go, un test qui lit `go list -deps` ; en Python, un test pytest sur le graphe d'imports (`grimp`, la bibliothèque d'`import-linter`). Les lints actuels (forbidigo, `banned-api` de ruff) restent comme retour rapide au commit ; leurs limites connues (alias, imports transitifs) sont celles que le test couvre.
 
@@ -117,17 +122,9 @@ Un critère qui ne s'applique pas (FAC-001 pour un worker sans port) est écart�
 
 **`acceptance-writer.md`.** Lignes « HTTP API » et « Web front » : le produit est démarré par le compose du dépôt (`docker compose up -d --wait`, puis `down -v`), par l'aide commune des tests. Deux lignes nouvelles : « Architecture (Go, Python) » et « Conteneur en exécution (douze facteurs) ».
 
-**`stacked-tdd-mr`.** Setup, nouveau point : un dépôt Go ou Python sans socle commence sa pile par les tâches du socle, après `chore(tooling)` : `Mode: characterize` quand le code est déjà conforme, `atdd` sinon (le test d'architecture est rouge, l'implementer déplace le code). Avant de l'installer, vérifier qu'aucune entrée de `TESTS.md` ne porte déjà un ID `ARC-…` ou `FAC-…` pour autre chose : la porte ne lit que l'ID ; en cas de collision, s'arrêter et le dire. Étape 8 : le brief de la revue finale nomme le skill hexagonal du langage ; une remarque SOLID cite le code visé et passe par « Work without a test » (commit `refactor`, `green` rejouée avec les preuves).
+**`stacked-tdd-mr`.** Setup, nouveau point : appeler `repo-stack` et suivre le skill de stack qu'il nomme. Un dépôt qui a une stack et pas encore son socle commence sa pile par les tâches du socle, après `chore(tooling)` : `Mode: characterize` quand le code est déjà conforme, `atdd` sinon (le test d'architecture est rouge, l'implementer déplace le code). Avant de l'installer, vérifier qu'aucune entrée de `TESTS.md` ne porte déjà un ID `ARC-…` ou `FAC-…` pour autre chose ; en cas de collision, s'arrêter et le dire. Une fois installé, le socle est tenu par la porte comme tout critère (`green` rejoue chaque ID de `TESTS.md`, `replay` rejoue ses mutants). Étape 8 : le brief de la revue finale nomme le skill hexagonal du langage ; une remarque SOLID cite le code visé et passe par « Work without a test » (commit `refactor`, `green` rejouée avec les preuves).
 
 **`config.toml`.** Une ligne `[dotfiles]` par skill nouveau (`mise run lint:harness` refuse un skill sans la sienne).
-
-### 3. La porte exige le socle
-
-Règle générique : un dépôt d'application porte son socle de critères ; une fonctionnalité ne s'ajoute pas avant lui.
-
-Modes `red`, `green`, `characterize`. La porte lit la racine du commit jugé (C2), en déduit les IDs exigés (C3), et refuse par `SOCLE MISSING <ID>` chaque ID exigé absent de `TESTS.md` à ce commit. Deux exceptions : le slug jugé est lui-même un slug du socle (toutes ses entrées ont un ID du socle) ; l'ID est donné à `--socle-exempt <ID,...>` (après un `Ruling:` consigné : dépôt qui n'est pas une application, critère sans objet). La porte ne lit pas le texte des entrées du socle : leur valeur est prouvée par leurs mutants.
-
-Le compose n'a pas de contrôle à lui : les entrées `FAC-…` nomment une tâche (`Commande`), `NOT WIRED` exige déjà qu'elle soit branchée, et cette tâche lance le compose.
 
 ### Coût
 
@@ -138,7 +135,7 @@ Le compose n'a pas de contrôle à lui : les entrées `FAC-…` nomment une tâc
 
 ## Critères d'acceptation
 
-Préfixes : `PRV` (preuves), `SOC` (socle). Tests dans `harness/acceptance/`, tâche `mise run test`.
+Un seul critère : le chantier 2 n'est fait que de textes. Test dans `harness/acceptance/`, tâche `mise run test`.
 
 ### PRV-020 — Un bloc qu'aucun test ne demande n'est plus jugé
 - **Étant donné** un commit d'acceptation, un commit `feat` qui ajoute dans un fichier de production un bloc dont le retrait laisse tous les tests verts, et un dossier de preuves dont le mutant tue le test du critère
@@ -147,38 +144,6 @@ Préfixes : `PRV` (preuves), `SOC` (socle). Tests dans `harness/acceptance/`, t�
   - la sortie ne contient aucune ligne `UNNEEDED` ni `MINIMAL`, et se termine par `PASS`
   - relancé avec `--no-minimal`, la porte sort avec le code 2 (option inconnue)
 - **Cas réel** : essai du 13/11 par l'utilisateur : porte « très lente », la preuve relance la suite une fois par bloc ajouté (PRV-018, pile MR 25 à 54)
-
-### SOC-001 — Une fonctionnalité ne s'ajoute pas avant le socle d'architecture
-- **Étant donné** un dépôt dont la racine porte `go.mod` et un dossier `internal/`, un `TESTS.md` sans entrée `ARC-001`, `ARC-002`, `ARC-003`, et un slug ordinaire avec son commit d'acceptation
-- **Quand** `harness gate red` est lancé sur ce slug
-- **Alors**
-  - la sortie contient `SOCLE MISSING ARC-001`, `SOCLE MISSING ARC-002`, `SOCLE MISSING ARC-003` et se termine par `FAIL`
-  - avec `pyproject.toml` et un dossier `src/` à la place, la sortie est la même
-  - avec `pyproject.toml` et un dossier `tests/` sans dossier `src/`, la sortie ne contient aucune ligne `SOCLE MISSING`
-  - avec `go.mod` sans dossier `cmd/` ni `internal/`, la sortie ne contient aucune ligne `SOCLE MISSING`
-- **Cas réel** : demande du 13/11 : « ajouter des tests d'architecture pour garantir que l'architecture hexagonale est respectée » ; le catalogue de l'acceptance-writer met pytest (donc un `pyproject.toml`) dans les dépôts Helm, OpenTofu, Kyverno et Ansible, et Terratest (donc un `go.mod`) dans un dépôt OpenTofu
-
-### SOC-002 — Un dépôt avec Dockerfile doit aussi le socle des douze facteurs
-- **Étant donné** un dépôt dont la racine porte `go.mod`, un dossier `internal/` et `Dockerfile`, un `TESTS.md` qui a les trois entrées `ARC-…` et aucune entrée `FAC-…`, et un slug ordinaire
-- **Quand** `harness gate red` est lancé sur ce slug
-- **Alors**
-  - la sortie contient `SOCLE MISSING FAC-001` à `SOCLE MISSING FAC-005`, aucune ligne `SOCLE MISSING ARC-…`, et se termine par `FAIL`
-  - sans `Dockerfile` à la racine, la sortie ne contient aucune ligne `SOCLE MISSING`
-- **Cas réel** : demande du 13/11 : douze facteurs à forcer, « je déploie quasiment que sur Kube »
-
-### SOC-003 — Le socle s'installe et s'exempte
-- **Étant donné** le dépôt de SOC-002
-- **Quand** `harness gate red` est lancé
-- **Alors**
-  - sur un slug dont toutes les entrées sont des `FAC-…`, la sortie ne contient aucune ligne `SOCLE MISSING`
-  - sur un slug ordinaire avec `--socle-exempt FAC-001`, la sortie contient `SOCLE MISSING FAC-002` et aucune ligne `SOCLE MISSING FAC-001`
-- **Cas réel** : un worker sans port d'écoute n'a pas de FAC-001 ; l'installation du socle est elle-même une tâche jugée par la porte
-
-### SOC-004 — Le socle est exigé à chaque mode
-- **Étant donné** le dépôt de SOC-001, un slug ordinaire, son commit d'acceptation et un commit `feat` vert
-- **Quand** `harness gate green` puis `harness gate characterize` sont lancés sur ce slug
-- **Alors** chaque sortie contient `SOCLE MISSING ARC-001` et se termine par `FAIL`
-- **Cas réel** : une tâche en `Mode: characterize` ne passe jamais par `red`
 
 ## Laissé au constructeur
 
