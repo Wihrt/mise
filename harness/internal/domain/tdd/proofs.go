@@ -11,7 +11,6 @@ var (
 	acceptanceBasenames = map[string]bool{"TESTS.md": true, "mise.toml": true, ".gitignore": true, "conftest.py": true}
 	acceptanceDirs      = map[string]bool{"test": true, "tests": true, "acceptance": true, "testdata": true}
 	hunkOld             = regexp.MustCompile(`^@@ -(\d+)`)
-	hunkNew             = regexp.MustCompile(`^@@ -\S+ \+(\d+)(?:,(\d+))? @@`)
 	miseRun             = regexp.MustCompile(`mise run` + space + `+([` + word + `:.\-]+)`)
 )
 
@@ -136,38 +135,4 @@ func Redundant(kills []Kills) [][2]string {
 		}
 	}
 	return res
-}
-
-// Block is a run of lines a commit adds to a production file.
-type Block struct {
-	Path       string
-	Start, End int
-}
-
-// AddedBlocks reads a `git diff -U0` and lists the blocks added to production files.
-func AddedBlocks(diff string) []Block {
-	var blocks []Block
-	path := ""
-	for _, line := range Lines(diff) {
-		if strings.HasPrefix(line, "+++ ") {
-			path = ""
-			if len(line) > 6 {
-				path = line[6:]
-			}
-			continue
-		}
-		m := hunkNew.FindStringSubmatch(line)
-		if path == "" || IsTestPath(path) || m == nil {
-			continue
-		}
-		start, _ := strconv.Atoi(m[1])
-		count := 1
-		if m[2] != "" {
-			count, _ = strconv.Atoi(m[2])
-		}
-		if count > 0 {
-			blocks = append(blocks, Block{Path: path, Start: start, End: start + count - 1})
-		}
-	}
-	return blocks
 }
