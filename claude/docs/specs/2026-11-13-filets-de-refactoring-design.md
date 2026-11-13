@@ -31,6 +31,7 @@ Décisions de l'utilisateur :
 - D5 : un skill dédié à Docker Compose, à côté de ceux sur Docker. Le compose avec watch est un prérequis pour l'applicatif Go et Python, pas pour l'infrastructure as code (Helm, OpenTofu, Ansible), qui a d'autres moyens de test.
 - D6 : une API se teste avec Bruno, un front avec Playwright (déjà au catalogue depuis le 12/11).
 - D7 : `repo-tooling` porte les contraintes nouvelles.
+- D9 : les changements de la porte se font en TDD à la main sur ce dépôt, sans `harness gate` ; appliquer le harnais à lui-même est un autre projet, plus tard.
 - D8 : façon de forcer, proposée par Claude et acceptée : architecture forcée par un contrôle rapide prouvé par un cas faux ; douze facteurs forcés par un socle de critères d'acceptation testés sur le conteneur lancé par le compose ; SOLID en règle écrite et à la revue ; la porte refuse quand le socle manque.
 
 Choix de Claude (non discutés, à relire) :
@@ -53,6 +54,7 @@ Hors périmètre :
 - Mettre les dépôts existants en conformité. Le socle s'impose à chaque dépôt à sa prochaine pile, par la porte.
 - Un contrôle de la porte pour SOLID, pour le watch, pour la présence de Bruno ou Playwright.
 - Appliquer le socle au dépôt du harnais (non reconnu, voir C2).
+- Rendre la porte capable de juger le dépôt du harnais (D9).
 - Toucher aux preuves « spécifique » (changement neutre) et « nécessaire » (redondance), à `replay`, à `--jobs`.
 
 Échec même si ça marche :
@@ -69,7 +71,9 @@ Trois chantiers, dans cet ordre. Le premier est indépendant et rend la vitesse 
 
 **Porte.** `green --proofs` ne retire plus aucun bloc. Disparaissent : `runMinimal` (`internal/app/gate/proofs.go`), `tdd.AddedBlocks` et son test unitaire, les champs `NoMinimal`, `UnneededOK`, `Since`, les options `--no-minimal`, `--unneeded-ok`, `--since`, les lignes `UNNEEDED`, `UNNEEDED ACCEPTED`, `MINIMAL SKIPPED`, et leur mention dans l'usage. `--since` ne servait qu'à cette preuve.
 
-**Critères retirés.** PRV-009, PRV-013, PRV-014, PRV-018 : leurs entrées de `claude/TESTS.md` et leurs tests de `harness/acceptance/preuves_green_test.go` (`TestPRV009_*`, `TestPRV013_*`, `TestPRV014_*`, `TestPRV018_*`), l'aide `unneededOK` de `helpers_test.go`. PRV-017 (`--no-neutral`) reste ; le titre de sa section ne parle plus du code minimal. Le retrait passe par les règles du harnais lui-même (`Criterion change:` consigné, `--replaces` ou `--ac-changed`, `replay` avant la revue finale) ; la suite exacte des commandes est à établir dans le plan. Le nouveau critère PRV-020 donne le rouge de départ.
+**Critères retirés.** PRV-009, PRV-013, PRV-014, PRV-018 : leurs entrées de `claude/TESTS.md` et leurs tests de `harness/acceptance/preuves_green_test.go` (`TestPRV009_*`, `TestPRV013_*`, `TestPRV014_*`, `TestPRV018_*`), l'aide `unneededOK` de `helpers_test.go`. PRV-017 (`--no-neutral`) reste ; le titre de sa section ne parle plus du code minimal. Le nouveau critère PRV-020 donne le rouge de départ.
+
+**Comment, sur ce dépôt (D9).** La porte ne sait pas juger ce dépôt-ci : elle lit `<repo>/TESTS.md` (`internal/app/gate/gate.go`, `prepare`) et `<sha>:mise.toml`, alors que le dépôt a `claude/TESTS.md` et `.config/mise.toml` ; `--replaces` lit `<sha>~1:TESTS.md` à la racine git ; `test:go` écrit `.tdd/go.xml` et non `.tdd/junit.xml`. Les chantiers 1 et 3 se font donc en TDD à la main : le test d'acceptation de chaque critère est écrit et commité d'abord, lancé et vu rouge (sortie citée), puis le code, puis `mise run check` vert (sortie citée). Les entrées de `claude/TESTS.md` sont ajoutées et retirées dans les mêmes commits que leurs tests. Aucun mutant n'est exigé pour ces critères.
 
 **Implementer** (`agents/implementer.md`). Restent : « the smallest production code that makes them pass », pas de code pour un cas hypothétique, les lignes `UNTESTED <élément> : <pourquoi>`, et la preuve par retrait d'un test ajouté après coup et vert d'emblée (un seul lancement). Disparaissent : le retrait bloc par bloc, `NOTHING TO REDUCE`, la consigne de dispatch `no measured removal`. Le refactor devient facultatif (C5) : un commit `refactor(<slug>)`, tests intouchés, quand la structure le demande (couche, interface, duplication). Réponse : `DONE <sha feat>` ou `DONE <sha feat> <sha refactor>`, puis les lignes `UNTESTED`.
 
@@ -176,14 +180,10 @@ Préfixes : `PRV` (preuves), `SOC` (socle). Tests dans `harness/acceptance/`, t�
 - **Alors** chaque sortie contient `SOCLE MISSING ARC-001` et se termine par `FAIL`
 - **Cas réel** : une tâche en `Mode: characterize` ne passe jamais par `red`
 
-## Question ouverte (en attente de l'utilisateur)
-
-La porte ne sait pas juger ce dépôt-ci. Elle lit `<repo>/TESTS.md` (`internal/app/gate/gate.go`, `prepare`) et `<sha>:mise.toml`, alors que ce dépôt a `claude/TESTS.md` et `.config/mise.toml` ; `--replaces` lit `<sha>~1:TESTS.md` à la racine git ; `test:go` écrit `.tdd/go.xml` et non `.tdd/junit.xml`. Le retrait des critères PRV-009, 013, 014, 018 « par les règles du harnais » et la preuve rouge puis verte de PRV-020 et SOC-001 à 004 ne peuvent donc pas passer par `harness gate` tel quel. À trancher : rendre d'abord la porte capable de juger ce dépôt (chantier préalable, avec ses critères), ou faire ces changements en TDD à la main (tests d'acceptation écrits et vus rouges avant le code, consignés), sans la porte.
-
 ## Laissé au constructeur
 
 - L'outil du test d'architecture dans chaque langage, dans les exigences ci-dessus.
 - L'outil des tests du socle des douze facteurs (tests natifs du langage qui pilotent `docker compose`).
-- Le découpage en tâches et en piles, l'ordre des commits de retrait des critères PRV-009, 013, 014, 018.
+- Le découpage en tâches et en branches, l'ordre des commits de retrait des critères PRV-009, 013, 014, 018.
 - Le contenu exact des gabarits `compose`, une fois vérifié sur les applications d'essai.
 - La forme des applications d'essai.
