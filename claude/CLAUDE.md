@@ -18,6 +18,11 @@
 - I decide from facts. Before stating anything about code, configuration, system state, or tool behavior, check it: read the file, run the command, query the API.
 - Give the evidence with the claim (path and line, command and output, link). Say plainly what you could not verify and why.
 
+## Searching code
+- A question about the code ("how does X work", "where is Y handled", "what calls Z"): `semble search "<question>"` first (agent `semble-search`, or the `semble` MCP tools), then read the file and line it returns.
+- An exact string, an identifier or a pattern, or every occurrence of something: grep.
+- Semble returns nothing useful: fall back to grep and carry on. Never stop on an empty search.
+
 ## Sub-agents
 - Delegate as much as possible to sub-agents, in parallel when the work is independent.
 - Sub-agents never run above Sonnet: always pass `model: "sonnet"` or `model: "haiku"`, and never use `fork`, which inherits the session model. This overrides any skill asking for the most capable model.

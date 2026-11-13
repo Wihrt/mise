@@ -158,6 +158,16 @@ Sa configuration vient de l'environnement : `HOME`, `KUBECONFIG`,
 l'entrée standard, écrit sa décision sur la sortie standard et ses erreurs sur
 la sortie d'erreur.
 
+## Recherche de code
+
+[Semble](https://github.com/MinishLab/semble) cherche du code par intention.
+Il est installé par mise (`pipx:semble`) et son serveur MCP est déclaré à
+Claude Code par la tâche `bootstrap` ; rien ne tourne en permanence, l'index se
+construit à la première recherche d'un dépôt. Le hook `search-hint` rappelle
+Semble quand une recherche au grep se lit comme une question ; il ne bloque
+jamais. Spec :
+[`claude/docs/specs/2026-11-13-recherche-semble-design.md`](claude/docs/specs/2026-11-13-recherche-semble-design.md).
+
 ## Caches partagés
 
 `[env]` fixe `TF_PLUGIN_CACHE_DIR` sur `~/.cache/opentofu/providers`, créé par

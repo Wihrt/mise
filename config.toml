@@ -35,6 +35,9 @@ lazygit = "latest"
 # OpenCommit y est réinstallé à chaque installation de Node.
 node = { version = "latest", postinstall = "npm install --global opencommit" }
 opentofu = "latest"
+# Recherche de code par intention (CLI et serveur MCP, déclaré à Claude Code
+# par la tâche bootstrap). L'extra mcp porte le serveur.
+"pipx:semble" = { version = "latest", extras = "mcp" }
 prek = "latest"
 process-compose = "latest"
 # Les outils pypi (ansible, yamllint) résolvent leur interpréteur via le shim

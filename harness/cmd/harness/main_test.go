@@ -22,6 +22,8 @@ func TestRun(t *testing.T) {
 		{"allowed call writes nothing", []string{"hook", "never-merge"}, `{"tool_name":"Bash","tool_input":{"command":"git status"}}`, 0, ""},
 		{"denied call", []string{"hook", "never-merge"}, `{"tool_name":"Bash","tool_input":{"command":"gh pr merge 1"}}`, 0, `"permissionDecision":"deny"`},
 		{"asked call", []string{"hook", "cluster-guard"}, `{"tool_name":"Bash","tool_input":{"command":"tofu apply"}}`, 0, `"permissionDecision":"ask"`},
+		{"hinted call decides nothing", []string{"hook", "search-hint"}, `{"tool_name":"Grep","tool_input":{"pattern":"how is auth handled"}}`, 0, `{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"This search reads like a question`},
+		{"exact search writes nothing", []string{"hook", "search-hint"}, `{"tool_name":"Grep","tool_input":{"pattern":"NewMergeStack"}}`, 0, ""},
 		{"role argument", []string{"hook", "agent-guard", "implementer"}, `{"tool_name":"Bash","tool_input":{"command":"git push"}}`, 0, "implementer must not push"},
 	}
 	for _, tt := range tests {

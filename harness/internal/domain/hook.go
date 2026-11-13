@@ -5,6 +5,7 @@ package domain
 type Request struct {
 	Tool         string // Bash, Edit, Write, NotebookEdit, Agent, Task...
 	Command      string // Bash
+	Pattern      string // Grep
 	Path         string // Edit, Write, NotebookEdit
 	Cwd          string
 	SubagentType string // Agent, Task
@@ -27,6 +28,8 @@ const (
 	Deny
 	// Ask hands the call to the user for a go.
 	Ask
+	// Hint lets the call through and tells the model something with its result.
+	Hint
 )
 
 // Decision is a verdict and, unless it allows, its reason.
@@ -40,6 +43,9 @@ func Allowed() Decision { return Decision{Verdict: Allow} }
 
 // Denied refuses a call for the given reason.
 func Denied(reason string) Decision { return Decision{Verdict: Deny, Reason: reason} }
+
+// Hinted lets a call through with a note for the model.
+func Hinted(note string) Decision { return Decision{Verdict: Hint, Reason: note} }
 
 // Asked hands a call to the user with the given reason.
 func Asked(reason string) Decision { return Decision{Verdict: Ask, Reason: reason} }
