@@ -26,9 +26,6 @@ type Options struct {
 	Proofs          string
 	ProofExempt     bool
 	NoNeutral       bool
-	NoMinimal       bool
-	UnneededOK      []string
-	Since           string
 	Jobs            int
 	Format          string
 	Report          string

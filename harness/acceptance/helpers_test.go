@@ -343,18 +343,14 @@ type greenRun struct {
 	// noExempt drops --proof-exempt.
 	noExempt bool
 	// proofs adds --proofs <the mutants directory>, prepared as char does.
-	proofs     bool
-	neutral    neutral
-	unneededOK []string
-	options    []string
+	proofs  bool
+	neutral neutral
+	options []string
 }
 
 func (r *repo) runGreen(test, feat string, o greenRun) (int, string) {
 	r.t.Helper()
 	extra := append([]string{}, o.options...)
-	for _, block := range o.unneededOK {
-		extra = append(extra, "--unneeded-ok", block)
-	}
 	if o.proofs {
 		r.prepareProofs(o.neutral, "CALC-003")
 		extra = append(extra, "--proofs", r.mutants)
