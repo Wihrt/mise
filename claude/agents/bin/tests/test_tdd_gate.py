@@ -1,50 +1,11 @@
-"""Tests for tdd-gate. Run: uvx pytest ~/.claude/agents/bin/tests/test_tdd_gate.py"""
-import importlib.machinery
-import importlib.util
+"""Black-box tests of `harness gate`. Run: mise run test:gate (builds the binary and sets HARNESS)."""
 import json
 import os
 import subprocess
-from pathlib import Path
 
 import pytest
 
-GATE = Path(__file__).resolve().parent.parent / "tdd-gate"
-CMD = [os.environ["HARNESS"], "gate"]  # the harness binary under test (mise run test:tdd-gate builds it)
-_loader = importlib.machinery.SourceFileLoader("tdd_gate", str(GATE))
-_spec = importlib.util.spec_from_loader("tdd_gate", _loader)
-tg = importlib.util.module_from_spec(_spec)
-_loader.exec_module(tg)
-
-
-# ------------------------------------------------------------------ unit tests
-@pytest.mark.parametrize(
-    "name,expected",
-    [
-        ("TestCALC001_Add", "CALC001"),
-        ("TestCALC001_Add/sub_case", "CALC001"),
-        ("test_CALC002_sub", "CALC002"),
-        ("[ING-001] has a name", "ING001"),
-        ("CALC003_sub_is_exact", "CALC003"),
-        ("test_CALC_001_add", "CALC001"),
-        ("TestSHA256Sum", None),  # legacy: digits followed by a letter
-        ("TestHTTP2Handler", None),  # legacy: fewer than 3 digits
-        ("test_S3_upload", None),
-        ("TestMain", None),
-    ],
-)
-def test_candidate(name, expected):
-    assert tg.candidate(name) == expected
-
-
-def test_section_ids_strips_trailing_colon():
-    text = "## calc\n\n### CALC-001: title\n### CALC-002 other\n"
-    assert tg.section_ids(text, "calc") == ["CALC-001", "CALC-002"]
-
-
-def test_norm_both_sides():
-    assert tg.norm("CALC-001") == "CALC001"
-    assert tg.norm("TestCALC001") == "CALC001"
-    assert tg.norm("test_CALC001") == "CALC001"
+CMD = [os.environ["HARNESS"], "gate"]  # the harness binary under test (mise run test:gate builds it)
 
 
 TESTS_MD = """## pow — Power
@@ -69,103 +30,6 @@ TESTS_MD = """## pow — Power
   - **Alors** z
 - **Test** : `a_test.go` › `TestCALC003_C`
 """
-
-
-def test_section_ids_multiple_sections():
-    assert tg.section_ids(TESTS_MD, "pow") == ["CALC-001", "CALC-002"]
-    assert tg.section_ids(TESTS_MD, "div") == ["CALC-003"]
-    assert tg.section_ids(TESTS_MD, "nope") == []
-    assert tg.all_ids(TESTS_MD) == {"CALC001", "CALC002", "CALC003"}
-
-
-def test_incomplete_headings():
-    md = TESTS_MD + "### CALC-004 — d\n- **Spec** : only spec\n"
-    assert tg.incomplete_headings(TESTS_MD) == []
-    assert tg.incomplete_headings(md) == ["### CALC-004 — d"]
-
-
-def test_scan_tests_name_positions_and_legacy(tmp_path):
-    (tmp_path / "a_test.go").write_text(
-        "package x\n"
-        "// TestCALC999_InComment mentions SHA-256 and ISO-8601\n"
-        "func TestSHA256Sum(t *testing.T) {}\n"
-        "func TestHTTP2Handler(t *testing.T) {}\n"
-        "func TestCALC001_A(t *testing.T) { Foo() }\n"
-        "func TestCALC002_B(t *testing.T) {}\n"
-    )
-    entries, pre = tg.scan_tests(tmp_path, ["a_test.go"])
-    assert [e.cand for e in entries] == [None, None, "CALC001", "CALC002"]
-    assert "Foo()" in entries[2].body and "Foo()" not in entries[3].body
-
-
-def test_scan_tests_python_helm_tofu(tmp_path):
-    (tmp_path / "t.py").write_text("def test_CALC001_add():\n    pass\ndef test_S3_upload():\n    pass\n")
-    (tmp_path / "h.yaml").write_text("tests:\n  - it: \"[ING-002] x\"\n    asserts: []\n")
-    (tmp_path / "m.tftest.hcl").write_text('run "CALC003_y" {\n}\n')
-    entries, _ = tg.scan_tests(tmp_path, ["t.py", "h.yaml", "m.tftest.hcl"])
-    assert [e.cand for e in entries] == ["CALC001", None, "ING002", "CALC003"]
-
-
-JUNIT = """<testsuites><testsuite name="s">
-<testcase name="TestCALC001_A"/>
-<testcase name="TestCALC002_B"><failure message="x"/></testcase>
-<testcase name="TestCALC003_C"><error message="x"/></testcase>
-<testcase name="TestCALC004_D"><skipped/></testcase>
-</testsuite></testsuites>"""
-
-
-def test_load_junit_statuses(tmp_path):
-    p = tmp_path / "j.xml"
-    p.write_text(JUNIT)
-    r = tg.load_junit(p)
-    assert r.state == "ok"
-    assert r.cases == [
-        ("TestCALC001_A", "pass"),
-        ("TestCALC002_B", "fail"),
-        ("TestCALC003_C", "fail"),
-        ("TestCALC004_D", "skipped"),
-    ]
-    assert set(tg.results_by_id(r)) == {"CALC001", "CALC002", "CALC003", "CALC004"}
-
-
-def test_load_junit_missing_empty_garbage(tmp_path):
-    assert tg.load_junit(tmp_path / "none.xml").state == "missing"
-    (tmp_path / "e.xml").write_text("")
-    assert tg.load_junit(tmp_path / "e.xml").state == "empty"
-    (tmp_path / "n.xml").write_text("<testsuites><testsuite/></testsuites>")
-    assert tg.load_junit(tmp_path / "n.xml").state == "empty"
-    (tmp_path / "g.xml").write_text("not xml <<")
-    assert tg.load_junit(tmp_path / "g.xml").state == "unreadable"
-
-
-def test_load_tofu_json(tmp_path):
-    ev = [
-        {"type": "test_run", "test_run": {"run": "CALC001_ok", "status": "pass"}},
-        {"type": "test_run", "test_run": {"run": "CALC002_bad", "status": "fail"}},
-        {"type": "test_run", "test_run": {"run": "CALC003_unk", "status": "error"}},
-        {"type": "diagnostic", "diagnostic": {"summary": "Reference to undeclared output value",
-                                              "detail": 'An output value with the name "missing" has not been declared.'}},
-    ]
-    p = tmp_path / "t.json"
-    p.write_text("\n".join(json.dumps(e) for e in ev))
-    r = tg.load_tofu_json(p)
-    assert [c[1] for c in r.cases] == ["pass", "fail", "fail"]
-    errs = tg.compile_errors(r.diag)
-    assert "missing" in errs[0][1]
-
-
-@pytest.mark.parametrize(
-    "line,sym",
-    [
-        ("internal/calc/div_test.go:9:14: undefined: Div", "Div"),
-        ("NameError: name 'mul' is not defined", "mul"),
-        ("ImportError: cannot import name 'mul' from 'pkg.calc'", "mul"),
-        ("E   ModuleNotFoundError: No module named 'pkg.newmod'", "newmod"),
-    ],
-)
-def test_compile_errors_symbols(line, sym):
-    (found, syms), = tg.compile_errors(line)
-    assert sym in syms
 
 
 # ----------------------------------------------------------- integration tests
@@ -253,7 +117,7 @@ def gate(repo, *args):
 
 
 def replay(repo, base, head, proofs, tasks, *extra):
-    """Run `tdd-gate replay` on two commits of repo; tasks is a comma list."""
+    """Run `harness gate replay` on two commits of repo; tasks is a comma list."""
     return gate(repo, "replay", "--base", base, "--head", head, "--proofs", str(proofs), "--task", tasks, *extra)
 
 
@@ -461,14 +325,6 @@ def test_tofu_json_format(repo):
     assert rc == 0 and "RED CALC-003" in out
 
 
-@pytest.mark.parametrize("mode", ["red", "green"])
-def test_default_timeout_is_540(mode):
-    argv = [mode, "--slug", "s", "--test", "abc", "--task", "t"]
-    if mode == "green":
-        argv += ["--feat", "def"]
-    assert tg.build_parser().parse_args(argv).timeout == 540
-
-
 # ------------------------------------------------------------ acceptance mode
 SPEC = ("# s\n## Critères d'acceptation\n### CALC-003 — c\n- **Alors** x\n"
         "### CALC-001 — a\n- **Alors** x\n### CALC-002 — b\n- **Alors** x\n## Annexe\n### CALC-009 — not a criterion\n")
@@ -485,16 +341,6 @@ def acc_commit(repo, report, extra=None):
          "tests/report.xml": report, **(extra or {})},
         "test(div): acceptance",
     )
-
-
-def test_spec_criteria_parsing():
-    assert tg.spec_criteria(SPEC) == CRIT
-    assert tg.spec_criteria(SPEC.replace("Critères d'acceptation", "Acceptance criteria")) == CRIT
-    assert tg.spec_criteria("# s\n### CALC-003 — c\n") == []
-
-
-def test_incomplete_headings_accepts_critere():
-    assert tg.incomplete_headings("### ING-002 — t\n- **Critère** : `s.md` › ING-002\n- **Test** : `a` › `b`\n") == []
 
 
 def test_red_acceptance_pass(repo):
@@ -548,28 +394,11 @@ def test_red_spec_ac_usage(repo):
     assert gate(repo, *base, "--spec", "spec.md")[0] == 2
 
 
-def test_run_mise_sets_goflags_count1(repo, monkeypatch):
-    commit(repo, {"mise.toml": "[tasks.t]\nrun = 'echo \"$GOFLAGS\" > goflags.txt'\n"}, "x")
-    monkeypatch.delenv("GOFLAGS", raising=False)
-    assert tg.run_mise(repo, "t", 60)[0] == 0
-    assert (repo / "goflags.txt").read_text().split() == ["-count=1"]
-    monkeypatch.setenv("GOFLAGS", "-mod=mod")
-    assert tg.run_mise(repo, "t", 60)[0] == 0
-    assert (repo / "goflags.txt").read_text().split() == ["-mod=mod", "-count=1"]
-    monkeypatch.setenv("GOFLAGS", "-count=1 -mod=mod")
-    assert tg.run_mise(repo, "t", 60)[0] == 0
-    assert (repo / "goflags.txt").read_text().split() == ["-count=1", "-mod=mod"]
-
-
 # ------------------------------------------------------------ stability check
 def test_red_spec_missing_file(repo):
     sha = acc_commit(repo, junit(("TestCALC003_C", "fail")))
     rc, out = gate(repo, "red", "--slug", "div", "--test", sha, "--task", "test", "--spec", "nope.md", "--ac", "CALC-003")
     assert rc == 2 and "not found" in out
-
-
-def test_section_test_files():
-    assert tg.section_test_files(TESTS_MD) == {"pow": {"a_test.go"}, "div": {"a_test.go"}}
 
 
 STAB_MD = TESTS_MD.replace("`a_test.go` › `TestCALC003_C`", "`d_test.go` › `TestCALC003_C`").replace("`a_test.go`", "`p_test.go`")
@@ -608,7 +437,6 @@ def test_green_stability_feat_edit(repo):
 
 
 def test_green_unit_test_without_id_ignored(repo):
-    assert tg.candidate("TestParseHelper") is None
     t, f = stability_setup(repo, test_edits_p=False,
                            feat_files={"helper_test.go": "package x\nfunc TestParseHelper(t *testing.T) {}\n"})
     rc, out = run_green(repo, t, f)
@@ -798,11 +626,6 @@ def test_characterize_head_not_test(repo, mutants):
     assert rc == 1 and "HEAD IS NOT --test" in out and "KILLED" not in out, out
 
 
-def test_characterize_ac_changed_parsed():
-    argv = ["characterize", "--slug", "s", "--test", "x", "--task", "t", "--spec", "s.md", "--ac", "A-001", "--mutants", "m", "--ac-changed", "A-001,B-002"]
-    assert tg.build_parser().parse_args(argv).ac_changed == ["A-001", "B-002"]
-
-
 def test_characterize_ac_changed_allows_earlier_test(repo, mutants):
     commit(repo, {"run_test.sh": CHAR_TASK, "spec.md": SPEC, "src/state": "pass\n", "src/note.txt": "note\n", ".gitignore": ".tdd\n",
                   "TESTS.md": STAB_MD, "p_test.go": P_TESTS, "d_test.go": D_TESTS, "mise.toml": mise_toml()}, "base")
@@ -841,13 +664,6 @@ def replaces_setup(repo, partial=False, keep_pow=False):
 
 def green_args(t, f, *extra):
     return ("green", "--slug", "div", "--test", t, "--feat", f, "--task", "test", "--proof-exempt", *extra)
-
-
-def test_replaced_ids():
-    after = DIV_ONLY
-    assert tg.replaced_ids(STAB_MD, after, ["pow"]) == {"CALC-001", "CALC-002"}
-    assert tg.replaced_ids(STAB_MD, POW_PARTIAL, ["pow"]) == {"CALC-001"}
-    assert tg.replaced_ids(STAB_MD, after, ["div"]) == set()
 
 
 def test_replaces_allows_and_lists(repo):

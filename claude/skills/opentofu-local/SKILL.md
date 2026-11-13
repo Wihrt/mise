@@ -47,7 +47,7 @@ terraform {
 
 ## Tests
 
-- Name each `run` block after its TESTS.md ID, first, dash removed: `run "CALC003_sub_is_exact"` for `CALC-003` (`tdd-gate` matches it).
+- Name each `run` block after its TESTS.md ID, first, dash removed: `run "CALC003_sub_is_exact"` for `CALC-003` (`harness gate` matches it).
 - Native `tofu test` only: `*.tftest.hcl` next to the module (or in `tests/`). No Terratest.
 - Unit tests use `mock_provider` so no cloud credentials or network are needed:
 
@@ -69,7 +69,7 @@ run "id_is_mocked" {
 ## Mise tasks (names from `repo-tooling`)
 
 - `lint:tofu`: `tofu fmt -check -recursive`, `tofu init -backend=false` then `tofu validate`, `tflint --recursive` (run `tflint --init` once), `trivy config --severity HIGH,CRITICAL --exit-code 1 .`
-- `test:tofu`: `tofu init -backend=false`, `mkdir -p .tdd`, then `tofu test -json-into=.tdd/tofu.json`. `tofu test` (1.13.1) has no JUnit option; `-json-into` keeps the human output and writes the JSON events, which `tdd-gate` reads as `.tdd/tofu.json` (it does not create `.tdd/`). `.tdd/` is gitignored.
+- `test:tofu`: `tofu init -backend=false`, `mkdir -p .tdd`, then `tofu test -json-into=.tdd/tofu.json`. `tofu test` (1.13.1) has no JUnit option; `-json-into` keeps the human output and writes the JSON events, which `harness gate` reads as `.tdd/tofu.json` (it does not create `.tdd/`). `.tdd/` is gitignored.
 - `fmt` runs `tofu fmt -recursive`.
 - Suppress a trivy finding only in `.trivyignore` (or inline `#trivy:ignore:<ID>`, unverified here) with a reason.
 - Pin `opentofu`, `tflint`, `trivy` in `mise.toml`.

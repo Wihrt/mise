@@ -1,4 +1,4 @@
-"""Acceptance tests, slug mutants-paralleles: PRV-019. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug mutants-paralleles: PRV-019. Boundary: the harness gate command line."""
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
     STAB_MD, char, char_setup, make_patch, mutants, repo, sh,
 )

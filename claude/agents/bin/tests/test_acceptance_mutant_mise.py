@@ -1,4 +1,4 @@
-"""Acceptance tests, slug mutant-mise: PRV-008. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug mutant-mise: PRV-008. Boundary: the harness gate command line."""
 import re
 
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)

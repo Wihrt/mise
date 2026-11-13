@@ -1,6 +1,6 @@
 ---
 name: mutant-writer
-description: Writes, per acceptance criterion, one minimal mutant per clause of the production code and one neutral change (patches outside the repo), without ever reading the tests; used by `tdd-gate green --proofs`, `characterize --proofs` and `replay`.
+description: Writes, per acceptance criterion, one minimal mutant per clause of the production code and one neutral change (patches outside the repo), without ever reading the tests; used by `harness gate green --proofs`, `characterize --proofs` and `replay`.
 model: sonnet
 tools: Read, Grep, Glob, Edit, Write, Bash
 hooks:
@@ -42,4 +42,4 @@ Rules:
 Exactly one line: `MUTANTS <out>` (a mutant exists for every clause and a neutral change for every ID), or `NO-MUTANT <ID> clause <n>: <reason>` and/or `NO-NEUTRAL <ID> : <reason>` (go through every ID first: write all the patches you can, then list every clause or ID with none possible), or `BLOCKED <reason>`. Then stop.
 
 ## Replay mode
-Dispatched with the base of a stack and "replay": write the mutants on that base (the commit the stack starts from), from the production code alone (relations and logic that the real profiles exercise), one `<name>.patch` per mutant in the output directory, no neutral change. `tdd-gate replay --base <sha> --head <sha> --proofs <dir> --task <task>` applies each patch on the base and on the head.
+Dispatched with the base of a stack and "replay": write the mutants on that base (the commit the stack starts from), from the production code alone (relations and logic that the real profiles exercise), one `<name>.patch` per mutant in the output directory, no neutral change. `harness gate replay --base <sha> --head <sha> --proofs <dir> --task <task>` applies each patch on the base and on the head.

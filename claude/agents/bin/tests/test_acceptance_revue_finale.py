@@ -1,4 +1,4 @@
-"""Acceptance tests, slug revue-finale: FRM-007, PRV-011, PRV-012, PRV-013, RPL-003. Boundary: the tdd-gate command line."""
+"""Acceptance tests, slug revue-finale: FRM-007, PRV-011, PRV-012, PRV-013, RPL-003. Boundary: the harness gate command line."""
 from test_tdd_gate import (  # noqa: F401  (fixtures are used by name)
     STAB_MD, TESTS_MD, char, char_setup, commit, gate, green_setup, make_patch, mise_toml, mutants, prepare_proofs,
     replay, repo, run_green, sh,
