@@ -1,14 +1,18 @@
-// Command harness runs the Claude Code hooks of the harness and merges stacks of merge requests.
+// Command harness runs the Claude Code hooks, the TDD gates and the local-file
+// lookups of the harness, and merges stacks of merge requests.
 //
 // Usage:
 //
 //	harness hook <name> [argument]                             hook input on stdin
+//	harness gate <red|green|characterize|replay> ...
+//	harness local <forge|cas-reels> ...
 //	harness merge-stack [--dry-run] [--validate <command>] <top merge request>
 //
 // Configuration comes from the environment: HOME, KUBECONFIG,
 // CLAUDE_CODE_SUBAGENT_MODEL, CLAUDE_AGENTS_DIR (default <HOME>/.claude/agents),
-// and for merge-stack HARNESS_POLL_INTERVAL (15s), HARNESS_CHECKS_GRACE (60s)
-// and HARNESS_CHECKS_TIMEOUT (30m), written as Go durations.
+// CLAUDE_LOCAL_DIR (default <HOME>/.claude/local), and for merge-stack
+// HARNESS_POLL_INTERVAL (15s), HARNESS_CHECKS_GRACE (60s) and
+// HARNESS_CHECKS_TIMEOUT (30m), written as Go durations.
 package main
 
 import (
@@ -55,6 +59,8 @@ func policy(name, arg string, getenv func(string) string) app.Policy {
 }
 
 const usage = "usage: harness hook <name> [argument]\n" +
+	"       harness gate <red|green|characterize|replay> ...\n" +
+	"       harness local <forge|cas-reels> ...\n" +
 	"       harness merge-stack [--dry-run] [--validate <command>] <top merge request>"
 
 // duration reads a Go duration from the environment, or returns the default.
@@ -94,7 +100,13 @@ func mergeStack(args []string, stdout, stderr io.Writer, getenv func(string) str
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer, getenv func(string) string) int {
-	if len(args) >= 1 && args[0] == "merge-stack" {
+	if len(args) > 0 && args[0] == "gate" {
+		return runGate(args[1:], stdout, stderr)
+	}
+	if len(args) > 0 && args[0] == "local" {
+		return runLocal(args[1:], stdout, stderr, getenv)
+	}
+	if len(args) > 0 && args[0] == "merge-stack" {
 		return mergeStack(args[1:], stdout, stderr, getenv)
 	}
 	if len(args) < 2 || args[0] != "hook" {
