@@ -442,3 +442,15 @@ Branche : `feat/fusion-de-pile` · Commande : `mise run test`
     - `gh pr merge 3 --merge` et `glab mr merge 3` reçoivent `deny`
 - **Test** : `hooks/tests/never-merge-stack.bats` › `FUS-009 merging a stack goes through the user's go`
 - **Test** : `../harness/acceptance/parallel_test.go` › `TestPRV019_MutantsAreJudgedInParallel`
+
+## sans-code-minimal — Un bloc qu'aucun test ne demande n'est plus jugé
+Branche : `feat/sans-code-minimal` · Commande : `mise run test`
+
+### PRV-020 — Un bloc qu'aucun test ne demande n'est plus jugé
+- **Critère** :
+  - **Étant donné** un commit d'acceptation, un commit `feat` qui ajoute dans un fichier de production un bloc dont le retrait laisse tous les tests verts, et un dossier de preuves dont le mutant tue le test du critère
+  - **Quand** `harness gate green --proofs DIR --no-neutral` est lancé
+  - **Alors**
+    - la sortie ne contient aucune ligne `UNNEEDED` ni `MINIMAL`, et se termine par `PASS`
+    - relancé avec `--no-minimal`, la porte sort avec le code 2 (option inconnue)
+- **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV020_UnneededBlockIsNoLongerJudged` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV020_RetiredOptionsAreRefused`
