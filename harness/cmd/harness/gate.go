@@ -96,7 +96,7 @@ func parseGate(args []string) (gate.Options, error) {
 		} else {
 			fs.Var(csv{&o.ACChanged, nil}, "ac-changed", "comma list of criteria IDs whose test files may change")
 			fs.Var(csv{&o.Replaces, nil}, "replaces", "comma list of slugs that may be changed or removed")
-			fs.IntVar(&o.Jobs, "jobs", 1, "judge N proofs at a time")
+			fs.IntVar(&o.Jobs, "jobs", 1, "judge N proofs and N removed blocks at a time")
 			fs.StringVar(&o.Proofs, "proofs", "", "DIR")
 		}
 		if o.Mode == "characterize" {

@@ -85,6 +85,7 @@ Frontière de tous les critères : la ligne de commande `harness gate green --pr
 - **Alors**
   - la sortie contient `UNNEEDED` avec le fichier et les lignes du second bloc, aucune ligne `UNNEEDED` pour le premier, et se termine par `FAIL`
   - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
+  - pendant l'exécution, aucune exécution de la tâche de test ne tourne dans le dépôt lui-même avec un bloc retiré : chaque bloc est retiré dans une copie du dépôt
   - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
 - **Cas réel** : `scripts/killswitch.py` laissé amputé de 2 lignes le 13/11, après l'arrêt d'une porte qui retirait les blocs dans l'arbre de travail
 

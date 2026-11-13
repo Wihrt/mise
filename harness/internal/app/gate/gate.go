@@ -68,6 +68,7 @@ type run struct {
 	o      Options
 	lines  *[]string
 	judged map[string]judgement
+	blocks map[string]blockJudgement
 }
 
 func (r *run) out(msg string) {

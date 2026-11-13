@@ -442,3 +442,24 @@ Branche : `feat/fusion-de-pile` · Commande : `mise run test`
     - `gh pr merge 3 --merge` et `glab mr merge 3` reçoivent `deny`
 - **Test** : `hooks/tests/never-merge-stack.bats` › `FUS-009 merging a stack goes through the user's go`
 - **Test** : `../harness/acceptance/parallel_test.go` › `TestPRV019_MutantsAreJudgedInParallel`
+
+## minimal-parallele — Le code minimal se juge en parallèle avec `--jobs`
+Branche : `feat/minimal-parallele` · Commande : `mise run test`
+
+### PRV-020 — Le code minimal se juge plus vite avec `--jobs`
+- **Critère** :
+  - **Étant donné** un commit d'acceptation, un commit `feat` qui ajoute quatre blocs séparés dans un fichier de production, et une tâche de test dont chaque exécution dure un temps fixe
+  - **Quand** `harness gate green --proofs` est lancé sans `--jobs`, puis avec `--jobs 4`
+  - **Alors** la porte lancée avec `--jobs 4` se termine plus tôt que la porte lancée sans `--jobs`, d'au moins deux fois la durée d'une exécution de la tâche
+- **Test** : `../harness/acceptance/minimal_parallele_test.go` › `TestPRV020_MinimalCodeIsJudgedFasterWithJobs`
+
+### PRV-021 — Avec `--jobs`, le code minimal rend les mêmes verdicts et laisse le dépôt intact
+- **Critère** :
+  - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, deux blocs séparés : l'un sans lequel le test du critère échoue, l'autre dont le retrait laisse tous les tests verts
+  - **Quand** `harness gate green --proofs` est lancé avec `--jobs 2`
+  - **Alors**
+    - la sortie contient `UNNEEDED` avec le fichier et les lignes du second bloc, aucune ligne `UNNEEDED` pour le premier, et se termine par `FAIL`
+    - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
+    - pendant l'exécution, aucune exécution de la tâche de test ne tourne dans le dépôt lui-même avec un bloc retiré : chaque bloc est retiré dans une copie du dépôt
+    - après l'exécution, `git worktree list` et `git status --short` du dépôt sont ceux d'avant
+- **Test** : `../harness/acceptance/minimal_parallele_test.go` › `TestPRV021_JobsGiveTheSameVerdictsAndLeaveTheRepoIntact`
