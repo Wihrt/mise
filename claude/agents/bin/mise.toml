@@ -1,3 +1,4 @@
 [tasks.test]
 description = "Run the tdd-gate tests"
-run = "uvx --python 3.14 pytest -q tests"
+# The tests judge the harness binary: the one bootstrap installed, unless HARNESS names another.
+run = 'HARNESS="${HARNESS:-$HOME/.local/bin/harness}" uvx --python 3.14 pytest -q tests'

@@ -2,12 +2,14 @@
 import importlib.machinery
 import importlib.util
 import json
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
 GATE = Path(__file__).resolve().parent.parent / "tdd-gate"
+CMD = [os.environ["HARNESS"], "gate"]  # the harness binary under test (mise run test:tdd-gate builds it)
 _loader = importlib.machinery.SourceFileLoader("tdd_gate", str(GATE))
 _spec = importlib.util.spec_from_loader("tdd_gate", _loader)
 tg = importlib.util.module_from_spec(_spec)
@@ -246,7 +248,7 @@ def repo(tmp_path, monkeypatch):
 
 
 def gate(repo, *args):
-    p = subprocess.run([str(GATE), *args, "--repo", str(repo)], capture_output=True, text=True)
+    p = subprocess.run([*CMD, *args, "--repo", str(repo)], capture_output=True, text=True)
     return p.returncode, p.stdout
 
 
@@ -329,7 +331,7 @@ def test_no_ids_and_usage_errors(repo):
     sha = base_commit(repo, junit())
     rc, out = gate(repo, "red", "--slug", "ghost", "--test", sha, "--task", "test")
     assert rc == 2 and "NO IDS FOUND" in out and out.splitlines()[-1] == "FAIL"
-    p = subprocess.run([str(GATE), "green", "--slug", "x"], capture_output=True, text=True)
+    p = subprocess.run([*CMD, "green", "--slug", "x"], capture_output=True, text=True)
     assert p.returncode == 2
 
 

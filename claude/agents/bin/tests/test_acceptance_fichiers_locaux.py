@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 
-BIN = Path(__file__).resolve().parents[1] / "harness-local"
+BIN = [os.environ["HARNESS"], "local"]  # the harness binary under test
 
 
 def make_repo(tmp_path, origin):
@@ -24,7 +24,7 @@ def local_dir(tmp_path, files=None):
 
 def run(local, *args):
     env = dict(os.environ, CLAUDE_LOCAL_DIR=str(local))
-    p = subprocess.run([str(BIN), *args], env=env, capture_output=True, text=True)
+    p = subprocess.run([*BIN, *args], env=env, capture_output=True, text=True)
     return p.returncode, p.stdout
 
 
