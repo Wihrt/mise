@@ -3,7 +3,7 @@ name: stacked-tdd-mr
 description: Use when executing an implementation plan, after superpowers:writing-plans, in a GitHub or GitLab repo.
 ---
 
-Wrapper over superpowers:subagent-driven-development (SDD, validated 6.4.2). Invoke SDD and follow it; the overrides below win. One plan task = one branch = one MR, stacked. Never merge. The orchestrator writes no tests and no production code.
+Wrapper over superpowers:subagent-driven-development (SDD, validated 6.4.2). Invoke SDD and follow it; the overrides below win. One plan task = one branch = one MR, stacked. Never merge on your own (see "Merging a stack"). The orchestrator writes no tests and no production code.
 
 ## Overrides to SDD
 1. **Version.** `ls ~/.claude/plugins/cache/*/superpowers/`; not `6.4.2-*`: ledger `Warning: SDD <v> not validated`, re-read these overrides against its SKILL.md.
@@ -18,7 +18,7 @@ Wrapper over superpowers:subagent-driven-development (SDD, validated 6.4.2). Inv
 6. **Models.** Acceptance-writer, implementer, task reviewer, scoped re-reviews: `sonnet` (or `haiku`). Fix rounds 4-5: fresh Sonnet implementer, never a more capable model. Only step 8 may exceed Sonnet.
 7. **Per task, after green and review approved.** Push; open the MR with the forge skill (base = branch N-1; body: criterion IDs with titles, link to the `TESTS.md` section as `<project web_url>/-/blob/<branch>/TESTS.md`, GitHub `/blob/<branch>/TESTS.md`, plus the heading as text; a "Critères modifiés" block on top when any). Start the next task without waiting for CI. Never edit `TESTS.md` yourself.
 8. **End.** Minimal code, once for the stack: on the top branch the implementer refactors by measured removal (step 4 (2)) over the code of the whole stack, then run `green` for the top slug without `--no-minimal`, with `--since <first acceptance commit of the stack>`; `UNNEEDED` lines go to a fix round with the implementer or to a ledgered `Ruling:` (`--unneeded-ok`). Then the final review: SDD's final whole-branch review, dispatch description `final review <stack>`, `model: opus`, read-only. Retain only remarks on real cases (real input or spec line cited); each goes through "Work without a test". Hypothetical edge cases are refused and ledgered as in step 5. Before that review, when a task of the stack used `--replaces` or `--ac-changed`: the mutant-writer in replay mode writes mutants on the stack's base (production code alone), then run `~/.local/bin/harness gate replay --repo <worktree> --base <base sha> --head <head sha> --proofs <dir> --task <task>` (one task, repeat the call per task); the task first runs without any mutant on the base and on the head: `BASELINE NOT GREEN base|head` and `FAIL` when it fails, then repair the task or the environment before replaying (RPL-003); lines `KEPT <name>`, `NEVER <name>`, `GAINED <name>`, `LOST <name>`. `LOST`: the stack lost a protection, a failure unless `--accept-lost <name>` (repeated once per accepted loss) after a ledgered `Ruling:`. Then watch CI of all MRs with Monitor (forge skill). Red: superpowers:systematic-debugging phases 1-3, reproduction = criterion of a fix task, then "Rebase and conflicts".
-9. **Finish.** Do not invoke finishing-a-development-branch. Write the status report listing every `Criterion change:` first, then every `Ruling:` from the ledger, then stop with the MR links. Never merge, never propose lifting a hook.
+9. **Finish.** Do not invoke finishing-a-development-branch. Write the status report listing every `Criterion change:` first, then every `Ruling:` from the ledger, then stop with the MR links. Never merge on your own, never propose lifting a hook.
 10. **Blockers.** `BLOCKED <reason>` and missing tool: rule it (propose adding the tool to `mise.toml`; install nothing outside the repo). Stop for the user only on merge, security-sensitive or irreversible action, plan broken beyond a guess; artifact with numbered options and a recommendation, chat gets link and choice.
 
 ## Setup
@@ -47,6 +47,13 @@ For a repo whose `TESTS.md` has sections in the old format: a stack where each t
 - A sub-agent's report is a claim: re-run the decisive check yourself and quote command and output; a number enters the ledger only after you read the output.
 - An acceptance file starts the product only through the common helpers of the test repository, so a proof made mandatory later turns no earlier file red.
 - A test task that manipulates repositories and is launched from a git hook begins with `unset $(git rev-parse --local-env-vars)`.
+
+## Merging a stack
+Only when the user asks for it, in that message, for the stack or the merge request they name. An earlier go does not carry over.
+1. Stack behind the default branch: rebase it first ("Rebase and conflicts"), wait for green pipelines, and say what the default branch brought in.
+2. `harness merge-stack --dry-run <top MR>`: every obstacle is named (`OUTDATED`, `NOT STACKED`, `DRAFT`, `CHECKS FAIL`). Fix what is yours to fix, report the rest.
+3. `harness merge-stack <top MR>` (add `--validate '<repo check command>'` when the repo has no pipeline). The hook asks the user; their go covers this stack only. Never call `gh pr merge` or `glab mr merge`.
+4. Last line `PASS`: report the merged MRs and quote `TREE IDENTICAL` and the check line. Last line `FAIL`: stop and report the output as is (`STOPPED`, `MERGED:`, `REMAINING:`, `TREE DIFFERS`, `CHECKS FAIL`). Repair nothing, revert nothing, do not run it again without a new go.
 
 ## Rebase and conflicts
 - Base moves during the stack (review on MR N-1): `git rebase --update-refs` from the top, `git push --force-with-lease` each moved branch. Afterwards every test and feat sha above has changed: re-run `harness gate green` (with `--spec <spec>` and, if the slug has several acceptance commits, `--since`) on each moved branch with its new shas (`git log --format='%h %s' <base>..<branch>`) before pushing.

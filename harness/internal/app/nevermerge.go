@@ -1,6 +1,7 @@
 package app
 
 import (
+	"path"
 	"regexp"
 	"strings"
 
@@ -14,7 +15,9 @@ type Branches interface {
 	Current(dir string) string
 }
 
-// NeverMerge refuses merges, pushes to the default branch and force pushes without a lease.
+// NeverMerge refuses merges, pushes to the default branch and force pushes
+// without a lease. The one way to merge is `harness merge-stack`, which it
+// hands to the user: their go is the authorisation, for that stack only.
 type NeverMerge struct {
 	parser   CommandParser
 	branches Branches
@@ -38,11 +41,13 @@ func (p *NeverMerge) Evaluate(req domain.Request) domain.Decision {
 	for _, inv := range p.parser.Parse(req.Command) {
 		inv = inv.Unwrap()
 		var d domain.Decision
-		switch inv.Name() {
+		switch path.Base(inv.Name()) {
+		case "harness":
+			d = mergeStack(inv)
 		case "glab":
-			d = forgeMerge(inv, "mr", "Merging is never done from here: glab mr merge is blocked. Stop at a green pipeline and hand over the MR link.")
+			d = forgeMerge(inv, "mr", "glab mr merge is blocked. Stop at a green pipeline and hand over the MR link; when the user asks for the merge, run `harness merge-stack <top MR>`.")
 		case "gh":
-			d = forgeMerge(inv, "pr", "Merging is never done from here: gh pr merge is blocked. Stop at a green pipeline and hand over the PR link.")
+			d = forgeMerge(inv, "pr", "gh pr merge is blocked. Stop at a green pipeline and hand over the PR link; when the user asks for the merge, run `harness merge-stack <top PR>`.")
 		case "git":
 			d = p.git(inv, req.Cwd)
 		}
@@ -51,6 +56,19 @@ func (p *NeverMerge) Evaluate(req domain.Request) domain.Decision {
 		}
 	}
 	return domain.Allowed()
+}
+
+// mergeStack asks the user before a stack is merged; a dry run merges nothing.
+func mergeStack(inv domain.Invocation) domain.Decision {
+	ops := inv.Operands("--validate", "-validate")
+	if len(ops) == 0 || ops[0] != "merge-stack" || inv.WantsHelp() || inv.HasArg("--dry-run", "-dry-run") {
+		return domain.Allowed()
+	}
+	target := "this merge request"
+	if len(ops) > 1 {
+		target = ops[1]
+	}
+	return domain.Asked("Merge " + target + " and every merge request below it into the default branch? Your go covers this stack only.")
 }
 
 func forgeMerge(inv domain.Invocation, noun, reason string) domain.Decision {

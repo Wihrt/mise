@@ -10,7 +10,8 @@
 - One merge request per feature. A multi-feature plan is a stack of merge requests, each based on the previous one, all in a single worktree.
 - A merge request is not done until its CI pipeline is green. Until then the work is unfinished: watch the pipeline; when it fails, read the job logs, fix the cause, and push again.
 - Never propose lifting or bypassing a hook; when a hook blocks something I asked, say so and hand over (MR link, command to run myself).
-- Never merge. Once the pipeline is green, stop and give me the MR link.
+- Never merge on your own. Once the pipeline is green, stop and give me the MR link.
+- Merge only when I ask for it, in that message, for the merge request or the stack I name: run `harness merge-stack <top MR>` (it merges bottom first, then proves that the default branch holds the code of the top of the stack and passes). My go on its prompt covers that stack only. It ends with `FAIL`: stop and report its output; repair nothing, revert nothing. On GitLab the command does not exist yet: hand over the MR links.
 - If the repository has no pipeline, or it cannot be made green, stop and tell me.
 
 ## Facts, not assumptions

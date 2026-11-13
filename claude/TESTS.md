@@ -359,4 +359,86 @@ Branche : `feat/semble` · Commande : `mise run test`
   - **Quand** le hook `search-hint` juge chacun
   - **Alors** il n'écrit rien et sort à 0
 - **Test** : `hooks/tests/search-hint.bats` › `RCH-002 an exact search passes in silence`
+## fusion-de-pile — Une pile de merge requests se fusionne et se prouve
+Branche : `feat/fusion-de-pile` · Commande : `mise run test`
+
+### FUS-001 — Une pile se fusionne du bas vers le haut et la branche par défaut porte le code du haut
+- **Critère** :
+  - **Étant donné** une pile de trois MR ouvertes `a` ← `b` ← `c`, la première sur `main`, toutes au pipeline vert
+  - **Quand** `harness merge-stack 3` est lancé dans le dépôt
+  - **Alors**
+    - les trois MR sont fusionnées
+    - l'arbre de `main` sur le dépôt distant est celui du haut de la pile avant la fusion
+    - la sortie contient `STACK 3: #1 a -> #2 b -> #3 c`, `TREE IDENTICAL` et `CHECKS PASS main`, se termine par `PASS`, et le code de sortie est 0
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-001 a stack is merged bottom first and main holds the code of its top`
+
+### FUS-002 — Une MR seule se fusionne sans celles du dessus
+- **Critère** :
+  - **Étant donné** la même pile
+  - **Quand** `harness merge-stack a` est lancé (la MR du bas, désignée par sa branche)
+  - **Alors**
+    - seule la MR du bas est fusionnée, les deux autres restent ouvertes
+    - l'arbre de `main` est celui de la branche `a`, et la sortie se termine par `PASS`
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-002 a single merge request is merged alone`
+
+### FUS-003 — Rien n'est fusionné tant qu'une MR de la pile n'est pas prête
+- **Critère** :
+  - **Étant donné** la même pile, dont soit la MR du milieu a un pipeline rouge, soit `main` a reçu un commit que la pile ne contient pas
+  - **Quand** `harness merge-stack 3` est lancé
+  - **Alors**
+    - la sortie nomme l'obstacle (`CHECKS FAIL #2`, ou `OUTDATED #1`), se termine par `FAIL nothing merged`, et le code de sortie est 1
+    - aucune MR n'est fusionnée
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-003 nothing is merged when a merge request of the stack has a red pipeline` ; `hooks/tests/merge-stack.bats` › `FUS-003 nothing is merged when the default branch has moved under the stack`
+
+### FUS-004 — La fusion s'arrête à la MR qui résiste et dit ce qui reste
+- **Critère** :
+  - **Étant donné** la même pile, dont la forge refuse de fusionner la MR du milieu
+  - **Quand** `harness merge-stack 3` est lancé
+  - **Alors**
+    - la sortie contient `STOPPED #2`, `MERGED: #1`, `REMAINING: #2 #3`, se termine par `FAIL stack partly merged`, et le code de sortie est 1
+    - la MR du bas est fusionnée, les deux autres restent ouvertes
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-004 the merge stops at the request that resists and says what is left`
+
+### FUS-005 — Une branche par défaut qui n'est pas le code du haut de la pile est signalée
+- **Critère** :
+  - **Étant donné** la même pile, et un tiers qui pousse un commit sur `main` pendant la fusion
+  - **Quand** `harness merge-stack 3` est lancé
+  - **Alors** la sortie contient `TREE DIFFERS` avec le nom du fichier en écart, se termine par `FAIL stack merged, main differs from the top of the stack`, et le code de sortie est 1
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-005 a default branch that is not the code of the top is reported`
+
+### FUS-006 — Une branche par défaut rouge après la fusion est signalée
+- **Critère** :
+  - **Étant donné** la même pile, et un pipeline de `main` qui échoue sur le commit fusionné
+  - **Quand** `harness merge-stack 3` est lancé
+  - **Alors** la sortie contient `TREE IDENTICAL` puis `CHECKS FAIL main`, se termine par `FAIL stack merged, main is red`, et le code de sortie est 1
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-006 a red default branch after the merge is reported`
+
+### FUS-007 — Sans pipeline, la commande de validation fait foi
+- **Critère** :
+  - **Étant donné** la même pile, sur un dépôt dont `main` n'a aucun pipeline
+  - **Quand** `harness merge-stack 3` est lancé avec `--validate '<commande>'`, puis sans
+  - **Alors**
+    - avec une commande qui réussit sur le code fusionné : `VALIDATION PASS`, dernière ligne `PASS`, code de sortie 0, et `git worktree list` est celui d'avant
+    - avec une commande qui échoue : `VALIDATION FAIL`, dernière ligne `FAIL stack merged, main is red`, code de sortie 1
+    - sans commande : `CHECKS NONE`, dernière ligne `FAIL stack merged, main not verified`, code de sortie 1
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-007 without a pipeline the validation command decides` ; `hooks/tests/merge-stack.bats` › `FUS-007 a failing validation command is reported` ; `hooks/tests/merge-stack.bats` › `FUS-007 without a pipeline nor a validation command the merge is not verified`
+
+### FUS-008 — Un essai à blanc vérifie la pile sans rien fusionner
+- **Critère** :
+  - **Étant donné** la même pile
+  - **Quand** `harness merge-stack --dry-run 3` est lancé
+  - **Alors**
+    - la sortie contient `READY`, se termine par `PASS nothing merged (dry run)`, et le code de sortie est 0
+    - aucune MR n'est fusionnée et `main` n'a pas bougé
+- **Test** : `hooks/tests/merge-stack.bats` › `FUS-008 a dry run checks the stack and merges nothing`
+
+### FUS-009 — Fusionner une pile passe par l'accord de l'utilisateur
+- **Critère** :
+  - **Étant donné** le hook `never-merge`
+  - **Quand** il juge un appel Bash
+  - **Alors**
+    - `harness merge-stack 3` et `~/.local/bin/harness merge-stack --validate "mise run check" c` reçoivent `ask`
+    - `harness merge-stack --dry-run 3` passe
+    - `gh pr merge 3 --merge` et `glab mr merge 3` reçoivent `deny`
+- **Test** : `hooks/tests/never-merge-stack.bats` › `FUS-009 merging a stack goes through the user's go`
 - **Test** : `../harness/acceptance/parallel_test.go` › `TestPRV019_MutantsAreJudgedInParallel`
