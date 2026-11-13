@@ -103,7 +103,7 @@ Cette spec livre la procédure. Son application dépôt par dépôt se planifie 
 
 ### Contraintes
 
-- Les 87 tests actuels de la porte restent verts à chaque étape ; chaque contrôle nouveau arrive avec ses tests dans `bin/tests/test_tdd_gate.py`, écrits et vus rouges avant le code.
+- Les 87 tests actuels de la porte restent verts à chaque étape ; chaque contrôle nouveau arrive avec ses tests dans `harness/acceptance/` (à l'origine `bin/tests/test_tdd_gate.py`, en pytest), écrits et vus rouges avant le code.
 - Les sections de `TESTS.md` autres que le slug jugé ne sont soumises à aucun contrôle nouveau, sauf « test gardé inchangé » et la redondance, qui les lisent sans les juger.
 - Coût accepté : une exécution de mutant-writer de plus par tâche en mode nouveau ; durée de la porte environ doublée (un lancement de tâche par mutant et par changement neutre).
 
