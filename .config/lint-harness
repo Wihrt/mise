@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Checks that the harness deployed by [dotfiles] matches the repository: every
+# skill has its entry, every source exists. Root: $1, default the repository.
+set -euo pipefail
+root=${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
+config=$root/config.toml
+status=0
+
+for dir in "$root"/claude/skills/*/; do
+  skill=$(basename "$dir")
+  if ! grep -qF "\"~/.claude/skills/$skill\" = { source = \"claude/skills/$skill\"" "$config"; then
+    echo "lint:harness: skill without a [dotfiles] entry: $skill" >&2
+    status=1
+  fi
+done
+
+while IFS= read -r source; do
+  if [[ ! -e $root/$source ]]; then
+    echo "lint:harness: [dotfiles] source does not exist: $source" >&2
+    status=1
+  fi
+done < <(sed -n 's/^"~[^"]*" = { source = "\([^"]*\)".*/\1/p' "$config")
+
+exit "$status"

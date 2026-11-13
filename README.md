@@ -106,6 +106,30 @@ nouvelle version : hook Claude Code dans `~/.claude/settings.json` et
 `~/.claude/RTK.md`, sans question. La tâche `bootstrap` le relance aussi pour
 une version déjà installée ; la commande est idempotente.
 
+## Déployer le harnais
+
+`claude/` et `rtk/` sont posés dans `~/.claude` et `~/.config/rtk` par des
+liens, déclarés dans `[dotfiles]` : un par fichier (`CLAUDE.md`, `RTK.md`,
+`settings.json`, les trois fichiers rtk), un par dossier (`agents`,
+`pipelines`), un par skill. L'étape dotfiles de `mise bootstrap` les pose ;
+`mise dot apply` le fait seul. Ce qui n'est pas listé (skills synchronisés,
+mémoire, plugins, état de rtk) n'est pas touché.
+
+Sur un poste qui a déjà un `~/.claude` fait de vrais fichiers, mise refuse de
+les écraser. La bascule se fait une fois, à la main :
+
+```sh
+tar czf ~/claude-avant-liens.tgz -C ~ .claude/CLAUDE.md .claude/RTK.md .claude/settings.json .claude/agents .claude/skills .config/rtk
+mise dot apply --dry-run          # ce qui va changer
+mise dot apply --force            # remplace les fichiers par les liens
+mise bootstrap --update           # compile ~/.local/bin/harness, appelé par settings.json
+```
+
+Ensuite une modification du harnais est une merge request sur ce dépôt, puis
+`git pull` dans `~/.config/mise` : les liens pointent déjà vers la copie de
+travail. Un nouveau skill demande sa ligne dans `[dotfiles]` ;
+`mise run lint:harness` refuse un skill qui n'en a pas.
+
 ## Harnais
 
 Les hooks Claude Code, les portes TDD (`harness gate red|green|characterize|replay`)
