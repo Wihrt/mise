@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2016  # jq programs are meant to stay unexpanded
+# A stand-in for the gh CLI, for the merge-stack tests: the merge requests live in
+# $GH_STATE/prs.json, the repository in the bare clone $GH_STATE/origin.git.
+set -euo pipefail
+state=${GH_STATE:?}
+prs=$state/prs.json
+
+jq_arg=""
+args=()
+while (($#)); do
+  case $1 in
+    --jq) jq_arg=$2; shift 2 ;;
+    --json | --interval | --state) shift 2 ;;
+    *) args+=("$1"); shift ;;
+  esac
+done
+emit() { if [[ -n $jq_arg ]]; then jq -r "$jq_arg"; else cat; fi; }
+update() { jq "$@" "$prs" >"$prs.new" && mv "$prs.new" "$prs"; }
+find_pr() { jq -e --arg r "$1" '.[] | select((.number|tostring) == $r or .headRefName == $r)' "$prs"; }
+
+case "${args[0]} ${args[1]}" in
+  "repo view") echo '{"defaultBranchRef":{"name":"main"}}' | emit ;;
+  "pr view") find_pr "${args[2]}" | emit || { echo "no pull requests found for ${args[2]}" >&2; exit 1; } ;;
+  "pr list") jq --arg h "${args[3]}" '[.[] | select(.headRefName == $h and .state == "OPEN")]' "$prs" | emit ;;
+  "pr edit") update --arg n "${args[2]}" --arg b "${args[4]}" 'map(if (.number|tostring) == $n then .baseRefName = $b else . end)' ;;
+  "pr checks")
+    case $(find_pr "${args[2]}" | jq -r .checks) in
+      pass) ;;
+      none) echo "no checks reported on the '${args[2]}' branch" >&2; exit 1 ;;
+      *) echo "X  check  failed" ; exit 1 ;;
+    esac ;;
+  "pr merge")
+    n=${args[2]} sha=${args[5]}
+    pr=$(find_pr "$n")
+    if [[ $(jq -r .refuse <<<"$pr") == true ]]; then echo "Pull request #$n is not mergeable" >&2; exit 1; fi
+    head=$(jq -r .headRefName <<<"$pr") base=$(jq -r .baseRefName <<<"$pr")
+    [[ $(git -C "$state/origin.git" rev-parse "refs/heads/$head") == "$sha" ]] || { echo "head has moved" >&2; exit 1; }
+    tmp=$(mktemp -d)
+    git clone -q "$state/origin.git" "$tmp/c"
+    git -C "$tmp/c" checkout -q "$base"
+    git -C "$tmp/c" -c user.email=f@f -c user.name=forge merge -q --no-ff "origin/$head" -m "Merge pull request #$n"
+    if [[ -f $state/drift ]]; then # someone else pushes to the default branch, once
+      rm "$state/drift"
+      echo drift >"$tmp/c/drift.txt"
+      git -C "$tmp/c" add drift.txt
+      git -C "$tmp/c" -c user.email=f@f -c user.name=other commit -q -m "chore: someone else"
+    fi
+    git -C "$tmp/c" push -q origin "$base"
+    rm -rf "$tmp"
+    update --arg n "$n" 'map(if (.number|tostring) == $n then .state = "MERGED" else . end)' ;;
+  "api repos/{owner}/{repo}/commits/"*)
+    case $(cat "$state/main-checks") in
+      pass) echo '{"check_runs":[{"status":"completed","conclusion":"success"}]}' ;;
+      fail) echo '{"check_runs":[{"status":"completed","conclusion":"failure"}]}' ;;
+      *) echo '{"check_runs":[]}' ;;
+    esac | emit ;;
+  *) echo "fake gh: unsupported: ${args[*]}" >&2; exit 2 ;;
+esac

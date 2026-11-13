@@ -145,6 +145,14 @@ le critère `<ID>` de [`claude/TESTS.md`](claude/TESTS.md)).
 La tâche `bootstrap` le compile dans `~/.local/bin/harness` à chaque passage :
 après un changement de hook, relancez `mise bootstrap --update`.
 
+Il fusionne aussi une pile de merge requests relue, à la demande :
+`harness merge-stack <MR du haut>` fusionne du bas vers le haut, puis prouve que
+la branche par défaut porte le code du haut de la pile et que son pipeline est
+vert (`--validate '<commande>'` quand le dépôt n'a pas de pipeline, `--dry-run`
+pour vérifier sans fusionner). Le hook `never-merge` demande votre accord à
+chaque appel ; `gh pr merge` et `glab mr merge` restent refusés. Spec :
+[`claude/docs/specs/2026-11-13-fusion-de-pile-design.md`](claude/docs/specs/2026-11-13-fusion-de-pile-design.md).
+
 Sa configuration vient de l'environnement : `HOME`, `KUBECONFIG`,
 `CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_AGENTS_DIR`, `CLAUDE_LOCAL_DIR`. Il lit l'appel d'outil sur
 l'entrée standard, écrit sa décision sur la sortie standard et ses erreurs sur
