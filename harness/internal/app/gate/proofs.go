@@ -109,13 +109,11 @@ func (r *run) proofPatches(proofs, text string, ids []string) []proof {
 	return list
 }
 
-// judgeInWorktree judges a proof on a throwaway worktree of HEAD, the repository untouched.
-func (r *run) judgeInWorktree(repo string, p proof) (judgement, error) {
-	var lines []string
-	w := &run{g: r.g, o: r.o, lines: &lines}
+// withWorktree runs fn on a throwaway worktree of HEAD, the repository untouched.
+func (r *run) withWorktree(repo string, fn func(wt string) error) error {
 	tmp, cleanup, err := r.g.files.TempDir("tdd-proof-")
 	if err != nil {
-		return judgement{}, failure{err.Error()}
+		return failure{err.Error()}
 	}
 	defer cleanup()
 	wt := tmp + "/wt"
@@ -127,21 +125,34 @@ func (r *run) judgeInWorktree(repo string, p proof) (judgement, error) {
 		r.g.git.Run(repo, "worktree", "remove", "--force", wt)
 		r.g.worktrees.Unlock()
 	}()
-	if problem := w.mutantProblem(wt, p.patch); problem != "" {
-		return judgement{problem: problem, lines: lines}, nil
-	}
-	if _, err := w.applyMutant(wt, p.patch); err != nil {
-		return judgement{}, err
-	}
-	w.outf("%s %s: patch applied", p.kind, p.tag)
-	rc, _, rep, err := w.runTask(wt)
-	if err != nil {
-		return judgement{}, err
-	}
-	if rc == 124 {
-		return judgement{}, failf("%s %s: task timed out", strings.ToLower(p.kind), p.tag)
-	}
-	return judgement{results: tdd.ResultsByID(rep), lines: lines}, nil
+	return fn(wt)
+}
+
+// judgeInWorktree judges a proof on a throwaway worktree of HEAD, the repository untouched.
+func (r *run) judgeInWorktree(repo string, p proof) (judgement, error) {
+	var lines []string
+	w := &run{g: r.g, o: r.o, lines: &lines}
+	var j judgement
+	err := r.withWorktree(repo, func(wt string) error {
+		if problem := w.mutantProblem(wt, p.patch); problem != "" {
+			j = judgement{problem: problem, lines: lines}
+			return nil
+		}
+		if _, err := w.applyMutant(wt, p.patch); err != nil {
+			return err
+		}
+		w.outf("%s %s: patch applied", p.kind, p.tag)
+		rc, _, rep, err := w.runTask(wt)
+		if err != nil {
+			return err
+		}
+		if rc == 124 {
+			return failf("%s %s: task timed out", strings.ToLower(p.kind), p.tag)
+		}
+		j = judgement{results: tdd.ResultsByID(rep), lines: lines}
+		return nil
+	})
+	return j, err
 }
 
 // judgeAll judges the existing proofs, jobs at a time.
@@ -278,38 +289,125 @@ func addKill(kills []tdd.Kills, id string, results map[string][]tdd.Case) []tdd.
 	return append(kills, tdd.Kills{ID: id, PerMutant: []map[string]bool{failed}})
 }
 
-// runMinimal proves that every added block is needed (or accepted): removing
-// it alone makes the task fail.
-func (r *run) runMinimal(repo string) (bool, error) {
-	ok := true
+func blockTag(b tdd.Block) string { return fmt.Sprintf("%s:%d-%d", b.Path, b.Start, b.End) }
+
+// minimalBlocks lists the blocks added between --since and --feat, in the diff
+// order, the --spec file left out.
+func (r *run) minimalBlocks(repo string) []tdd.Block {
 	since := r.o.Since
 	if since == "" {
 		since = r.o.Test
 	}
 	_, diff := r.g.git.Run(repo, "diff", "-U0", since+".."+r.o.Feat)
+	var blocks []tdd.Block
 	for _, b := range tdd.AddedBlocks(diff) {
-		if b.Path == r.o.Spec {
-			continue
+		if b.Path != r.o.Spec {
+			blocks = append(blocks, b)
 		}
-		tag := fmt.Sprintf("%s:%d-%d", b.Path, b.Start, b.End)
-		content, err := r.g.files.Read(repo + "/" + b.Path)
-		if err != nil {
-			return false, failure{err.Error()}
+	}
+	return blocks
+}
+
+// removeBlock removes the lines of the block from its file under dir.
+func (r *run) removeBlock(dir string, b tdd.Block) error {
+	content, err := r.g.files.Read(dir + "/" + b.Path)
+	if err != nil {
+		return failure{err.Error()}
+	}
+	lines := strings.SplitAfter(content, "\n")
+	start, end := min(b.Start-1, len(lines)), min(b.End, len(lines))
+	if err := r.g.files.Write(dir+"/"+b.Path, strings.Join(lines[:start], "")+strings.Join(lines[end:], "")); err != nil {
+		return failure{err.Error()}
+	}
+	return nil
+}
+
+// blockJudgement is what removing one block shows.
+type blockJudgement struct {
+	unneeded bool
+	lines    []string
+}
+
+// judgeBlocks judges the blocks, jobs at a time, one worktree each.
+func (r *run) judgeBlocks(repo string, blocks []tdd.Block) error {
+	type result struct {
+		j   blockJudgement
+		err error
+	}
+	results := make([]result, len(blocks))
+	slots, done := make(chan struct{}, r.o.Jobs), make(chan struct{})
+	for n, b := range blocks {
+		go func() {
+			slots <- struct{}{}
+			var lines []string
+			w := &run{g: r.g, o: r.o, lines: &lines}
+			err := r.withWorktree(repo, func(wt string) error {
+				if err := w.removeBlock(wt, b); err != nil {
+					return err
+				}
+				rc, _, rep, err := w.runTask(wt)
+				if err != nil {
+					return err
+				}
+				results[n].j = blockJudgement{unneeded: rc == 0 && rep.State == tdd.ReportOK, lines: lines}
+				return nil
+			})
+			results[n].err = err
+			<-slots
+			done <- struct{}{}
+		}()
+	}
+	for range blocks {
+		<-done
+	}
+	r.blocks = map[string]blockJudgement{}
+	for n, b := range blocks {
+		if results[n].err != nil {
+			return results[n].err
 		}
-		lines := strings.SplitAfter(content, "\n")
-		start, end := min(b.Start-1, len(lines)), min(b.End, len(lines))
-		if err := r.g.files.Write(repo+"/"+b.Path, strings.Join(lines[:start], "")+strings.Join(lines[end:], "")); err != nil {
-			return false, failure{err.Error()}
+		r.blocks[blockTag(b)] = results[n].j
+	}
+	return nil
+}
+
+// blockUnneeded tells whether the task still passes without the block.
+func (r *run) blockUnneeded(repo string, b tdd.Block) (bool, error) {
+	if j, done := r.blocks[blockTag(b)]; done {
+		for _, line := range j.lines {
+			r.out(line)
 		}
-		rc, _, rep, err := r.runTask(repo)
-		r.restoreTree(repo, nil)
+		return j.unneeded, nil
+	}
+	if err := r.removeBlock(repo, b); err != nil {
+		return false, err
+	}
+	rc, _, rep, err := r.runTask(repo)
+	r.restoreTree(repo, nil)
+	if err != nil {
+		return false, err
+	}
+	return rc == 0 && rep.State == tdd.ReportOK, nil
+}
+
+// runMinimal proves that every added block is needed (or accepted): removing
+// it alone makes the task fail.
+func (r *run) runMinimal(repo string) (bool, error) {
+	ok := true
+	blocks := r.minimalBlocks(repo)
+	if r.o.Jobs > 1 {
+		if err := r.judgeBlocks(repo, blocks); err != nil {
+			return false, err
+		}
+	}
+	for _, b := range blocks {
+		unneeded, err := r.blockUnneeded(repo, b)
 		if err != nil {
 			return false, err
 		}
-		if rc != 0 || rep.State != tdd.ReportOK {
+		if !unneeded {
 			continue
 		}
-		if slices.Contains(r.o.UnneededOK, tag) {
+		if tag := blockTag(b); slices.Contains(r.o.UnneededOK, tag) {
 			r.outf("UNNEEDED ACCEPTED %s", tag)
 		} else {
 			r.outf("UNNEEDED %s", tag)

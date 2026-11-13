@@ -108,3 +108,41 @@ func TestRedWithoutTestsFile(t *testing.T) {
 		t.Errorf("exit %d, out %q", code, out)
 	}
 }
+
+// worktreeGit answers a one-block diff and counts the worktrees added and removed.
+type worktreeGit struct{ added, removed *int }
+
+func (g worktreeGit) Run(_ string, args ...string) (int, string) {
+	switch {
+	case args[0] == "diff":
+		return 0, "diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1,0 +2 @@\n+x\n"
+	case args[0] == "worktree" && args[1] == "add":
+		*g.added++
+	case args[0] == "worktree" && args[1] == "remove":
+		*g.removed++
+	}
+	return 0, ""
+}
+
+func minimalUnderJobs(tasks fakeTasks, files fakeFiles) (ok bool, added, removed int, err error) {
+	g := New(worktreeGit{&added, &removed}, files, tasks, noTasks{}, &bytes.Buffer{})
+	r := &run{g: g, o: Options{Test: "abc", Feat: "def", Task: "test", Repo: "/r", Timeout: 5, Jobs: 2}}
+	ok, err = r.runMinimal("/r")
+	return
+}
+
+func TestMinimalTimeoutUnderJobsNeedsTheBlock(t *testing.T) {
+	files := fakeFiles{"/tmp/x/wt/a.go": "a\nb\n"}
+	ok, _, _, err := minimalUnderJobs(fakeTasks{files: files, result: TaskResult{TimedOut: true}}, files)
+	if !ok || err != nil {
+		t.Errorf("ok=%v err=%v, want the block needed and no error", ok, err)
+	}
+}
+
+func TestMinimalTaskErrorUnderJobsRemovesEveryWorktree(t *testing.T) {
+	files := fakeFiles{"/tmp/x/wt/a.go": "a\nb\n"}
+	_, added, removed, err := minimalUnderJobs(fakeTasks{files: files, err: errors.New("boom")}, files)
+	if err == nil || added == 0 || added != removed {
+		t.Errorf("err=%v added=%d removed=%d, want an error and as many removes as adds", err, added, removed)
+	}
+}
