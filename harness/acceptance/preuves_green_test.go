@@ -107,12 +107,15 @@ func TestPRV020_UnneededBlockIsNoLongerJudged(t *testing.T) {
 }
 
 func TestPRV020_RetiredOptionsAreRefused(t *testing.T) {
-	for _, option := range [][]string{{"--no-minimal"}, {"--since", "HEAD"}, {"--unneeded-ok", prod + ":4-4"}} {
+	for _, option := range [][]string{{"--no-minimal"}, {"--since", "HEAD"}, {"--unneeded-ok", prod + ":4-4"}, {"--spec", "spec.md"}} {
 		r := newRepo(t)
 		test, feat := feature(r, "header\nneeded\nmiddle\nextra\n")
-		code, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: append([]string{"--no-neutral"}, option...)})
+		code, stderr := r.refusedGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: append([]string{"--no-neutral"}, option...)})
 		if code != 2 {
-			t.Errorf("%s: exit code = %d, want 2\n%s", option[0], code, out)
+			t.Errorf("%s: exit code = %d, want 2\n%s", option[0], code, stderr)
+		}
+		if named := "flag provided but not defined: " + option[0][1:]; !strings.Contains(stderr, named) {
+			t.Errorf("%s: stderr does not hold %q\n%s", option[0], named, stderr)
 		}
 	}
 }
