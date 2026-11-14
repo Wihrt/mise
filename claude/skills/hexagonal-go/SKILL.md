@@ -57,6 +57,8 @@ The architecture test is the guarantee; forbidigo is fast feedback at commit.
 - The three tests do not overlap (a direct domain import of an adapter fails ARC-001 only), so the gate's redundancy proof keeps all three.
 - Go caches this test across source changes, since it reads files outside its package: run it with `-count=1` (verified: `ok (cached)` after a forbidden import was added). `harness gate` sets `GOFLAGS=-count=1`; the `test:go` command above carries the flag for local runs and CI.
 - A domain import of an adapter that itself imports the domain is an import cycle: the compiler refuses it and the three tests fail on `go list`. A mutant for ARC-001 targets an adapter that does not import the domain, or a third-party package.
+- A package sitting in `internal/adapters` itself is an adapter like the others: only `cmd/` may import it, and it may import no other adapter (verified).
+- Custom build tags: `go list` reads the files of the default build only. List the module's tags in `buildTags` of the test file; the graph is then read once without them and once with them all (verified: a file under `//go:build extra` importing another adapter fails ARC-003 once `extra` is listed, and is not seen before).
 - ARC-001 and ARC-002 allow the whole standard library, `os/exec` and `database/sql` included: keeping those out of the domain and the use cases is forbidigo's job, below.
 
 ### forbidigo

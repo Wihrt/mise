@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -20,6 +21,10 @@ var (
 	allowedDomain = []string{}
 	allowedApp    = []string{}
 )
+
+// buildTags lists the custom build tags of the module. The graph is read once
+// without them and once with them all; a file behind a tag missing here is not seen.
+var buildTags = []string{}
 
 const (
 	domainDir   = "/internal/domain"
@@ -52,7 +57,19 @@ func graph(t *testing.T) (string, map[string]pkg) {
 	}
 	module := strings.TrimSpace(golist(t, root, "list", "-m"))
 	pkgs := map[string]pkg{}
-	dec := json.NewDecoder(strings.NewReader(golist(t, root, "list", "-deps", "-json=ImportPath,Standard,Imports", "./...")))
+	read(t, root, pkgs)
+	if len(buildTags) > 0 {
+		read(t, root, pkgs, "-tags="+strings.Join(buildTags, ","))
+	}
+	return module, pkgs
+}
+
+// read adds to pkgs what `go list` sees with the given flags; the imports of a
+// package already there are merged.
+func read(t *testing.T, root string, pkgs map[string]pkg, flags ...string) {
+	t.Helper()
+	args := append([]string{"list", "-deps", "-json=ImportPath,Standard,Imports"}, flags...)
+	dec := json.NewDecoder(strings.NewReader(golist(t, root, append(args, "./...")...)))
 	for {
 		var p pkg
 		if err := dec.Decode(&p); errors.Is(err, io.EOF) {
@@ -60,9 +77,11 @@ func graph(t *testing.T) (string, map[string]pkg) {
 		} else if err != nil {
 			t.Fatal(err)
 		}
+		p.Imports = append(p.Imports, pkgs[p.ImportPath].Imports...)
+		slices.Sort(p.Imports)
+		p.Imports = slices.Compact(p.Imports)
 		pkgs[p.ImportPath] = p
 	}
-	return module, pkgs
 }
 
 func golist(t *testing.T, dir string, args ...string) string {
@@ -164,8 +183,12 @@ func TestARC002_UseCasesKnowNoTechnology(t *testing.T) {
 
 func TestARC003_OnlyTheCompositionRootAssembles(t *testing.T) {
 	module, pkgs := graph(t)
-	// adapter is the adapter a package belongs to, "" outside the adapters.
+	// adapter is the adapter a package belongs to, "" outside the adapters. A
+	// package sitting in the adapters directory itself is an adapter, named ".".
 	adapter := func(path string) string {
+		if path == module+adaptersDir {
+			return "."
+		}
 		rest, ok := strings.CutPrefix(path, module+adaptersDir+"/")
 		if !ok {
 			return ""
