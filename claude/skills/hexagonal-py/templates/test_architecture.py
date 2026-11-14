@@ -79,11 +79,15 @@ def test_ARC003_only_the_composition_root_assembles(graph: grimp.ImportGraph) ->
         # The domain by ARC-001, the use cases by ARC-002; the root may assemble.
         return under(importer, DOMAIN) or under(importer, APP) or importer == ROOT
 
+    def inside_adapters(importer: str, module: str) -> bool:
+        # The package may re-export its adapters; an adapter may import itself.
+        own = adapter(module) != "" and adapter(importer) == adapter(module)
+        return importer == ADAPTERS or own
+
     offending = {
         f"{importer} -> {module}"
         for module in members(graph, ADAPTERS)
-        if adapter(module)
         for importer in graph.find_modules_that_directly_import(module)
-        if not (judged_elsewhere(importer) or adapter(importer) == adapter(module))
+        if not (judged_elsewhere(importer) or inside_adapters(importer, module))
     }
     assert not offending, f"only {ROOT} may import an adapter: {sorted(offending)}"
