@@ -127,6 +127,7 @@ bash = true
 "~/.claude/skills/adr" = { source = "claude/skills/adr", mode = "symlink" }
 "~/.claude/skills/cilium-network-policies" = { source = "claude/skills/cilium-network-policies", mode = "symlink" }
 "~/.claude/skills/cnpg-operations" = { source = "claude/skills/cnpg-operations", mode = "symlink" }
+"~/.claude/skills/compose-dev" = { source = "claude/skills/compose-dev", mode = "symlink" }
 "~/.claude/skills/docker-build-strategies" = { source = "claude/skills/docker-build-strategies", mode = "symlink" }
 "~/.claude/skills/dockerfile-restricted" = { source = "claude/skills/dockerfile-restricted", mode = "symlink" }
 "~/.claude/skills/forge-gh" = { source = "claude/skills/forge-gh", mode = "symlink" }
@@ -142,9 +143,13 @@ bash = true
 "~/.claude/skills/parallel-repo-plan-dispatch" = { source = "claude/skills/parallel-repo-plan-dispatch", mode = "symlink" }
 "~/.claude/skills/readonly-cluster-and-secret-inspection" = { source = "claude/skills/readonly-cluster-and-secret-inspection", mode = "symlink" }
 "~/.claude/skills/renovate-mr-review" = { source = "claude/skills/renovate-mr-review", mode = "symlink" }
+"~/.claude/skills/repo-stack" = { source = "claude/skills/repo-stack", mode = "symlink" }
 "~/.claude/skills/repo-tooling" = { source = "claude/skills/repo-tooling", mode = "symlink" }
+"~/.claude/skills/stack-go-app" = { source = "claude/skills/stack-go-app", mode = "symlink" }
+"~/.claude/skills/stack-py-app" = { source = "claude/skills/stack-py-app", mode = "symlink" }
 "~/.claude/skills/stacked-tdd-mr" = { source = "claude/skills/stacked-tdd-mr", mode = "symlink" }
 "~/.claude/skills/terraform-skill" = { source = "claude/skills/terraform-skill", mode = "symlink" }
+"~/.claude/skills/twelve-factor" = { source = "claude/skills/twelve-factor", mode = "symlink" }
 "~/.claude/skills/vault-kv-guarded-write" = { source = "claude/skills/vault-kv-guarded-write", mode = "symlink" }
 "~/.config/rtk/config.toml" = { source = "rtk/config.toml", mode = "symlink" }
 "~/.config/rtk/filters.toml" = { source = "rtk/filters.toml", mode = "symlink" }
