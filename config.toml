@@ -143,7 +143,10 @@ bash = true
 "~/.claude/skills/parallel-repo-plan-dispatch" = { source = "claude/skills/parallel-repo-plan-dispatch", mode = "symlink" }
 "~/.claude/skills/readonly-cluster-and-secret-inspection" = { source = "claude/skills/readonly-cluster-and-secret-inspection", mode = "symlink" }
 "~/.claude/skills/renovate-mr-review" = { source = "claude/skills/renovate-mr-review", mode = "symlink" }
+"~/.claude/skills/repo-stack" = { source = "claude/skills/repo-stack", mode = "symlink" }
 "~/.claude/skills/repo-tooling" = { source = "claude/skills/repo-tooling", mode = "symlink" }
+"~/.claude/skills/stack-go-app" = { source = "claude/skills/stack-go-app", mode = "symlink" }
+"~/.claude/skills/stack-py-app" = { source = "claude/skills/stack-py-app", mode = "symlink" }
 "~/.claude/skills/stacked-tdd-mr" = { source = "claude/skills/stacked-tdd-mr", mode = "symlink" }
 "~/.claude/skills/terraform-skill" = { source = "claude/skills/terraform-skill", mode = "symlink" }
 "~/.claude/skills/twelve-factor" = { source = "claude/skills/twelve-factor", mode = "symlink" }
