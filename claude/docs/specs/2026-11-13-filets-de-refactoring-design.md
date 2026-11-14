@@ -142,7 +142,7 @@ Un seul critère : le chantier 2 n'est fait que de textes. Test dans `harness/ac
 - **Quand** `harness gate green --proofs DIR --no-neutral` est lancé
 - **Alors**
   - la sortie ne contient aucune ligne `UNNEEDED` ni `MINIMAL`, et se termine par `PASS`
-  - relancé avec `--no-minimal`, la porte sort avec le code 2 (option inconnue)
+  - relancé avec `--no-minimal`, `--since`, `--unneeded-ok` ou `--spec`, la porte sort avec le code 2 et nomme l'option refusée
 - **Cas réel** : essai du 13/11 par l'utilisateur : porte « très lente », la preuve relance la suite une fois par bloc ajouté (PRV-018, pile MR 25 à 54)
 
 ## Laissé au constructeur

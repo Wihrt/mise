@@ -413,5 +413,5 @@ Branche : `feat/sans-code-minimal` · Commande : `mise run test`
   - **Quand** `harness gate green --proofs DIR --no-neutral` est lancé
   - **Alors**
     - la sortie ne contient aucune ligne `UNNEEDED` ni `MINIMAL`, et se termine par `PASS`
-    - relancé avec `--no-minimal`, la porte sort avec le code 2 (option inconnue)
+    - relancé avec `--no-minimal`, `--since`, `--unneeded-ok` ou `--spec`, la porte sort avec le code 2 et nomme l'option refusée
 - **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV020_UnneededBlockIsNoLongerJudged` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV020_RetiredOptionsAreRefused`
