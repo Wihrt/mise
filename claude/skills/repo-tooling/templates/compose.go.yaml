@@ -7,10 +7,10 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     environment:
-      PORT: "8080"
+      PORT: "${PORT:-8080}"
       DATABASE_URL: postgres://<user>:dev@db:5432/<db>?sslmode=disable
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8080}:${PORT:-8080}"
     depends_on:
       db:
         condition: service_healthy

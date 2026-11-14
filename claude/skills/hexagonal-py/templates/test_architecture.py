@@ -9,15 +9,16 @@ import sys
 import grimp
 import pytest
 
-PACKAGE = "<pkg>"  # the package under src/
+PACKAGE = "<pkg>"
 DOMAIN = f"{PACKAGE}.domain"
 APP = f"{PACKAGE}.app"
 ADAPTERS = f"{PACKAGE}.adapters"
-ENTRYPOINTS = f"{PACKAGE}.entrypoints"
 ROOT = f"{PACKAGE}.composition"
 
-# Third-party packages the domain may import. Adding one is a criterion change of ARC-001.
-ALLOWED: frozenset[str] = frozenset()
+# The third-party packages each layer may import. Adding one is a criterion
+# change: ARC-001 for the domain, ARC-002 for the use cases.
+ALLOWED_DOMAIN: frozenset[str] = frozenset()
+ALLOWED_APP: frozenset[str] = frozenset()
 
 
 @pytest.fixture(scope="module")
@@ -29,6 +30,11 @@ def under(module: str, package: str) -> bool:
     return module == package or module.startswith(package + ".")
 
 
+def listed(module: str, allowed: frozenset[str]) -> bool:
+    top = module.split(".")[0]
+    return top in sys.stdlib_module_names or top in allowed
+
+
 def members(graph: grimp.ImportGraph, package: str) -> set[str]:
     found = {m for m in graph.modules if under(m, package)}
     assert found, f"no module under {package}"
@@ -36,19 +42,16 @@ def members(graph: grimp.ImportGraph, package: str) -> set[str]:
 
 
 def chain(graph: grimp.ImportGraph, importer: str, imported: str) -> str:
-    return " -> ".join(graph.find_shortest_chain(importer=importer, imported=imported) or (importer, imported))
+    found = graph.find_shortest_chain(importer=importer, imported=imported)
+    return " -> ".join(found or (importer, imported))
 
 
 def test_ARC001_domain_depends_only_on_itself(graph: grimp.ImportGraph) -> None:
-    def permitted(module: str) -> bool:
-        top = module.split(".")[0]
-        return under(module, DOMAIN) or top in sys.stdlib_module_names or top in ALLOWED
-
     offending = {
         chain(graph, module, dep)
         for module in members(graph, DOMAIN)
         for dep in graph.find_upstream_modules(module)
-        if not permitted(dep)
+        if not (under(dep, DOMAIN) or listed(dep, ALLOWED_DOMAIN))
     }
     assert not offending, f"the domain depends on: {sorted(offending)}"
 
@@ -62,21 +65,25 @@ def test_ARC002_use_cases_know_no_technology(graph: grimp.ImportGraph) -> None:
         chain(outside_domain, module, dep)
         for module in members(outside_domain, APP)
         for dep in outside_domain.find_upstream_modules(module)
-        if under(dep, ADAPTERS) or under(dep, ENTRYPOINTS) or dep == ROOT
+        if not (under(dep, APP) or listed(dep, ALLOWED_APP))
     }
     assert not offending, f"a use case depends on: {sorted(offending)}"
 
 
 def test_ARC003_only_the_composition_root_assembles(graph: grimp.ImportGraph) -> None:
     def adapter(module: str) -> str:
-        return module.split(".")[2] if under(module, ADAPTERS) and module != ADAPTERS else ""
+        inside = under(module, ADAPTERS) and module != ADAPTERS
+        return module.split(".")[2] if inside else ""
+
+    def judged_elsewhere(importer: str) -> bool:
+        # The domain by ARC-001, the use cases by ARC-002; the root may assemble.
+        return under(importer, DOMAIN) or under(importer, APP) or importer == ROOT
 
     offending = {
         f"{importer} -> {module}"
         for module in members(graph, ADAPTERS)
         if adapter(module)
         for importer in graph.find_modules_that_directly_import(module)
-        # The domain and the use cases are judged by ARC-001 and ARC-002; the root may assemble.
-        if not (under(importer, DOMAIN) or under(importer, APP) or importer == ROOT or adapter(importer) == adapter(module))
+        if not (judged_elsewhere(importer) or adapter(importer) == adapter(module))
     }
     assert not offending, f"only {ROOT} may import an adapter: {sorted(offending)}"

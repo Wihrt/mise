@@ -9,10 +9,10 @@ services:
     tmpfs:
       - /tmp
     environment:
-      PORT: "8080"
+      PORT: "${PORT:-8080}"
       DATABASE_URL: postgresql://<user>:dev@db:5432/<db>
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8080}:${PORT:-8080}"
     depends_on:
       db:
         condition: service_healthy

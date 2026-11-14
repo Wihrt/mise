@@ -35,7 +35,7 @@ Go hexagonal layout, kept small. For code style (naming, errors, concurrency, st
 - Test names carry the TESTS.md ID: `Test<PREFIX><DIGITS>_<Behavior>`, e.g. `TestCALC001_Add` for `CALC-001`. Subtests may add detail but the top-level name keeps the ID.
 
 ## Security and verification
-Commands live in `mise.toml` (see `repo-tooling`); `lint:go` and `test:go` run them. `test:go` writes the JUnit report that `harness gate` reads: `gotestsum --junitfile .tdd/junit.xml -- ./...` with `gotestsum = "1.13.0"` in `[tools]` (registry `aqua:gotestyourself/gotestsum`; verified on the e2e fixture: a compile error gives a report holding only a `TestMain` failure, and the output carries `undefined: <symbol>`). `.tdd/` is gitignored.
+Commands live in `mise.toml` (see `repo-tooling`); `lint:go` and `test:go` run them. `test:go` writes the JUnit report that `harness gate` reads: `gotestsum --junitfile .tdd/junit.xml -- -count=1 ./...` (`-count=1`: no cached result, see "Architecture test") with `gotestsum = "1.13.0"` in `[tools]` (registry `aqua:gotestyourself/gotestsum`; verified on the e2e fixture: a compile error gives a report holding only a `TestMain` failure, and the output carries `undefined: <symbol>`). `.tdd/` is gitignored.
 
 | Layer | Control | Where |
 |---|---|---|
@@ -52,12 +52,12 @@ The architecture test is the guarantee; forbidigo is fast feedback at commit.
 ### Architecture test
 `tests/architecture/arch_test.go` (template: `templates/arch_test.go`) carries the criteria `ARC-001` to `ARC-003` of the application baseline (`stacked-tdd-mr/templates/socle-application.md`). It reads the import graph with `go list -deps -json` from the module root, imports nothing of the module, and runs in `test:go`: `TestARC001_DomainDependsOnlyOnItself`, `TestARC002_UseCasesKnowNoTechnology`, `TestARC003_OnlyTheCompositionRootAssembles`.
 
-- The third-party packages the domain may import are the `allowed` list of the test file. It is an acceptance file: widening the list is a criterion change (`--ac-changed ARC-001`), never an implementer's edit.
-- Verified 2026-11-14 (go 1.27.4, trial module): a domain import of an adapter fails ARC-001, also under an alias and through an intermediate package; a third-party import outside `allowed` fails ARC-001; a use case importing an adapter, directly or through an intermediate package, fails ARC-002; an adapter importing another fails ARC-003; a new domain package and a new adapter wired in `cmd/` keep the three green.
+- Two lists in the test file name the third-party packages a layer may import: `allowedDomain` (ARC-001) and `allowedApp` (ARC-002). Both rules are whitelists: a use case may import the use cases, the domain, the standard library and `allowedApp`, nothing else of the module (an `internal/infra` package fails ARC-002). It is an acceptance file: widening a list is a criterion change (`--ac-changed ARC-001` or `ARC-002`), never an implementer's edit.
+- Verified 2026-11-14 (go 1.27.4, trial module): a domain import of an adapter fails ARC-001, also under an alias and through an intermediate package; a third-party import outside `allowedDomain` fails ARC-001; a use case importing an adapter (directly or through an intermediate package), a third-party package outside `allowedApp` or a module package outside the layers fails ARC-002; an adapter importing another fails ARC-003; a new domain package, a new adapter wired in `cmd/` and a third-party package added to `allowedApp` keep the three green. The template passes the golangci-lint configuration below (2.15.0: `0 issues`).
 - The three tests do not overlap (a direct domain import of an adapter fails ARC-001 only), so the gate's redundancy proof keeps all three.
-- Go caches this test across source changes, since it reads files outside its package: run it with `-count=1` (verified: `ok (cached)` after a forbidden import was added). `harness gate` sets `GOFLAGS=-count=1`; do the same in CI.
+- Go caches this test across source changes, since it reads files outside its package: run it with `-count=1` (verified: `ok (cached)` after a forbidden import was added). `harness gate` sets `GOFLAGS=-count=1`; the `test:go` command above carries the flag for local runs and CI.
 - A domain import of an adapter that itself imports the domain is an import cycle: the compiler refuses it and the three tests fail on `go list`. A mutant for ARC-001 targets an adapter that does not import the domain, or a third-party package.
-- ARC-001 allows the whole standard library, `os/exec` and `database/sql` included: keeping those out of the domain is forbidigo's job, below.
+- ARC-001 and ARC-002 allow the whole standard library, `os/exec` and `database/sql` included: keeping those out of the domain and the use cases is forbidigo's job, below.
 
 ### forbidigo
 golangci-lint v2 config (`version: "2"`); forbidigo keeps process execution out of the domain and applies only there:
