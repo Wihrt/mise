@@ -127,6 +127,7 @@ bash = true
 "~/.claude/skills/adr" = { source = "claude/skills/adr", mode = "symlink" }
 "~/.claude/skills/cilium-network-policies" = { source = "claude/skills/cilium-network-policies", mode = "symlink" }
 "~/.claude/skills/cnpg-operations" = { source = "claude/skills/cnpg-operations", mode = "symlink" }
+"~/.claude/skills/compose-dev" = { source = "claude/skills/compose-dev", mode = "symlink" }
 "~/.claude/skills/docker-build-strategies" = { source = "claude/skills/docker-build-strategies", mode = "symlink" }
 "~/.claude/skills/dockerfile-restricted" = { source = "claude/skills/dockerfile-restricted", mode = "symlink" }
 "~/.claude/skills/forge-gh" = { source = "claude/skills/forge-gh", mode = "symlink" }

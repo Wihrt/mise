@@ -1,0 +1,40 @@
+# Template (Go application). Unverified: written without Docker on 2026-11-14, see skills/compose-dev.
+# Replace <db>, <user> and the image digests; keep the service name `app` (the test helpers use it).
+services:
+  app:
+    build: .
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://<user>:dev@db:5432/<db>?sslmode=disable
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: rebuild
+          path: ./cmd
+        - action: rebuild
+          path: ./internal
+          ignore:
+            - "**/*_test.go"
+        - action: rebuild
+          path: ./go.mod
+        - action: rebuild
+          path: ./go.sum
+
+  db:
+    image: postgres:18-alpine  # pin the digest
+    environment:
+      POSTGRES_USER: <user>
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: <db>
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U <user> -d <db>"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
