@@ -327,15 +327,6 @@ func TestRedundant(t *testing.T) {
 	}
 }
 
-func TestAddedBlocks(t *testing.T) {
-	diff := "diff --git a/src/a.go b/src/a.go\n--- a/src/a.go\n+++ b/src/a.go\n@@ -3,0 +4,2 @@ func\n+x\n+y\n@@ -9 +11 @@\n-a\n+b\n@@ -20,2 +21,0 @@\n-a\n-b\n" +
-		"diff --git a/a_test.go b/a_test.go\n--- a/a_test.go\n+++ b/a_test.go\n@@ -1 +1,3 @@\n+z\n"
-	want := []Block{{"src/a.go", 4, 5}, {"src/a.go", 11, 11}}
-	if got := AddedBlocks(diff); !slices.Equal(got, want) {
-		t.Errorf("AddedBlocks = %v", got)
-	}
-}
-
 func TestMiseNonToolsAndWiring(t *testing.T) {
 	if got := MiseNonTools("[tools]\ngo = \"1\"\n[tasks.test]\nrun = \"x\"\n"); !slices.Equal(got, []string{"[tasks.test]", `run = "x"`}) {
 		t.Errorf("MiseNonTools = %v", got)

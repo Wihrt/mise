@@ -299,15 +299,6 @@ func (r *run) green() (bool, error) {
 		if r.o.NoNeutral {
 			r.out("NEUTRAL SKIPPED")
 		}
-		if r.o.NoMinimal {
-			r.out("MINIMAL SKIPPED")
-		} else {
-			minimal, err := r.runMinimal(repo)
-			if err != nil {
-				return false, err
-			}
-			ok = ok && minimal
-		}
 	case !r.o.ProofExempt:
 		r.out("PROOF MISSING: --proofs DIR or --proof-exempt")
 		ok = false

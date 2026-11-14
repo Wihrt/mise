@@ -33,8 +33,8 @@ func TestParseGateLists(t *testing.T) {
 		t.Errorf("replay: %+v, %v", o, err)
 	}
 	o, err = parseGate([]string{"green", "--slug", "s", "--test", "a", "--feat", "b", "--task", "t", "--proofs", "p",
-		"--no-neutral", "--no-minimal", "--since", "c", "--unneeded-ok", "f:1-2", "--unneeded-ok", "g:3-3"})
-	if err != nil || !o.NoNeutral || !o.NoMinimal || o.Since != "c" || !slices.Equal(o.UnneededOK, []string{"f:1-2", "g:3-3"}) {
+		"--no-neutral"})
+	if err != nil || !o.NoNeutral {
 		t.Errorf("green: %+v, %v", o, err)
 	}
 }

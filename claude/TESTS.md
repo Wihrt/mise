@@ -117,19 +117,6 @@ Branche : `feat/preuves-nouveau` · Commande : `mise run test`
     - relancé avec `--proof-exempt`, aucun mutant n'est appliqué et elle se termine par `PASS`
 - **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV007_MissingProofsOptionFails` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV007_SurvivingMutantFails` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV007_KilledMutantAndNeutralChangePass` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV007_ProofExemptAppliesNoMutant`
 
-## code-minimal — Code minimal : un bloc qu'aucun test ne demande est refusé
-Branche : `feat/code-minimal` · Commande : `mise run test`
-
-### PRV-009 — Un bloc de code qu'aucun test ne demande est refusé
-- **Critère** :
-  - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, deux blocs séparés : l'un sans lequel le test du critère échoue, l'autre dont le retrait laisse tous les tests verts
-  - **Quand** `harness gate green --proofs` est lancé
-  - **Alors**
-    - la sortie contient `UNNEEDED` avec le fichier et les lignes du second bloc, aucune ligne `UNNEEDED` pour le premier, et se termine par `FAIL`
-    - relancé avec `--unneeded-ok` pour ce bloc, elle contient `UNNEEDED ACCEPTED` avec le même fichier et les mêmes lignes, aucune autre ligne `UNNEEDED`, et se termine par `PASS`
-    - quand le commit `feat` supprime aussi une ligne existante d'un fichier de production et ajoute un fichier de test, aucune ligne `UNNEEDED` ne nomme la suppression ni le fichier de test
-- **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV009_UnneededBlockIsRefused` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV009_UnneededOKAcceptsTheBlock` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV009_DeletionAndTestFileAreNotJudged`
-
 ## neutre-sans-resultat — Un changement neutre sans résultat est invalide
 Branche : `feat/neutre-sans-resultat` · Commande : `mise run test`
 
@@ -209,13 +196,6 @@ Branche : `feat/revue-finale` · Commande : `mise run test`
   - **Alors** la sortie contient `TREE NOT CLEAN`, aucune ligne `MUTANT`, se termine par `FAIL`, et la modification non commitée est toujours dans le fichier
 - **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV012_ProofsNotAppliedOnModifiedTree`
 
-### PRV-013 — Le code minimal se juge depuis le début de la tâche
-- **Critère** :
-  - **Étant donné** un slug qui a deux commits d'acceptation, et un bloc de code de production qu'aucun test ne demande, ajouté entre les deux
-  - **Quand** `harness gate green --proofs DIR` est lancé avec `--test <second commit d'acceptation>` et `--since <premier commit d'acceptation>`
-  - **Alors** la sortie contient `UNNEEDED` avec le fichier et les lignes de ce bloc, et se termine par `FAIL`
-- **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV013_UnneededBlockAddedBetweenTwoAcceptanceCommits`
-
 ### RPL-003 — Une tâche qui échoue sans mutant arrête le rejeu
 - **Critère** :
   - **Étant donné** deux commits dont le premier fait échouer la tâche sans aucun mutant
@@ -224,16 +204,6 @@ Branche : `feat/revue-finale` · Commande : `mise run test`
     - la sortie contient `BASELINE NOT GREEN base`, aucune ligne `KEPT`, et se termine par `FAIL`
     - relancé en échangeant `--base` et `--head`, elle contient `BASELINE NOT GREEN head`, aucune ligne `KEPT`, et se termine par `FAIL`
 - **Test** : `../harness/acceptance/rejeu_test.go` › `TestRPL003_FailingTaskWithoutMutantStopsTheReplay` ; `../harness/acceptance/rejeu_test.go` › `TestRPL003_SwappedBaseAndHeadNamesHead`
-
-## spec-hors-code — La spec n'est pas jugée comme du code
-Branche : `feat/spec-hors-code` · Commande : `mise run test`
-
-### PRV-014 — La spec n'est pas jugée comme du code
-- **Critère** :
-  - **Étant donné** un slug qui a deux commits d'acceptation et, entre les deux, un commit qui ajoute des lignes au fichier de spec du dépôt
-  - **Quand** `harness gate green --proofs --since <premier commit d'acceptation> --spec <fichier de spec>` est lancé
-  - **Alors** la sortie ne contient aucune ligne `UNNEEDED` qui nomme le fichier de spec, et se termine par `PASS`
-- **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV014_SpecLinesAddedBetweenTwoAcceptanceCommitsAreNotUnneeded`
 
 ## test-garde-voisin — Un test gardé n'est pas dit modifié quand son voisin change
 Branche : `feat/test-garde-voisin` · Commande : `mise run test`
@@ -307,7 +277,7 @@ Branche : `feat/harness-outils-de-test` · Commande : `mise run test`
   - **Quand** `harness gate red` est lancé sur le slug
   - **Alors** la sortie contient `RED X-001`, aucune ligne `MISSING X-001`, et se termine par `PASS`
 - **Test** : `../harness/acceptance/tests_gardes_test.go` › `TestFRM008_BrunoTestCarriesItsID`
-## preuves-optionnelles — Le changement neutre et le code minimal se sautent sur demande
+## preuves-optionnelles — Le changement neutre se saute sur demande
 Branche : `feat/harness-preuves-optionnelles` · Commande : `mise run test`
 
 ### PRV-017 — Le changement neutre se saute sur demande
@@ -318,15 +288,6 @@ Branche : `feat/harness-preuves-optionnelles` · Commande : `mise run test`
     - la sortie contient `KILLED` pour le critère et `NEUTRAL SKIPPED`, aucune ligne `NEUTRAL MISSING`, et se termine par `PASS`
     - relancé sans `--no-neutral`, elle contient `NEUTRAL MISSING` pour le critère et se termine par `FAIL`
 - **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV017_NeutralChangeIsSkippedOnRequest`
-
-### PRV-018 — Le code minimal se saute sur demande
-- **Critère** :
-  - **Étant donné** un commit d'acceptation et un commit `feat` qui ajoute, dans un fichier de production, un bloc dont le retrait laisse tous les tests verts
-  - **Quand** `harness gate green --proofs` est lancé avec `--no-minimal`
-  - **Alors**
-    - la sortie contient `MINIMAL SKIPPED`, aucune ligne `UNNEEDED`, et se termine par `PASS`
-    - relancé sans `--no-minimal`, elle contient `UNNEEDED` avec le fichier et les lignes du bloc et se termine par `FAIL`
-- **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV018_MinimalCodeIsSkippedOnRequest`
 
 ## mutants-paralleles — Les mutants se jugent en parallèle sur demande
 Branche : `feat/harness-mutants-paralleles` · Commande : `mise run test`
@@ -442,3 +403,15 @@ Branche : `feat/fusion-de-pile` · Commande : `mise run test`
     - `gh pr merge 3 --merge` et `glab mr merge 3` reçoivent `deny`
 - **Test** : `hooks/tests/never-merge-stack.bats` › `FUS-009 merging a stack goes through the user's go`
 - **Test** : `../harness/acceptance/parallel_test.go` › `TestPRV019_MutantsAreJudgedInParallel`
+
+## sans-code-minimal — Un bloc qu'aucun test ne demande n'est plus jugé
+Branche : `feat/sans-code-minimal` · Commande : `mise run test`
+
+### PRV-020 — Un bloc qu'aucun test ne demande n'est plus jugé
+- **Critère** :
+  - **Étant donné** un commit d'acceptation, un commit `feat` qui ajoute dans un fichier de production un bloc dont le retrait laisse tous les tests verts, et un dossier de preuves dont le mutant tue le test du critère
+  - **Quand** `harness gate green --proofs DIR --no-neutral` est lancé
+  - **Alors**
+    - la sortie ne contient aucune ligne `UNNEEDED` ni `MINIMAL`, et se termine par `PASS`
+    - relancé avec `--no-minimal`, `--since`, `--unneeded-ok` ou `--spec`, la porte sort avec le code 2 et nomme l'option refusée
+- **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV020_UnneededBlockIsNoLongerJudged` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV020_RetiredOptionsAreRefused`

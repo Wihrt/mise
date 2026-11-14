@@ -48,6 +48,8 @@ Les preuves s'appliquent aux tests d'un comportement déjà en place (`character
 
 **Redondance.** Pendant les mutants, la porte note quels critères (du slug et des sections antérieures jugées par la même tâche) ont un test en échec. Un critère A dont tous les mutants font aussi échouer un test d'un même autre critère B est refusé : B le couvre déjà.
 
+> Retiré le 13/11, voir `2026-11-13-filets-de-refactoring-design.md`.
+
 **Code minimal (décision du 10/11, option 2).** Une quatrième preuve porte sur le code, pas sur le test : en `green --proofs`, après les preuves des tests, la porte prend chaque bloc de lignes ajouté par la tâche dans un fichier de production (différence entre le commit d'acceptation et le commit jugé, bloc par bloc), le retire seul, lance la tâche, puis restaure l'arbre. Un bloc dont le retrait ne fait échouer aucun test est refusé : `UNNEEDED <fichier>:<début>-<fin>`. Un bloc refusé à tort (commentaire, message d'erreur sans test) passe par `--unneeded-ok <fichier>:<début>-<fin>` après un `Ruling:`. Limite connue : la preuve ne voit que les blocs entiers. Elle se lance sur le commit d'après refactor.
 
 **Exemption.** `green --proof-exempt` saute les preuves pour une tâche sans changement de comportement (`fix(ci)`, `docs`, `refactor` sous les tests existants) ; comme `--allow-compile-red`, il ne s'emploie qu'après un `Ruling:` consigné.
@@ -80,6 +82,8 @@ Obligatoire avant la revue finale de toute pile dont une tâche a utilisé `--re
 ### 5. Textes
 
 **Règles génériques (demande du 10/11).** Une règle du harnais s'énonce sans nommer un outil de test, un dépôt ni un chart. Les cas réels servent à trouver la règle et restent cités comme exemples, jamais comme règle. Dans le tableau ci-dessous, les points propres à un outil (helm-unittest) sont donc à écrire sous leur forme générique, l'exemple en « Cas réel » ; une table « cas réel → règle générique » accompagne les textes à la relecture.
+
+> Retiré le 13/11, voir `2026-11-13-filets-de-refactoring-design.md`.
 
 **Rouge, vert, refactor (demande du 10/11).** Le déroulé d'une tâche gagne un troisième temps, comme en TDD : après la porte `green`, l'implementer réduit le code de la tâche à son strict minimum (ce qu'aucun test ne demande est retiré), sans toucher aux tests ; commit `refactor(<slug>)` ou réponse `NOTHING TO REDUCE` ; la porte `green` est rejouée sur ce commit avec le même commit d'acceptation. En mode nouveau, mutants et changements neutres s'écrivent sur le commit d'après refactor. Lignes concernées du tableau : `skills/stacked-tdd-mr/SKILL.md`, `agents/implementer.md`.
 
