@@ -27,3 +27,42 @@ Tout dépôt Go ou Python. Un test par critère, sous `tests/architecture/` (gab
 - En Go, un import du domaine vers un adapter qui importe lui-même le domaine est un cycle que le compilateur refuse : le mutant ne se construit pas. Viser un adapter qui n'importe pas le domaine, ou une bibliothèque tierce.
 - Changement neutre type : un paquet de plus dans le domaine, un adapter de plus câblé à la racine de composition.
 - Élargir la liste des bibliothèques permises au domaine est un changement de critère (`--ac-changed ARC-001`) : la liste est dans le fichier de test, que l'implementer ne modifie pas.
+
+## douze-facteurs — L'image se comporte en application à douze facteurs
+
+Dépôt Go ou Python avec un `Dockerfile` à la racine. Le produit est l'image, lancée par le `compose.yaml` du dépôt (`compose-dev`). Tests natifs du langage sous `tests/container/`, tâche `test:container`. Détail de chaque facteur : skill `twelve-factor`.
+
+### FAC-001 — Le port d'écoute vient de l'environnement
+- **Étant donné** l'application lancée par le compose avec un port d'écoute autre que celui par défaut
+- **Quand** une requête est envoyée sur ce port
+- **Alors** l'application répond
+
+### FAC-002 — Une variable obligatoire absente arrête le démarrage
+- **Étant donné** l'application lancée par le compose sans une variable d'environnement obligatoire
+- **Quand** le conteneur démarre
+- **Alors**
+  - il sort avec un code non nul
+  - sa sortie nomme la variable manquante
+
+### FAC-003 — Les logs sortent sur la sortie standard
+- **Étant donné** l'application lancée par le compose
+- **Quand** une requête est servie
+- **Alors** la sortie du conteneur porte la ligne de log de cette requête
+
+### FAC-004 — L'arrêt est propre
+- **Étant donné** l'application lancée par le compose
+- **Quand** le conteneur reçoit SIGTERM
+- **Alors** il sort avec le code 0 avant la fin du délai d'arrêt
+
+### FAC-005 — Aucun état local
+- **Étant donné** l'application lancée par le compose
+- **Quand** elle sert son cas nominal
+- **Alors**
+  - le système de fichiers racine du conteneur est en lecture seule
+  - le processus ne tourne pas en root
+
+### Notes pour les preuves
+- Non vérifié : ces critères ont été écrits le 14/11 sur un poste sans Docker. Le premier dépôt qui les porte les prouve, et corrige ce gabarit si un critère ne se laisse pas tester ainsi.
+- Un critère sans objet (FAC-001 pour un worker sans port) s'écarte par un `Ruling:` consigné.
+- Mutants types. FAC-001 : port écrit en dur. FAC-002 : valeur par défaut donnée à la variable obligatoire. FAC-003 : log de requête retiré, ou écrit dans un fichier. FAC-004 : `ENTRYPOINT` en forme shell (le signal n'atteint pas le processus, code 137). FAC-005 : `read_only: true` retiré du compose ; `USER` retiré du `Dockerfile`.
+- Changement neutre type : une route de plus, un autre port, un autre format de log.

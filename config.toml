@@ -146,6 +146,7 @@ bash = true
 "~/.claude/skills/repo-tooling" = { source = "claude/skills/repo-tooling", mode = "symlink" }
 "~/.claude/skills/stacked-tdd-mr" = { source = "claude/skills/stacked-tdd-mr", mode = "symlink" }
 "~/.claude/skills/terraform-skill" = { source = "claude/skills/terraform-skill", mode = "symlink" }
+"~/.claude/skills/twelve-factor" = { source = "claude/skills/twelve-factor", mode = "symlink" }
 "~/.claude/skills/vault-kv-guarded-write" = { source = "claude/skills/vault-kv-guarded-write", mode = "symlink" }
 "~/.config/rtk/config.toml" = { source = "rtk/config.toml", mode = "symlink" }
 "~/.config/rtk/filters.toml" = { source = "rtk/filters.toml", mode = "symlink" }
