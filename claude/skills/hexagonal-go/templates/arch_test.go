@@ -13,9 +13,13 @@ import (
 	"testing"
 )
 
-// allowed lists the third-party import paths the domain may depend on
-// (a path and everything under it). Adding one is a criterion change of ARC-001.
-var allowed = []string{}
+// The third-party import paths each layer may depend on (a path and everything
+// under it). Adding one is a criterion change: ARC-001 for the domain, ARC-002
+// for the use cases.
+var (
+	allowedDomain = []string{}
+	allowedApp    = []string{}
+)
 
 const (
 	domainDir   = "/internal/domain"
@@ -63,7 +67,7 @@ func graph(t *testing.T) (string, map[string]pkg) {
 
 func golist(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command("go", args...)
+	cmd := exec.CommandContext(t.Context(), "go", args...) //nolint:gosec // G204: the test chooses the arguments
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
@@ -74,6 +78,16 @@ func golist(t *testing.T, dir string, args ...string) string {
 
 // under reports that path is dir or a package below it.
 func under(path, dir string) bool { return path == dir || strings.HasPrefix(path, dir+"/") }
+
+// listed reports that path is one of the paths of list, or a package below one.
+func listed(path string, list []string) bool {
+	for _, allowed := range list {
+		if under(path, allowed) {
+			return true
+		}
+	}
+	return false
+}
 
 // reach lists every package from reaches through imports, with the chain that
 // leads to it. It does not look inside a package for which stop is true.
@@ -100,15 +114,7 @@ func reach(pkgs map[string]pkg, from string, stop func(pkg) bool) map[string]str
 func TestARC001_DomainDependsOnlyOnItself(t *testing.T) {
 	module, pkgs := graph(t)
 	permitted := func(p pkg) bool {
-		if p.Standard || under(p.ImportPath, module+domainDir) {
-			return true
-		}
-		for _, a := range allowed {
-			if under(p.ImportPath, a) {
-				return true
-			}
-		}
-		return false
+		return p.Standard || under(p.ImportPath, module+domainDir) || listed(p.ImportPath, allowedDomain)
 	}
 	// A standard or allowed package is a leaf: what it imports is its own business.
 	leaf := func(p pkg) bool { return p.Standard || !under(p.ImportPath, module) }
@@ -131,16 +137,22 @@ func TestARC001_DomainDependsOnlyOnItself(t *testing.T) {
 
 func TestARC002_UseCasesKnowNoTechnology(t *testing.T) {
 	module, pkgs := graph(t)
+	permitted := func(p pkg) bool {
+		return p.Standard || under(p.ImportPath, module+appDir) || under(p.ImportPath, module+domainDir) ||
+			listed(p.ImportPath, allowedApp)
+	}
 	// What the domain imports is judged by ARC-001, not here.
-	stop := func(p pkg) bool { return !under(p.ImportPath, module) || under(p.ImportPath, module+domainDir) }
+	leaf := func(p pkg) bool {
+		return p.Standard || !under(p.ImportPath, module) || under(p.ImportPath, module+domainDir)
+	}
 	found := false
 	for path := range pkgs {
 		if !under(path, module+appDir) {
 			continue
 		}
 		found = true
-		for dep, chain := range reach(pkgs, path, stop) {
-			if under(dep, module+adaptersDir) || under(dep, module+rootDir) {
+		for dep, chain := range reach(pkgs, path, leaf) {
+			if !permitted(pkgs[dep]) {
 				t.Errorf("a use case depends on %s: %s", dep, chain)
 			}
 		}

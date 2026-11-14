@@ -11,7 +11,7 @@ Status: written 2026-11-14 on a workstation without Docker. Every command and ev
 - `build:` points at the production `Dockerfile`, same target as the published image. No second Dockerfile for development (twelve-factor X: dev and prod run the same image).
 - `read_only: true`, `cap_drop: [ALL]`, `security_opt: ["no-new-privileges:true"]`; the user comes from the image (non-root, see `dockerfile-restricted`). A directory the process must write is a `tmpfs:` entry, named in the review.
 - Settings only through `environment:` (twelve-factor III). Values are development values; no secret of a real environment in the file.
-- Port: `"${APP_PORT:-8080}:8080"`. A developer gets 8080; a test run sets its own (see "Started by the tests").
+- Port: `PORT: "${PORT:-8080}"` in `environment:` and `"${APP_PORT:-8080}:${PORT:-8080}"` in `ports:`. `PORT` is the port the process listens on inside the container, `APP_PORT` the host port. A developer gets 8080 for both; a test run sets its own (see "Started by the tests").
 - No `healthcheck:` that needs a shell or curl in a distroless image. Either the binary has a health subcommand, or the tests poll the health route.
 
 ## Backing services
@@ -34,15 +34,17 @@ Status: written 2026-11-14 on a workstation without Docker. Every command and ev
 The container tests (`test:container`, `test:api`, `test:ui`) start the same file, through the common helper of the test directory:
 
 ```bash
-project="<repo>-$$"                      # one Compose project per run
-trap 'docker compose -p "$project" down -v --remove-orphans' EXIT
+project="<repo>-${CI_JOB_ID:-$$}-$RANDOM"   # one Compose project per run; lowercase only
+trap 'docker compose -p "$project" down -v --remove-orphans --rmi local' EXIT
 APP_PORT=0 docker compose -p "$project" up -d --build --wait
-port=$(docker compose -p "$project" port app 8080 | sed 's/.*://')
+port=$(docker compose -p "$project" port app "${PORT:-8080}" | sed 's/.*://')
 ```
 
-- A project name and a host port of its own per run: two runs at once do not collide, so `harness gate --jobs` stays usable. `APP_PORT=0` asks Docker for a free host port; `docker compose port` reads it.
+- A project name and a host port of its own per run: two runs at once do not collide, so `harness gate --jobs` stays usable. The shell's pid alone is not enough on a Docker daemon shared by several CI jobs (each job's shell may have the same pid in its own container): the name carries the job id when there is one (`CI_JOB_ID` on GitLab, `GITHUB_RUN_ID` on GitHub) and a random number. `APP_PORT=0` asks Docker for a free host port; `docker compose port` reads it.
 - `up --wait` returns when every service is running or healthy, and fails when one is not: no fixed sleep.
-- `down -v` in a trap: a failed run leaves no container, network or volume behind.
+- `down -v --rmi local` in a trap: a failed run leaves no container, network, volume or built image behind (each project builds an image named after it).
+- Another listening port (`FAC-001`): `PORT=9090 APP_PORT=0 docker compose -p "$project" up -d --build --wait`, then `docker compose -p "$project" port app 9090`. The test fails when the application ignores `PORT`: nothing listens on 9090 inside the container.
+- A missing mandatory variable (`FAC-002`): Compose cannot unset a variable its file sets, so the test runs the image the project built, alone, with every mandatory variable but one: `docker compose -p "$project" build`, then `docker run --rm --read-only -e PORT=8080 "$(docker compose -p "$project" config --images | grep -- '-app$')"` and it reads the exit code and the output. No backing service is needed: the process must stop before it connects anywhere.
 
 ## Checks
 - `lint:compose`: `docker compose config --quiet` (the file parses and its variables resolve).

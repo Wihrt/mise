@@ -32,7 +32,7 @@ depends = ["lint:*"]
 
 # The repo owns the test:<ns> tasks (test:go, test:py, ...); `test` runs them all.
 # Each test:<ns> also writes a per-test report under .tdd/ (gitignored, see templates/gitignore):
-#   go:   mkdir -p .tdd && gotestsum --junitfile .tdd/junit.xml -- ./...   (gotestsum in [tools])
+#   go:   mkdir -p .tdd && gotestsum --junitfile .tdd/junit.xml -- -count=1 ./...   (gotestsum in [tools])
 #   py:   uv run pytest --junitxml=.tdd/junit.xml
 #   helm: mkdir -p .tdd && helm unittest -t JUnit -o .tdd/junit.xml <chart>
 #   tofu: tofu init -backend=false && mkdir -p .tdd && tofu test -json-into=.tdd/tofu.json
@@ -108,7 +108,7 @@ description = "Run the harness tests: unit tests, and acceptance tests that run 
 dir = "harness"
 run = """
 mkdir -p ../.tdd
-gotestsum --junitfile ../.tdd/go.xml -- ./...
+gotestsum --junitfile ../.tdd/go.xml -- -count=1 ./...
 """
 
 [tasks."test:hooks"]

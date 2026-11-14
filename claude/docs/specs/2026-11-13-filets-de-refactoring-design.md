@@ -91,7 +91,7 @@ Aucun critère d'acceptation pour ces textes (règle de la spec du 10/11 : un te
 `architecture` — tout dépôt Go ou Python :
 
 - **ARC-001** — Le domaine ne dépend que de lui-même. Étant donné le code du dépôt, quand le test d'architecture est lancé, alors aucun paquet du domaine n'importe, directement ou par un intermédiaire, autre chose que le domaine, la bibliothèque standard et les bibliothèques que le fichier de test énumère (C9).
-- **ARC-002** — Les cas d'usage ne connaissent aucune technologie. Même forme : aucun paquet de `app` n'importe, directement ou par un intermédiaire autre que le domaine, un adapter ni un point d'entrée.
+- **ARC-002** — Les cas d'usage ne connaissent aucune technologie. Même forme : aucun paquet de `app` n'importe, directement ou par un intermédiaire autre que le domaine, autre chose que les cas d'usage, le domaine, la bibliothèque standard et les bibliothèques que le fichier de test énumère pour eux. (Relecture finale du 14/11 : la première rédaction n'interdisait que les adapters et les points d'entrée ; un cas d'usage qui importait un ORM passait.)
 - **ARC-003** — Seule la racine de composition assemble. Même forme : aucun paquet hors du domaine et des cas d'usage n'importe un adapter, sauf la racine de composition (`cmd/<app>` en Go, `composition.py` en Python) et l'adapter lui-même.
 
 Les trois critères sont bornés pour ne pas se recouvrir (constat du 14/11 sur les applications d'essai) : sinon le mutant « le domaine importe un adapter » ferait aussi échouer ARC-003, et la porte refuserait ARC-001 par `REDUNDANT`.

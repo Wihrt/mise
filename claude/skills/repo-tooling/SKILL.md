@@ -27,7 +27,7 @@ Every repo runs one tooling baseline. Commands live only in `mise.toml`; develop
 | Helm | `helm lint --strict`, kubeconform, helm-unittest (helm plugin, not in the mise registry) |
 | OpenTofu | `tofu fmt -check`, `tofu validate`, tflint, `trivy config` |
 | Python | `uv` pinned; `test:py = uv run pytest --junitxml=.tdd/junit.xml` (pytest in `[dependency-groups] dev`; exit 5 = nothing collected); `lint:py = ruff check && ruff format --check && ty check src` (ruff, ty pinned; ty is beta) |
-| Go | gotestsum (`gotestsum`, `.tdd/junit.xml`), golangci-lint, govulncheck (`go:golang.org/x/vuln/cmd/govulncheck`, not in the registry), `go mod tidy -diff` |
+| Go | gotestsum (`gotestsum --junitfile .tdd/junit.xml -- -count=1 ./...`), golangci-lint, govulncheck (`go:golang.org/x/vuln/cmd/govulncheck`, not in the registry), `go mod tidy -diff` |
 | Compose (Go or Python application) | `lint:compose = docker compose config --quiet`; `dev = docker compose up --build --watch` (see `compose-dev`; unverified) |
 | HTTP API | Bruno CLI (`"npm:@usebruno/cli"` in `[tools]`), `test:api`, report `.tdd/api.xml` |
 | Web front | pytest-playwright (project dependency, browser installed by `setup`), `test:ui`, report `.tdd/ui.xml` |
