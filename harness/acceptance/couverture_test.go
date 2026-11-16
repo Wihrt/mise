@@ -98,50 +98,49 @@ func TestCOV007_FailedTaskFails(t *testing.T) {
 const (
 	covPy     = "src/spike/server.py"
 	covPyLcov = ".tdd/cover/py.lcov"
-	covPySrc  = `import os
-import signal
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
-
-
-def classify(n):
-    if n > 0:
-        return "positive"
-    else:
-        return "non-positive"
-
-
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == "/hello":
-            body = classify(1).encode()
-            self.send_response(200)
-        elif self.path == "/never":
-            body = b"never called"
-            self.send_response(200)
-        else:
-            body = b"nf"
-            self.send_response(404)
-        self.end_headers()
-        self.wfile.write(body)
-
-    def log_message(self, *a):
-        pass
-
-
-def main():
-    srv = HTTPServer(("0.0.0.0", int(os.environ.get("PORT", "8000"))), Handler)
-    if os.environ.get("GRACEFUL") == "1":
-        # shutdown() must run from another thread than serve_forever()
-        signal.signal(signal.SIGTERM,
-                      lambda s, f: threading.Thread(target=srv.shutdown).start())
-    print("listening", flush=True)
-    srv.serve_forever()
-
-
-if __name__ == "__main__":
-    main()
-`
+	covPySrc  = "import os\n" +
+		"import signal\n" +
+		"import threading\n" +
+		"from http.server import BaseHTTPRequestHandler, HTTPServer\n" +
+		"\n" +
+		"\n" +
+		"def classify(n):\n" +
+		"    if n > 0:\n" +
+		"        return \"positive\"\n" +
+		"    else:\n" +
+		"        return \"non-positive\"\n" +
+		"\n" +
+		"\n" +
+		"class Handler(BaseHTTPRequestHandler):\n" +
+		"    def do_GET(self):\n" +
+		"        if self.path == \"/hello\":\n" +
+		"            body = classify(1).encode()\n" +
+		"            self.send_response(200)\n" +
+		"        elif self.path == \"/never\":\n" +
+		"            body = b\"never called\"\n" +
+		"            self.send_response(200)\n" +
+		"        else:\n" +
+		"            body = b\"nf\"\n" +
+		"            self.send_response(404)\n" +
+		"        self.end_headers()\n" +
+		"        self.wfile.write(body)\n" +
+		"\n" +
+		"    def log_message(self, *a):\n" +
+		"        pass\n" +
+		"\n" +
+		"\n" +
+		"def main():\n" +
+		"    srv = HTTPServer((\"0.0.0.0\", int(os.environ.get(\"PORT\", \"8000\"))), Handler)\n" +
+		"    if os.environ.get(\"GRACEFUL\") == \"1\":\n" +
+		"        # shutdown() must run from another thread than serve_forever()\n" +
+		"        signal.signal(signal.SIGTERM,\n" +
+		"                      lambda s, f: threading.Thread(target=srv.shutdown).start())\n" +
+		"    print(\"listening\", flush=True)\n" +
+		"    srv.serve_forever()\n" +
+		"\n" +
+		"\n" +
+		"if __name__ == \"__main__\":\n" +
+		"    main()\n"
 	covPyRec = `SF:src/spike/server.py
 DA:1,1
 DA:2,1
