@@ -2,6 +2,7 @@ package gate
 
 import (
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/Wihrt/mise/harness/internal/domain/coverage"
@@ -53,10 +54,35 @@ func (r *run) coverage() (bool, error) {
 		r.outf("COVERAGE %s: %d files", p, len(m))
 		measures = append(measures, m)
 	}
-	judged := coverage.Merge(measures...).Select(func(f string) bool { return !tdd.IsTestPath(f) })
-	findings := judged.Findings()
+	_, listed := r.g.git.Run(repo, "ls-files")
+	tracked := map[string]bool{}
+	for _, f := range strings.Split(listed, "\n") {
+		tracked[f] = true
+	}
+	production := func(f string) bool { return tracked[f] && !tdd.IsTestPath(f) }
+	findings := coverage.Merge(measures...).Select(production).Findings()
+	for f := range tracked {
+		if !strings.HasSuffix(f, ".py") || !production(f) {
+			continue
+		}
+		source, err := r.g.files.Read(abs(f))
+		if err != nil {
+			return false, failure{err.Error()}
+		}
+		findings = append(findings, coverage.Pragmas(f, source)...)
+	}
+	sort.SliceStable(findings, func(i, j int) bool {
+		if findings[i].File != findings[j].File {
+			return findings[i].File < findings[j].File
+		}
+		return findings[i].Start < findings[j].Start
+	})
 	for _, f := range findings {
-		r.outf("%s %s:%d-%d", f.Kind, f.File, f.Start, f.End)
+		if f.Kind == "UNCOVERED" {
+			r.outf("UNCOVERED %s:%d-%d", f.File, f.Start, f.End)
+		} else {
+			r.outf("%s %s:%d", f.Kind, f.File, f.Start)
+		}
 	}
 	r.out("ERROR RETURNS IGNORED 0")
 	return len(findings) == 0, nil

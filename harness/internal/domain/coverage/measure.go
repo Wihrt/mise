@@ -11,8 +11,22 @@ import (
 // pos is a line and a column of a source file.
 type pos struct{ line, col int }
 
-// span is the first and the last position of a block.
-type span struct{ start, end pos }
+// kind tells what a span stands for: a Go block, a Python line or a Python branch.
+type kind int
+
+const (
+	block kind = iota
+	line
+	branch
+)
+
+// span is the first and the last position of a block, a line or a branch. The
+// branches of a line are told apart by desc.
+type span struct {
+	start, end pos
+	kind       kind
+	desc       string
+}
 
 // Measure is what the reports say, per file of the repository: for each block
 // that holds statements, whether a report saw it executed.
@@ -51,7 +65,9 @@ func (m Measure) Select(keep func(file string) bool) Measure {
 	return out
 }
 
-// Findings lists the blocks no report saw executed, sorted by file then position.
+// Findings lists what no report saw executed, sorted by file then line: Go
+// blocks, groups of Python lines that no executed line separates, and Python
+// lines that carry a never-taken branch.
 func (m Measure) Findings() []Finding {
 	files := make([]string, 0, len(m))
 	for f := range m {
@@ -60,10 +76,12 @@ func (m Measure) Findings() []Finding {
 	sort.Strings(files)
 	var out []Finding
 	for _, file := range files {
-		var spans []span
+		spans := make([]span, 0, len(m[file]))
+		executed := map[int]bool{}
 		for s, covered := range m[file] {
-			if !covered {
-				spans = append(spans, s)
+			spans = append(spans, s)
+			if s.kind == line && covered {
+				executed[s.start.line] = true
 			}
 		}
 		sort.Slice(spans, func(i, j int) bool {
@@ -72,8 +90,24 @@ func (m Measure) Findings() []Finding {
 			}
 			return spans[i].start.col < spans[j].start.col
 		})
+		grouping := false
 		for _, s := range spans {
-			out = append(out, Finding{Kind: "UNCOVERED", File: file, Start: s.start.line, End: s.end.line})
+			covered := m[file][s]
+			switch {
+			case s.kind == line && covered:
+				grouping = false
+			case s.kind == line && grouping:
+				out[len(out)-1].End = s.start.line
+			case s.kind == line:
+				out = append(out, Finding{Kind: "UNCOVERED", File: file, Start: s.start.line, End: s.start.line})
+				grouping = true
+			case s.kind == branch && !covered && executed[s.start.line]:
+				if n := len(out); n == 0 || out[n-1].Kind != "UNCOVERED BRANCH" || out[n-1].File != file || out[n-1].Start != s.start.line {
+					out = append(out, Finding{Kind: "UNCOVERED BRANCH", File: file, Start: s.start.line, End: s.start.line})
+				}
+			case s.kind == block && !covered:
+				out = append(out, Finding{Kind: "UNCOVERED", File: file, Start: s.start.line, End: s.end.line})
+			}
 		}
 	}
 	return out
@@ -84,6 +118,9 @@ func (m Measure) Findings() []Finding {
 func Parse(text string, modules map[string]string) (Measure, error) {
 	if strings.HasPrefix(text, "mode:") {
 		return ParseGoProfile(text, modules)
+	}
+	if strings.HasPrefix(text, "SF:") || strings.Contains(text, "\nSF:") {
+		return ParseLCOV(text)
 	}
 	return nil, errors.New("unknown coverage report format")
 }
