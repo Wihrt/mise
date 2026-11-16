@@ -27,8 +27,19 @@ Every repo runs one tooling baseline. Commands live only in `mise.toml`; develop
 | Helm | `helm lint --strict`, kubeconform, helm-unittest (helm plugin, not in the mise registry) |
 | OpenTofu | `tofu fmt -check`, `tofu validate`, tflint, `trivy config` |
 | Python | `uv` pinned; `test:py = uv run pytest --junitxml=.tdd/junit.xml` (pytest in `[dependency-groups] dev`; exit 5 = nothing collected); `lint:py = ruff check && ruff format --check && ty check src` (ruff, ty pinned; ty is beta) |
-| Go | gotestsum (`gotestsum`, `.tdd/junit.xml`), golangci-lint, govulncheck (`go:golang.org/x/vuln/cmd/govulncheck`, not in the registry), `go mod tidy -diff` |
+| Go | gotestsum (`gotestsum --junitfile .tdd/junit.xml -- -count=1 ./...`), golangci-lint, govulncheck (`go:golang.org/x/vuln/cmd/govulncheck`, not in the registry), `go mod tidy -diff` |
+| Compose (Go or Python application) | `lint:compose = docker compose config --quiet`; `dev = docker compose up --build --watch` (see `compose-dev`; unverified) |
+| HTTP API | Bruno CLI (`"npm:@usebruno/cli"` in `[tools]`), `test:api`, report `.tdd/api.xml` |
+| Web front | pytest-playwright (project dependency, browser installed by `setup`), `test:ui`, report `.tdd/ui.xml` |
 Not by default: yamllint, markdownlint.
+
+## Go or Python application (repo with a Dockerfile)
+For a repo that `repo-stack` names an application and that has a `Dockerfile` at its root. Infrastructure-as-code repos (charts, OpenTofu, Ansible) are not concerned: they have other test tools.
+- `compose.yaml` at the root, with a watch section: start from `templates/compose.go.yaml` or `templates/compose.py.yaml`, rules in `compose-dev`.
+- Tasks: `dev` (`docker compose up --build --watch`; never a dependency of `check`), `lint:compose`, `test:container` (the twelve-factor baseline, `FAC-…` criteria, report `.tdd/container.xml`), and `test:api` (Bruno) or `test:ui` (Playwright) when the repo has an HTTP API or a web front.
+- These test tasks start the Compose stack; keep them apart from `test:go` / `test:py`, so that a proof on a logic criterion does not pay for a container: Go container tests carry a build tag (`//go:build container`, run with `-tags container`), Python ones live in `tests/container/` and `test:py` ignores that directory. Each task writes a report of its own under `.tdd/`. `mise run check` runs them all.
+- Docker is required on the workstation and in CI. GitHub hosted runners provide it: to verify on the first real application repo. GitLab: unverified (the runner must offer Docker-in-Docker or a socket).
+- The architecture test (`ARC-…` criteria) needs none of this: it runs in `test:go` / `test:py`.
 
 ## Existing repo (additive only)
 - Merge into existing `mise.toml`, `.pre-commit-config.yaml` and typos config (`_typos.toml`, `typos.toml`, `.typos.toml` or `pyproject.toml [tool.typos]`: add `TESTS.md` to its excludes, no second config); keep every tool, task and hook. A repo whose history already leaks: `--baseline-path .gitleaks-baseline.json` on `lint:secrets`, named in the MR. Check: `git diff --cached -- mise.toml .pre-commit-config.yaml | grep -c '^-[^-]' || true` prints 0. Only an existing `check` may be rewritten to `lint` + `test`; move its old command into a `lint:*` task.

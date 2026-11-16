@@ -48,7 +48,18 @@ extend = "../../../ruff.toml"   # path relative to this file; REQUIRED
 ```
 - Without `extend`, the nested file **replaces** the root config: `TID` is not selected and the ban silently passes (verified: `All checks passed!`).
 - A banned module also bans its submodules (`from sqlalchemy.orm import X` fails with `TID251`).
-- Direct imports only: ruff does not follow transitive imports, so `domain` -> `helpers` -> `sqlalchemy` passes. Keep `domain` free of imports from `adapters`/`app` too (ban `<pkg>.adapters`, `<pkg>.app` the same way).
+- Direct imports only: ruff does not follow transitive imports, so `domain` -> `helpers` -> `sqlalchemy` passes ruff; the architecture test below catches it. Keep `domain` free of imports from `adapters`/`app` too (ban `<pkg>.adapters`, `<pkg>.app` the same way).
+
+## Architecture test
+`tests/architecture/test_architecture.py` (template: `templates/test_architecture.py`) carries the criteria `ARC-001` to `ARC-003` of the application baseline (`stacked-tdd-mr/templates/socle-application.md`). It reads the import graph with `grimp` (`grimp` in `[dependency-groups] dev`), imports nothing of the package, and runs in `test:py`: `test_ARC001_domain_depends_only_on_itself`, `test_ARC002_use_cases_know_no_technology`, `test_ARC003_only_the_composition_root_assembles`.
+
+- Two sets in the test file name the third-party packages a layer may import: `ALLOWED_DOMAIN` (ARC-001) and `ALLOWED_APP` (ARC-002). Both rules are whitelists: a use case may import the use cases, the domain, the standard library and `ALLOWED_APP`, nothing else of the package. It is an acceptance file: widening a set is a criterion change (`--ac-changed ARC-001` or `ARC-002`), never an implementer's edit.
+- Verified 2026-11-14 (grimp 3.20, pytest 9.2.0, trial package): a domain import of an adapter fails ARC-001, also under an alias, inside a function, as a relative import and through an intermediate module; a third-party import (the library need not be installed) and an import of `app` fail ARC-001; a use case importing an adapter, an entrypoint, `composition`, a third-party package outside `ALLOWED_APP` (`sqlalchemy`) or a package module outside the layers fails ARC-002; an adapter importing another, or an entrypoint importing an adapter, fails ARC-003; a new domain module, a new use-case module, a standard-library import, a package added to either set and a new adapter wired in `composition.py` keep the three green. The template passes `ruff check` (`E,F,I,TID`) and `ruff format --check` (ruff 0.17.5).
+- The three tests do not overlap (a direct domain import of an adapter fails ARC-001 only), so the gate's redundancy proof keeps all three.
+- `adapters/__init__.py` may re-export its adapters, and `composition.py` may import them from the package. Importing the `adapters` package counts as importing an adapter: from an entrypoint or from an adapter module it fails ARC-003 (verified).
+- Limit (verified): a dynamic import (`importlib.import_module("<pkg>.adapters.x")`) is not seen. Do not use one to reach across layers.
+
+An application that ships as a container image (a `Dockerfile` at the root) also follows `twelve-factor` and `compose-dev`.
 
 ## Anti-patterns
 - A Protocol for every class; a port with one implementation and no test need.
