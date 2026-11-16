@@ -10,10 +10,9 @@ type Git interface {
 	Run(dir string, args ...string) (code int, stdout string)
 }
 
-// Files is the file system the gate reads and writes.
+// Files is the file system the gate reads.
 type Files interface {
 	Read(path string) (string, error)
-	Write(path, content string) error
 	IsFile(path string) bool
 	Remove(path string)
 	MkdirAll(path string) error

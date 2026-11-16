@@ -115,19 +115,27 @@ func exists(path string) bool {
 // run runs a command in dir and returns its exit code and its standard output.
 func run(t *testing.T, dir string, env []string, name string, args ...string) (int, string) {
 	t.Helper()
+	code, out, _ := runBoth(t, dir, env, name, args...)
+	return code, out
+}
+
+// runBoth runs a command in dir and returns its exit code, its standard output
+// and its standard error.
+func runBoth(t *testing.T, dir string, env []string, name string, args ...string) (int, string, string) {
+	t.Helper()
 	cmd := exec.CommandContext(t.Context(), name, args...) //nolint:gosec // G204: the tests choose the command
-	var out bytes.Buffer
-	cmd.Dir, cmd.Stdout, cmd.Env = dir, &out, append(os.Environ(), env...)
+	var out, errOut bytes.Buffer
+	cmd.Dir, cmd.Stdout, cmd.Stderr, cmd.Env = dir, &out, &errOut, append(os.Environ(), env...)
 	err := cmd.Run()
 	var exit *exec.ExitError
 	switch {
 	case err == nil:
-		return 0, out.String()
+		return 0, out.String(), errOut.String()
 	case errors.As(err, &exit):
-		return exit.ExitCode(), out.String()
+		return exit.ExitCode(), out.String(), errOut.String()
 	default:
 		t.Fatalf("%s %v: %v", name, args, err)
-		return 0, ""
+		return 0, "", ""
 	}
 }
 
@@ -343,18 +351,28 @@ type greenRun struct {
 	// noExempt drops --proof-exempt.
 	noExempt bool
 	// proofs adds --proofs <the mutants directory>, prepared as char does.
-	proofs     bool
-	neutral    neutral
-	unneededOK []string
-	options    []string
+	proofs  bool
+	neutral neutral
+	options []string
 }
 
 func (r *repo) runGreen(test, feat string, o greenRun) (int, string) {
 	r.t.Helper()
+	return r.gate(r.greenArgs(test, feat, o)...)
+}
+
+// refusedGreen runs `harness gate green` and returns its exit code and what it
+// wrote on its standard error.
+func (r *repo) refusedGreen(test, feat string, o greenRun) (int, string) {
+	r.t.Helper()
+	args := append(append([]string{"gate"}, r.greenArgs(test, feat, o)...), "--repo", r.dir)
+	code, _, stderr := runBoth(r.t, r.dir, nil, harness, args...)
+	return code, stderr
+}
+
+func (r *repo) greenArgs(test, feat string, o greenRun) []string {
+	r.t.Helper()
 	extra := append([]string{}, o.options...)
-	for _, block := range o.unneededOK {
-		extra = append(extra, "--unneeded-ok", block)
-	}
 	if o.proofs {
 		r.prepareProofs(o.neutral, "CALC-003")
 		extra = append(extra, "--proofs", r.mutants)
@@ -362,7 +380,7 @@ func (r *repo) runGreen(test, feat string, o greenRun) (int, string) {
 	if !o.noExempt {
 		extra = append(extra, "--proof-exempt")
 	}
-	return r.gate(append([]string{"green", "--slug", "div", "--test", test, "--feat", feat, "--task", "test"}, extra...)...)
+	return append([]string{"green", "--slug", "div", "--test", test, "--feat", feat, "--task", "test"}, extra...)
 }
 
 // accCommit makes an acceptance commit holding test paths only; the spec and

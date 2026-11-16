@@ -19,8 +19,8 @@ var gateUsage = strings.Join([]string{
 	"usage:",
 	"  harness gate red   --slug S --test SHA --task T [--repo DIR] [--spec PATH --ac ID,ID] [--allow-compile-red]",
 	"  harness gate green --slug S --test SHA --feat SHA --task T [--repo DIR] [--ac-changed ID,ID] [--replaces S,S]",
-	"                     [--proofs DIR [--jobs N] [--no-neutral] [--no-minimal] [--since SHA] [--unneeded-ok FILE:START-END]]",
-	"                     [--proof-exempt] [--spec PATH]",
+	"                     [--proofs DIR [--jobs N] [--no-neutral]]",
+	"                     [--proof-exempt]",
 	"  harness gate characterize --slug S --test SHA --task T --spec PATH --ac ID,ID --proofs|--mutants DIR [--repo DIR]",
 	"                     [--ac-changed ID,ID] [--replaces S,S] [--jobs N]",
 	"  harness gate replay --base SHA --head SHA --proofs DIR --task T [--repo DIR] [--accept-lost NAME]",
@@ -87,8 +87,8 @@ func parseGate(args []string) (gate.Options, error) {
 		fs.StringVar(&o.Test, "test", "", "SHA")
 		fs.StringVar(&o.Format, "format", "", "report format")
 		fs.StringVar(&o.Report, "report", "", "report path, repo-relative")
-		fs.StringVar(&o.Spec, "spec", "", "spec file")
 		if o.Mode != "green" {
+			fs.StringVar(&o.Spec, "spec", "", "spec file")
 			fs.Var(csv{&o.AC, &acGiven}, "ac", "comma list of criteria IDs")
 		}
 		if o.Mode == "red" {
@@ -106,11 +106,8 @@ func parseGate(args []string) (gate.Options, error) {
 		if o.Mode == "green" {
 			required = append(required, "feat")
 			fs.StringVar(&o.Feat, "feat", "", "SHA")
-			fs.Var(list{&o.UnneededOK}, "unneeded-ok", "FILE:START-END (repeatable)")
-			fs.StringVar(&o.Since, "since", "", "SHA")
 			fs.BoolVar(&o.ProofExempt, "proof-exempt", false, "exempt from proofs")
 			fs.BoolVar(&o.NoNeutral, "no-neutral", false, "skip the neutral change")
-			fs.BoolVar(&o.NoMinimal, "no-minimal", false, "skip the minimal-code proof")
 		}
 	default:
 		return o, fmt.Errorf("unknown mode %q", o.Mode)

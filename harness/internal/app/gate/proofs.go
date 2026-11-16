@@ -3,7 +3,6 @@ package gate
 import (
 	"fmt"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/Wihrt/mise/harness/internal/domain/tdd"
@@ -276,45 +275,4 @@ func addKill(kills []tdd.Kills, id string, results map[string][]tdd.Case) []tdd.
 		}
 	}
 	return append(kills, tdd.Kills{ID: id, PerMutant: []map[string]bool{failed}})
-}
-
-// runMinimal proves that every added block is needed (or accepted): removing
-// it alone makes the task fail.
-func (r *run) runMinimal(repo string) (bool, error) {
-	ok := true
-	since := r.o.Since
-	if since == "" {
-		since = r.o.Test
-	}
-	_, diff := r.g.git.Run(repo, "diff", "-U0", since+".."+r.o.Feat)
-	for _, b := range tdd.AddedBlocks(diff) {
-		if b.Path == r.o.Spec {
-			continue
-		}
-		tag := fmt.Sprintf("%s:%d-%d", b.Path, b.Start, b.End)
-		content, err := r.g.files.Read(repo + "/" + b.Path)
-		if err != nil {
-			return false, failure{err.Error()}
-		}
-		lines := strings.SplitAfter(content, "\n")
-		start, end := min(b.Start-1, len(lines)), min(b.End, len(lines))
-		if err := r.g.files.Write(repo+"/"+b.Path, strings.Join(lines[:start], "")+strings.Join(lines[end:], "")); err != nil {
-			return false, failure{err.Error()}
-		}
-		rc, _, rep, err := r.runTask(repo)
-		r.restoreTree(repo, nil)
-		if err != nil {
-			return false, err
-		}
-		if rc != 0 || rep.State != tdd.ReportOK {
-			continue
-		}
-		if slices.Contains(r.o.UnneededOK, tag) {
-			r.outf("UNNEEDED ACCEPTED %s", tag)
-		} else {
-			r.outf("UNNEEDED %s", tag)
-			ok = false
-		}
-	}
-	return ok, nil
 }

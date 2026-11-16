@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// Slugs preuves-nouveau (PRV-007), code-minimal (PRV-009), revue-finale
-// (PRV-012, PRV-013), spec-hors-code (PRV-014) and preuves-optionnelles
-// (PRV-017, PRV-018): the proofs of the green gate.
+// Slugs preuves-nouveau (PRV-007), revue-finale (PRV-012),
+// preuves-optionnelles (PRV-017) and sans-code-minimal (PRV-020): the proofs
+// of the green gate.
 
 // newFeature makes a red acceptance commit (CALC-003 fails), then a feat commit making it green.
 func newFeature(r *repo) (string, string) {
@@ -60,54 +60,6 @@ const (
 	prodBase = "header\nmiddle\n"
 )
 
-// twoBlocks adds two separate blocks: line 2 ("needed") and line 4 ("extra"), line 3 unchanged between them.
-func twoBlocks(r *repo) (string, string) {
-	r.t.Helper()
-	test := r.charSetup(charOpts{files: files{prod: prodBase}, task: neededTask})
-	feat := r.commit(files{prod: "header\nneeded\nmiddle\nextra\n"}, "feat(div)")
-	r.makePatch("CALC-003", files{prod: "header\nmiddle\nextra\n"})
-	return test, feat
-}
-
-func TestPRV009_UnneededBlockIsRefused(t *testing.T) {
-	r := newRepo(t)
-	test, feat := twoBlocks(r)
-	_, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true})
-	unneeded := grep(out, "UNNEEDED")
-	if len(unneeded) == 0 || !strings.HasPrefix(unneeded[0], "UNNEEDED "+prod+":4-4") {
-		t.Errorf("the unneeded block is not refused:\n%s", out)
-	}
-	without(t, strings.Join(unneeded, "\n"), prod+":2-2")
-	lastIs(t, out, "FAIL")
-}
-
-func TestPRV009_UnneededOKAcceptsTheBlock(t *testing.T) {
-	r := newRepo(t)
-	test, feat := twoBlocks(r)
-	_, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, unneededOK: []string{prod + ":4-4"}})
-	unneeded := grep(out, "UNNEEDED")
-	if len(unneeded) != 1 || unneeded[0] != "UNNEEDED ACCEPTED "+prod+":4-4" {
-		t.Errorf("UNNEEDED lines = %q", unneeded)
-	}
-	lastIs(t, out, "PASS")
-}
-
-// The base has an extra line "old" (line 3) that the feat commit deletes; the
-// added blocks are line 2 ("needed") and line 5 ("extra"); a test file is
-// added too and the task never reads it.
-func TestPRV009_DeletionAndTestFileAreNotJudged(t *testing.T) {
-	r := newRepo(t)
-	test := r.charSetup(charOpts{files: files{prod: "header\nmiddle\nold\ntail\n"}, task: neededTask})
-	feat := r.commit(files{prod: "header\nneeded\nmiddle\ntail\nextra\n", "tests/test_extra.py": "def test_x():\n    pass\n"}, "feat(div)")
-	r.makePatch("CALC-003", files{prod: "header\nmiddle\ntail\nextra\n"})
-	block := prod + ":5-5"
-	_, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, unneededOK: []string{block}})
-	if unneeded := grep(out, "UNNEEDED"); len(unneeded) != 1 || unneeded[0] != "UNNEEDED ACCEPTED "+block {
-		t.Errorf("UNNEEDED lines = %q", unneeded)
-	}
-	lastIs(t, out, "PASS")
-}
-
 func TestPRV012_ProofsNotAppliedOnModifiedTree(t *testing.T) {
 	r := newRepo(t)
 	test, feat := newFeature(r)
@@ -120,40 +72,6 @@ func TestPRV012_ProofsNotAppliedOnModifiedTree(t *testing.T) {
 	if got := read(t, r.dir+"/src/note.txt"); got != "uncommitted edit\n" {
 		t.Errorf("the uncommitted edit is gone: %q", got)
 	}
-}
-
-func TestPRV013_UnneededBlockAddedBetweenTwoAcceptanceCommits(t *testing.T) {
-	r := newRepo(t)
-	first := r.charSetup(charOpts{files: files{prod: prodBase}, task: neededTask})
-	r.commit(files{prod: "header\nmiddle\nextra\n"}, "chore: code no test asks for")
-	second := r.commit(files{"tests/test_extra.py": "def test_x():\n    pass\n"}, "test(div): acceptance")
-	feat := r.commit(files{prod: "header\nneeded\nmiddle\nextra\n"}, "feat(div)")
-	r.makePatch("CALC-003", files{prod: "header\nmiddle\nextra\n"})
-	r.prepareProofs(neutral{}, "CALC-003")
-	_, out := r.gate("green", "--slug", "div", "--test", second, "--since", first, "--feat", feat, "--task", "test", "--proofs", r.mutants)
-	if unneeded := grep(out, "UNNEEDED "+prod+":4-4"); len(unneeded) == 0 || !strings.HasPrefix(unneeded[0], "UNNEEDED ") {
-		t.Errorf("the block added before the second acceptance commit is not refused:\n%s", out)
-	}
-	lastIs(t, out, "FAIL")
-}
-
-func TestPRV014_SpecLinesAddedBetweenTwoAcceptanceCommitsAreNotUnneeded(t *testing.T) {
-	const design = "docs/specs/design.md"
-	r := newRepo(t)
-	first := r.charSetup(charOpts{files: files{prod: prodBase, design: "# Spec\n"}, task: neededTask})
-	r.commit(files{design: "# Spec\n\n### X-001\nnew criterion line\n"}, "docs: spec change")
-	second := r.commit(files{"tests/test_extra.py": "def test_x():\n    pass\n"}, "test(div): acceptance")
-	feat := r.commit(files{prod: "header\nneeded\nmiddle\n"}, "feat(div)")
-	r.makePatch("CALC-003", files{prod: prodBase})
-	r.prepareProofs(neutral{}, "CALC-003")
-	_, out := r.gate("green", "--slug", "div", "--test", second, "--since", first, "--feat", feat, "--task", "test",
-		"--proofs", r.mutants, "--spec", design)
-	for _, ln := range grep(out, design) {
-		if strings.HasPrefix(ln, "UNNEEDED") {
-			t.Errorf("a spec line is judged as code: %s", ln)
-		}
-	}
-	lastIs(t, out, "PASS")
 }
 
 // feature makes an acceptance commit, a feat commit writing content in the
@@ -178,15 +96,26 @@ func TestPRV017_NeutralChangeIsSkippedOnRequest(t *testing.T) {
 	ends(t, code, out, 1, "FAIL")
 }
 
-// Line 4 ("extra") is a block no test needs.
-func TestPRV018_MinimalCodeIsSkippedOnRequest(t *testing.T) {
+// Line 4 ("extra") is a block no test needs: it is no longer judged.
+func TestPRV020_UnneededBlockIsNoLongerJudged(t *testing.T) {
 	r := newRepo(t)
 	test, feat := feature(r, "header\nneeded\nmiddle\nextra\n")
-	code, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, options: []string{"--no-minimal"}})
-	with(t, out, "MINIMAL SKIPPED")
-	without(t, out, "UNNEEDED")
+	code, out := r.runGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: []string{"--no-neutral"}})
+	with(t, out, "KILLED CALC-003")
+	without(t, out, "UNNEEDED", "MINIMAL")
 	ends(t, code, out, 0, "PASS")
-	code, out = r.runGreen(test, feat, greenRun{noExempt: true, proofs: true})
-	with(t, out, "UNNEEDED "+prod+":4-4")
-	ends(t, code, out, 1, "FAIL")
+}
+
+func TestPRV020_RetiredOptionsAreRefused(t *testing.T) {
+	for _, option := range [][]string{{"--no-minimal"}, {"--since", "HEAD"}, {"--unneeded-ok", prod + ":4-4"}, {"--spec", "spec.md"}} {
+		r := newRepo(t)
+		test, feat := feature(r, "header\nneeded\nmiddle\nextra\n")
+		code, stderr := r.refusedGreen(test, feat, greenRun{noExempt: true, proofs: true, neutral: neutral{none: true}, options: append([]string{"--no-neutral"}, option...)})
+		if code != 2 {
+			t.Errorf("%s: exit code = %d, want 2\n%s", option[0], code, stderr)
+		}
+		if named := "flag provided but not defined: " + option[0][1:]; !strings.Contains(stderr, named) {
+			t.Errorf("%s: stderr does not hold %q\n%s", option[0], named, stderr)
+		}
+	}
 }
