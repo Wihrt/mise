@@ -16,3 +16,6 @@ extend-exclude = [
 # `Branche :` opens the header line of a TESTS.md section: the acceptance tests of the gate write such files.
 [default.extend-words]
 Branche = "Branche"
+
+# `dette initiale` is the reason the baseline writes into COVERAGE.md.
+initiale = "initiale"

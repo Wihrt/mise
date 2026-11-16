@@ -35,7 +35,9 @@ type Measure map[string]map[span]bool
 // Finding is one block no report saw executed.
 type Finding struct {
 	Kind, File string
-	Start, End int // first and last line
+	Start, End int    // first and last line
+	Text       string // first line, trimmed: what a written exception names
+	Reason     string // why a written exception accepts it
 }
 
 // Merge joins reports: a block is covered as soon as one report says so.

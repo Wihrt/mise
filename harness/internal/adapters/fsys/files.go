@@ -20,6 +20,11 @@ func (*Files) Read(path string) (string, error) {
 	return strings.ToValidUTF8(string(data), "�"), err
 }
 
+// Write replaces the content of a file.
+func (*Files) Write(path, content string) error {
+	return os.WriteFile(path, []byte(content), 0o644) //nolint:gosec // G306: COVERAGE.md is committed, not secret
+}
+
 // IsFile reports a regular file.
 func (*Files) IsFile(path string) bool {
 	info, err := os.Stat(path)
