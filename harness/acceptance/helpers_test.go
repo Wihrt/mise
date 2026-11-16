@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -67,6 +68,8 @@ type repo struct {
 	mutants string
 	// wiring holds the wiring files of the first commit; nil means a hook citing `mise run test`.
 	wiring files
+	// reports are the coverage report paths of covRepo, sorted.
+	reports []string
 }
 
 func newRepo(t *testing.T) *repo {
@@ -586,6 +589,43 @@ func lastIs(t *testing.T, out, want string) {
 	if last(out) != want {
 		t.Errorf("last line %q, want %q:\n%s", last(out), want, out)
 	}
+}
+
+// covRepo is a repository for `harness gate coverage`: it commits f, a mise
+// task `test`, `.gitignore` and, per report (key = path in the repo, value =
+// content), a tracked .txt fixture that the task copies to that path. A report
+// with an empty content is not written by the task. The task then exits rc.
+func covRepo(t *testing.T, f, reports files, rc int) *repo {
+	t.Helper()
+	r := newRepo(t)
+	r.reports = slices.Sorted(maps.Keys(reports))
+	script := ""
+	fixtures := files{}
+	for i, path := range r.reports {
+		if reports[path] == "" {
+			continue
+		}
+		fixture := fmt.Sprintf("covfixtures/report%d.txt", i)
+		fixtures[fixture] = reports[path]
+		script += fmt.Sprintf("mkdir -p %q\ncp %s %s\n", filepath.Dir(path), fixture, path)
+	}
+	r.commit(merge(f, fixtures, files{
+		"mise.toml":   miseToml(miseOpts{}),
+		".gitignore":  ".tdd\n",
+		"run_test.sh": script + fmt.Sprintf("exit %d\n", rc),
+	}), "coverage repo")
+	return r
+}
+
+// coverage runs `harness gate coverage` on the task `test` with one --coverage
+// option per report of covRepo, in sorted order, then the extra arguments.
+func (r *repo) coverage(extra ...string) (int, string) {
+	r.t.Helper()
+	args := []string{"coverage", "--task", "test"}
+	for _, path := range r.reports {
+		args = append(args, "--coverage", path)
+	}
+	return r.gate(append(args, extra...)...)
 }
 
 // grep keeps the lines that contain s.

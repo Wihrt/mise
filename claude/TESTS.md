@@ -415,3 +415,36 @@ Branche : `feat/sans-code-minimal` · Commande : `mise run test`
     - la sortie ne contient aucune ligne `UNNEEDED` ni `MINIMAL`, et se termine par `PASS`
     - relancé avec `--no-minimal`, `--since`, `--unneeded-ok` ou `--spec`, la porte sort avec le code 2 et nomme l'option refusée
 - **Test** : `../harness/acceptance/preuves_green_test.go` › `TestPRV020_UnneededBlockIsNoLongerJudged` ; `../harness/acceptance/preuves_green_test.go` › `TestPRV020_RetiredOptionsAreRefused`
+
+## couverture-go — Un bloc Go jamais exécuté fait échouer la porte
+Branche : `feat/couverture-go` · Commande : `mise run test`
+
+### COV-001 — Un bloc Go jamais exécuté fait échouer la porte
+- **Critère** :
+  - **Étant donné** un dépôt avec un `go.mod`, un fichier Go de production, et une tâche de test qui écrit un profil Go où un bloc de ce fichier a un compteur à 0 et les autres un compteur positif
+  - **Quand** `harness gate coverage` est lancé avec ce profil
+  - **Alors**
+    - la sortie contient `UNCOVERED` avec le chemin du fichier dans le dépôt et les lignes du bloc, et se termine par `FAIL`
+    - quand tous les blocs du profil ont un compteur positif, la sortie ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
+    - dans ce second cas, la sortie contient `ERROR RETURNS IGNORED 0`
+    - quand le seul bloc au compteur 0 est un bloc sans instruction, la sortie ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV001_UncoveredGoBlockFails` ; `../harness/acceptance/couverture_test.go` › `TestCOV001_AllCoveredPasses` ; `../harness/acceptance/couverture_test.go` › `TestCOV001_EmptyBlockIsNotJudged`
+
+### COV-003 — Les rapports de plusieurs suites se complètent
+- **Critère** :
+  - **Étant donné** deux rapports et trois blocs : le premier exécuté dans le premier rapport seulement, le deuxième dans le second seulement, le troisième à 0 dans les deux
+  - **Quand** `harness gate coverage` est lancé avec `--coverage` donné deux fois
+  - **Alors**
+    - la sortie ne contient aucune ligne `UNCOVERED` pour le premier bloc
+    - elle n'en contient aucune pour le deuxième
+    - elle contient `UNCOVERED` pour le troisième et se termine par `FAIL`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV003_ReportsComplementEachOther`
+
+### COV-007 — Un rapport non écrit ou une suite en échec ne passent pas
+- **Critère** :
+  - **Étant donné** un rapport resté d'une exécution précédente, où tout est couvert
+  - **Quand** `harness gate coverage` est lancé avec une tâche qui n'écrit pas ce rapport, puis avec une tâche qui l'écrit et échoue
+  - **Alors**
+    - dans le premier cas, la sortie contient `COVERAGE missing` avec le chemin du rapport et se termine par `FAIL`
+    - dans le second, elle contient `TASK FAILED` et se termine par `FAIL`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV007_ReportNotWrittenFails` ; `../harness/acceptance/couverture_test.go` › `TestCOV007_FailedTaskFails`
