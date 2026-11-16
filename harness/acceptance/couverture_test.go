@@ -1,6 +1,11 @@
 package acceptance
 
-import "testing"
+import (
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"testing"
+)
 
 // The Go file under measure, and its blocks as the Go toolchain writes them in
 // a coverage profile: the entry of Run (line 5), the body of the if (lines
@@ -221,4 +226,140 @@ func TestCOV008_PragmaIsRefused(t *testing.T) {
 	with(t, out, "PRAGMA app/util.py:3", "PRAGMA app/util.py:4")
 	without(t, out, "UNCOVERED")
 	ends(t, code, out, 1, "FAIL")
+}
+
+// The Go file of the real output of go1.27.4 (go build -cover): Run and Code,
+// whose default clause (line 17) is the real case of COV-005.
+const (
+	covCodeSrc = "package app\n" +
+		"\n" +
+		"// Run labels n.\n" +
+		"func Run(n int) string {\n" +
+		"\tif n > 0 {\n" +
+		"\t\treturn \"positive\"\n" +
+		"\t}\n" +
+		"\treturn \"other\"\n" +
+		"}\n" +
+		"\n" +
+		"// Code maps a name to an exit code.\n" +
+		"func Code(name string) int {\n" +
+		"\tswitch name {\n" +
+		"\tcase \"ok\":\n" +
+		"\t\treturn 0\n" +
+		"\tdefault:\n" +
+		"\t\treturn 127\n" +
+		"\t}\n" +
+		"}\n"
+	covCodeMD = "## internal/app/app.go\n\n- `return 127` : chemin de secours\n"
+)
+
+// codeProfile is the profile when Run(0) and Code("ok") ran, with the counts of
+// the if body (lines 6-7) and of the default clause (line 17).
+func codeProfile(body, deflt string) string {
+	const path = "example.test/app/internal/app/app.go:"
+	return "mode: set\n" +
+		path + "5.2,5.11 1 1\n" +
+		path + "6.3,7.1 1 " + body + "\n" +
+		path + "8.2,8.16 1 1\n" +
+		path + "13.2,13.14 1 1\n" +
+		path + "15.3,15.11 1 1\n" +
+		path + "17.3,17.13 1 " + deflt + "\n"
+}
+
+func codeFiles(extra files) files {
+	return merge(files{covModule: covGoMod, covApp: covCodeSrc}, extra)
+}
+
+func TestCOV005_WrittenExceptionIsAccepted(t *testing.T) {
+	r := covRepo(t, codeFiles(files{"COVERAGE.md": covCodeMD}), files{covReport: codeProfile(hit, miss)}, 0)
+	code, out := r.coverage()
+	with(t, out, "ACCEPTED internal/app/app.go:17-17: chemin de secours")
+	without(t, out, "UNCOVERED")
+	ends(t, code, out, 0, "PASS")
+}
+
+func TestCOV005_StaleExceptionFails(t *testing.T) {
+	r := covRepo(t, codeFiles(files{"COVERAGE.md": covCodeMD}), files{covReport: codeProfile(hit, hit)}, 0)
+	code, out := r.coverage()
+	with(t, out, "STALE EXCEPTION internal/app/app.go: return 127")
+	ends(t, code, out, 1, "FAIL")
+}
+
+// Tracked files that no report names.
+const (
+	covUnmeasuredPy = "src/tool/main.py"
+	covTestPy       = "tests/test_app.py"
+	covPortsGo      = "internal/app/ports.go"
+	covYaml         = "ci/pipeline.yaml"
+)
+
+var notJudged = regexp.MustCompile(`NOT JUDGED (\d+) files`)
+
+func unmeasuredFiles(withYaml bool, extra files) files {
+	f := merge(covFiles(false), files{
+		covUnmeasuredPy: "def main():\n    return 1\n",
+		covTestPy:       "def test_main():\n    assert True\n",
+		covPortsGo:      "package app\n\n// Limit is the maximum.\nconst Limit = 3\n\n// Item is a thing.\ntype Item struct{ Name string }\n",
+	}, extra)
+	if withYaml {
+		f[covYaml] = "steps:\n  - test\n"
+	}
+	return f
+}
+
+func judgedCount(t *testing.T, out string) int {
+	t.Helper()
+	m := notJudged.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("no NOT JUDGED line in:\n%s", out)
+	}
+	n, err := strconv.Atoi(m[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+func TestCOV006_UnmeasuredFileFails(t *testing.T) {
+	r := covRepo(t, unmeasuredFiles(true, nil), files{covReport: profile(false, hit, hit, hit)}, 0)
+	code, out := r.coverage()
+	with(t, out, "NOT MEASURED "+covUnmeasuredPy)
+	without(t, out, "NOT MEASURED "+covTestPy, "NOT MEASURED "+covYaml, "NOT MEASURED "+covPortsGo)
+	ends(t, code, out, 1, "FAIL")
+	// The YAML file is counted: one more NOT JUDGED file than without it.
+	plain := covRepo(t, unmeasuredFiles(false, nil), files{covReport: profile(false, hit, hit, hit)}, 0)
+	_, outPlain := plain.coverage()
+	if got, want := judgedCount(t, out), judgedCount(t, outPlain)+1; got != want {
+		t.Errorf("NOT JUDGED counts %d files with the YAML file, want %d", got, want)
+	}
+}
+
+func TestCOV006_WholeFileExceptionIsAccepted(t *testing.T) {
+	md := "## " + covUnmeasuredPy + "\n\n- fichier entier : jamais importé\n"
+	r := covRepo(t, unmeasuredFiles(true, files{"COVERAGE.md": md}), files{covReport: profile(false, hit, hit, hit)}, 0)
+	code, out := r.coverage()
+	with(t, out, "ACCEPTED "+covUnmeasuredPy+": jamais importé")
+	ends(t, code, out, 0, "PASS")
+}
+
+func TestCOV009_BaselineWritesTheDebt(t *testing.T) {
+	r := covRepo(t, codeFiles(nil), files{covReport: codeProfile(miss, miss)}, 0)
+	code, out := r.coverage("--baseline")
+	ends(t, code, out, 0, "PASS")
+	md := read(t, filepath.Join(r.dir, "COVERAGE.md"))
+	with(t, md, "## internal/app/app.go", "- `return \"positive\"` : dette initiale", "- `return 127` : dette initiale")
+	code, out = r.coverage()
+	with(t, out, "ACCEPTED internal/app/app.go:6-7", "ACCEPTED internal/app/app.go:17-17")
+	without(t, out, "UNCOVERED")
+	ends(t, code, out, 0, "PASS")
+}
+
+func TestCOV009_BaselineWritesNothingWhenTaskFails(t *testing.T) {
+	r := covRepo(t, codeFiles(nil), files{covReport: codeProfile(miss, miss)}, 1)
+	code, out := r.coverage("--baseline")
+	with(t, out, "TASK FAILED")
+	ends(t, code, out, 1, "FAIL")
+	if exists(filepath.Join(r.dir, "COVERAGE.md")) {
+		t.Error("COVERAGE.md was written although the task failed")
+	}
 }

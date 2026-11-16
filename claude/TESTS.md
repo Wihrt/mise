@@ -471,3 +471,36 @@ Branche : `feat/couverture-python` · Commande : `mise run test`
     - la sortie contient `PRAGMA` avec le fichier et la ligne du `no cover`, et se termine par `FAIL`
     - elle contient `PRAGMA` avec le fichier et la ligne du `no branch`
 - **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV008_PragmaIsRefused`
+
+## couverture-exceptions — Une exception s'écrit, avec sa raison, hors du code
+Branche : `feat/couverture-exceptions` · Commande : `mise run test`
+
+### COV-005 — Une exception écrite est acceptée, une exception périmée fait échouer
+- **Critère** :
+  - **Étant donné** un bloc jamais exécuté, et `COVERAGE.md` qui porte, pour son fichier, une entrée avec le texte de sa première ligne et une raison
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie contient `ACCEPTED` avec le fichier, les lignes du bloc et la raison, aucune ligne `UNCOVERED`, et se termine par `PASS`
+    - quand le bloc est exécuté et que l'entrée reste, la sortie contient `STALE EXCEPTION` avec le fichier et le texte, et se termine par `FAIL`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV005_WrittenExceptionIsAccepted`, `TestCOV005_StaleExceptionFails`
+
+### COV-006 — Un fichier Go ou Python que nul rapport ne mesure est signalé
+- **Critère** :
+  - **Étant donné** un dépôt qui suit un fichier Python de production absent de tout rapport, un fichier de test Python absent lui aussi, un fichier Go de production absent lui aussi et qui ne déclare aucune fonction, et un fichier YAML
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie contient `NOT MEASURED` avec le fichier de production et se termine par `FAIL`
+    - elle ne contient aucune ligne `NOT MEASURED` pour le fichier de test ni pour le fichier YAML
+    - elle n'en contient aucune pour le fichier Go sans fonction
+    - elle contient une ligne `NOT JUDGED` qui compte le fichier YAML
+    - quand `COVERAGE.md` porte une entrée `fichier entier` pour le fichier de production, la sortie contient `ACCEPTED` pour lui et se termine par `PASS`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV006_UnmeasuredFileFails`, `TestCOV006_WholeFileExceptionIsAccepted`
+
+### COV-009 — `--baseline` écrit la dette de départ
+- **Critère** :
+  - **Étant donné** un dépôt avec deux blocs jamais exécutés et aucun `COVERAGE.md`
+  - **Quand** `harness gate coverage --baseline` est lancé, puis `harness gate coverage` sans l'option
+  - **Alors**
+    - après le premier lancement, `COVERAGE.md` porte, sous le fichier de chaque bloc, une entrée avec le texte de sa première ligne et la raison `dette initiale` ; ce lancement se termine par `PASS`
+    - le second lancement imprime `ACCEPTED` pour chacun, aucune ligne `UNCOVERED`, et se termine par `PASS`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV009_BaselineWritesTheDebt`, `TestCOV009_BaselineWritesNothingWhenTaskFails`
