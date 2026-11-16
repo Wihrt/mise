@@ -8,23 +8,20 @@ import (
 	"strings"
 )
 
-// Pos is a line and a column of a source file.
-type Pos struct{ Line, Col int }
+// pos is a line and a column of a source file.
+type pos struct{ line, col int }
 
 // span is the first and the last position of a block.
-type span struct{ start, end Pos }
+type span struct{ start, end pos }
 
 // Measure is what the reports say, per file of the repository: for each block
 // that holds statements, whether a report saw it executed.
 type Measure map[string]map[span]bool
 
-// Finding is one thing the gate reports about a file.
+// Finding is one block no report saw executed.
 type Finding struct {
 	Kind, File string
 	Start, End int // first and last line
-	At         Pos // where the block starts
-	Text       string
-	Reason     string
 }
 
 // Merge joins reports: a block is covered as soon as one report says so.
@@ -43,16 +40,6 @@ func Merge(ms ...Measure) Measure {
 	return out
 }
 
-// Files lists the files the reports name, sorted.
-func (m Measure) Files() []string {
-	files := make([]string, 0, len(m))
-	for f := range m {
-		files = append(files, f)
-	}
-	sort.Strings(files)
-	return files
-}
-
 // Select keeps the files for which keep is true.
 func (m Measure) Select(keep func(file string) bool) Measure {
 	out := Measure{}
@@ -64,35 +51,30 @@ func (m Measure) Select(keep func(file string) bool) Measure {
 	return out
 }
 
-// Findings lists the blocks no report saw executed, sorted by file then line.
-// source returns the content of a file of the repository.
-func (m Measure) Findings(source func(file string) string) []Finding {
+// Findings lists the blocks no report saw executed, sorted by file then position.
+func (m Measure) Findings() []Finding {
+	files := make([]string, 0, len(m))
+	for f := range m {
+		files = append(files, f)
+	}
+	sort.Strings(files)
 	var out []Finding
-	for _, file := range m.Files() {
-		var lines []string
-		var found []Finding
+	for _, file := range files {
+		var spans []span
 		for s, covered := range m[file] {
-			if covered {
-				continue
+			if !covered {
+				spans = append(spans, s)
 			}
-			if lines == nil {
-				lines = strings.Split(source(file), "\n")
-			}
-			text := ""
-			if s.start.Line >= 1 && s.start.Line <= len(lines) {
-				text = strings.TrimSpace(lines[s.start.Line-1])
-			}
-			found = append(found, Finding{
-				Kind: "UNCOVERED", File: file, Start: s.start.Line, End: s.end.Line, At: s.start, Text: text,
-			})
 		}
-		sort.Slice(found, func(i, j int) bool {
-			if found[i].At.Line != found[j].At.Line {
-				return found[i].At.Line < found[j].At.Line
+		sort.Slice(spans, func(i, j int) bool {
+			if spans[i].start.line != spans[j].start.line {
+				return spans[i].start.line < spans[j].start.line
 			}
-			return found[i].At.Col < found[j].At.Col
+			return spans[i].start.col < spans[j].start.col
 		})
-		out = append(out, found...)
+		for _, s := range spans {
+			out = append(out, Finding{Kind: "UNCOVERED", File: file, Start: s.start.line, End: s.end.line})
+		}
 	}
 	return out
 }

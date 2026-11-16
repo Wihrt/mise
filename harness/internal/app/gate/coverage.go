@@ -32,7 +32,10 @@ func (r *run) coverage() (bool, error) {
 		r.outf("TASK FAILED %s", r.o.Task)
 		return false, nil
 	}
-	modules := r.goModules(repo)
+	modules, err := r.goModules(repo)
+	if err != nil {
+		return false, err
+	}
 	var measures []coverage.Measure
 	for _, p := range r.o.Coverage {
 		if !r.g.files.IsFile(abs(p)) {
@@ -51,10 +54,7 @@ func (r *run) coverage() (bool, error) {
 		measures = append(measures, m)
 	}
 	judged := coverage.Merge(measures...).Select(func(f string) bool { return !tdd.IsTestPath(f) })
-	findings := judged.Findings(func(f string) string {
-		text, _ := r.g.files.Read(repo + "/" + f)
-		return text
-	})
+	findings := judged.Findings()
 	for _, f := range findings {
 		r.outf("%s %s:%d-%d", f.Kind, f.File, f.Start, f.End)
 	}
@@ -63,11 +63,14 @@ func (r *run) coverage() (bool, error) {
 }
 
 // goModules maps the module path of each go.mod tracked by git to its directory.
-func (r *run) goModules(repo string) map[string]string {
+func (r *run) goModules(repo string) (map[string]string, error) {
 	_, listed := r.g.git.Run(repo, "ls-files", "--", "go.mod", "*/go.mod")
 	modules := map[string]string{}
 	for _, f := range strings.Fields(listed) {
-		text, _ := r.g.files.Read(repo + "/" + f)
+		text, err := r.g.files.Read(repo + "/" + f)
+		if err != nil {
+			return nil, failure{err.Error()}
+		}
 		for _, l := range strings.Split(text, "\n") {
 			if mod, ok := strings.CutPrefix(strings.TrimSpace(l), "module "); ok {
 				modules[strings.Trim(strings.TrimSpace(mod), `"`)] = path.Dir(f)
@@ -75,5 +78,5 @@ func (r *run) goModules(repo string) map[string]string {
 			}
 		}
 	}
-	return modules
+	return modules, nil
 }

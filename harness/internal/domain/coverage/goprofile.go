@@ -24,7 +24,7 @@ func ParseGoProfile(text string, modules map[string]string) (Measure, error) {
 		}
 		name = line[:i]
 		if _, err := fmt.Sscanf(line[i+1:], "%d.%d,%d.%d %d %d",
-			&s.start.Line, &s.start.Col, &s.end.Line, &s.end.Col, &stmts, &count); err != nil {
+			&s.start.line, &s.start.col, &s.end.line, &s.end.col, &stmts, &count); err != nil {
 			return nil, fmt.Errorf("bad profile line %q", line)
 		}
 		file, ok := repoFile(name, modules)
