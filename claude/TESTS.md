@@ -504,3 +504,15 @@ Branche : `feat/couverture-exceptions` · Commande : `mise run test`
     - après le premier lancement, `COVERAGE.md` porte, sous le fichier de chaque bloc, une entrée avec le texte de sa première ligne et la raison `dette initiale` ; ce lancement se termine par `PASS`
     - le second lancement imprime `ACCEPTED` pour chacun, aucune ligne `UNCOVERED`, et se termine par `PASS`
 - **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV009_BaselineWritesTheDebt`, `TestCOV009_BaselineWritesNothingWhenTaskFails`
+
+## couverture-remontees — Une remontée d'erreur Go est écartée et comptée
+Branche : `feat/couverture-remontees` · Commande : `mise run test`
+
+### COV-004 — Une remontée d'erreur Go est écartée et comptée
+- **Critère** :
+  - **Étant donné** un fichier Go avec deux blocs jamais exécutés : le corps d'un `if err != nil` qui ne contient qu'un `return`, et le corps d'un `if rc != 0` qui ne contient qu'un `return`
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie ne contient aucune ligne `UNCOVERED` pour le premier bloc, et contient `ERROR RETURNS IGNORED 1`
+    - elle contient `UNCOVERED` pour le second et se termine par `FAIL`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV004_ErrorReturnIsIgnoredAndCounted`
