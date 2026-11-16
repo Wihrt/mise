@@ -448,3 +448,26 @@ Branche : `feat/couverture-go` · Commande : `mise run test`
     - dans le premier cas, la sortie contient `COVERAGE missing` avec le chemin du rapport et se termine par `FAIL`
     - dans le second, elle contient `TASK FAILED` et se termine par `FAIL`
 - **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV007_ReportNotWrittenFails` ; `../harness/acceptance/couverture_test.go` › `TestCOV007_FailedTaskFails`
+
+## couverture-python — Une ligne ou une branche Python jamais exécutée fait échouer la porte
+Branche : `feat/couverture-python` · Commande : `mise run test`
+
+### COV-002 — Une ligne ou une branche Python jamais exécutée fait échouer la porte
+- **Critère** :
+  - **Étant donné** un fichier Python de production et une tâche de test qui écrit un rapport LCOV où des lignes qui se suivent ont un compteur à 0, la première portant des branches au compteur `-`, et où une ligne exécutée porte une branche jamais prise
+  - **Quand** `harness gate coverage` est lancé avec ce rapport
+  - **Alors**
+    - la sortie contient une seule ligne `UNCOVERED` pour ces lignes, avec le fichier et leur intervalle
+    - elle contient `UNCOVERED BRANCH` avec le fichier et la ligne exécutée qui porte la branche jamais prise
+    - elle ne contient aucune ligne `UNCOVERED BRANCH` pour la ligne jamais exécutée
+    - elle se termine par `FAIL`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV002_UncoveredPythonLinesAndBranch`
+
+### COV-008 — `# pragma: no cover` est refusé
+- **Critère** :
+  - **Étant donné** un fichier Python de production dont une ligne porte `# pragma: no cover` et une autre `# pragma: no branch`, et un rapport où tout ce qui est mesuré est couvert
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie contient `PRAGMA` avec le fichier et la ligne du `no cover`, et se termine par `FAIL`
+    - elle contient `PRAGMA` avec le fichier et la ligne du `no branch`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV008_PragmaIsRefused`
