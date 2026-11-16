@@ -1,0 +1,79 @@
+package gate
+
+import (
+	"path"
+	"strings"
+
+	"github.com/Wihrt/mise/harness/internal/domain/coverage"
+	"github.com/Wihrt/mise/harness/internal/domain/tdd"
+)
+
+// coverage runs the task once, reads the reports it wrote and fails for every
+// block of production code that no report saw executed.
+func (r *run) coverage() (bool, error) {
+	repo := r.g.files.Resolve(r.o.Repo)
+	if rc, _ := r.g.git.Run(repo, "rev-parse", "--git-dir"); rc != 0 {
+		return false, failf("%s is not a git repository", repo)
+	}
+	abs := func(p string) string {
+		if strings.HasPrefix(p, "/") {
+			return p
+		}
+		return repo + "/" + p
+	}
+	for _, p := range r.o.Coverage {
+		r.g.files.Remove(abs(p))
+	}
+	rc, _, err := r.runMise(repo, r.o.Task)
+	if err != nil {
+		return false, err
+	}
+	if rc != 0 {
+		r.outf("TASK FAILED %s", r.o.Task)
+		return false, nil
+	}
+	modules := r.goModules(repo)
+	var measures []coverage.Measure
+	for _, p := range r.o.Coverage {
+		if !r.g.files.IsFile(abs(p)) {
+			r.outf("COVERAGE missing: %s n'a pas écrit %s", r.o.Task, p)
+			return false, nil
+		}
+		data, err := r.g.files.Read(abs(p))
+		if err != nil {
+			return false, failure{err.Error()}
+		}
+		m, err := coverage.Parse(data, modules)
+		if err != nil {
+			return false, failf("%s: %v", p, err)
+		}
+		r.outf("COVERAGE %s: %d files", p, len(m))
+		measures = append(measures, m)
+	}
+	judged := coverage.Merge(measures...).Select(func(f string) bool { return !tdd.IsTestPath(f) })
+	findings := judged.Findings(func(f string) string {
+		text, _ := r.g.files.Read(repo + "/" + f)
+		return text
+	})
+	for _, f := range findings {
+		r.outf("%s %s:%d-%d", f.Kind, f.File, f.Start, f.End)
+	}
+	r.out("ERROR RETURNS IGNORED 0")
+	return len(findings) == 0, nil
+}
+
+// goModules maps the module path of each go.mod tracked by git to its directory.
+func (r *run) goModules(repo string) map[string]string {
+	_, listed := r.g.git.Run(repo, "ls-files", "--", "go.mod", "*/go.mod")
+	modules := map[string]string{}
+	for _, f := range strings.Fields(listed) {
+		text, _ := r.g.files.Read(repo + "/" + f)
+		for _, l := range strings.Split(text, "\n") {
+			if mod, ok := strings.CutPrefix(strings.TrimSpace(l), "module "); ok {
+				modules[strings.Trim(strings.TrimSpace(mod), `"`)] = path.Dir(f)
+				break
+			}
+		}
+	}
+	return modules
+}
