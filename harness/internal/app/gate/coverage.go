@@ -13,8 +13,13 @@ import (
 // block of production code that no report saw executed.
 func (r *run) coverage() (bool, error) {
 	repo := r.g.files.Resolve(r.o.Repo)
-	if rc, _ := r.g.git.Run(repo, "rev-parse", "--git-dir"); rc != 0 {
+	rc, listed := r.g.git.Run(repo, "ls-files")
+	if rc != 0 {
 		return false, failf("%s is not a git repository", repo)
+	}
+	tracked := map[string]bool{}
+	for _, f := range strings.Fields(listed) {
+		tracked[f] = true
 	}
 	abs := func(p string) string {
 		if strings.HasPrefix(p, "/") {
@@ -33,7 +38,7 @@ func (r *run) coverage() (bool, error) {
 		r.outf("TASK FAILED %s", r.o.Task)
 		return false, nil
 	}
-	modules, err := r.goModules(repo)
+	modules, err := r.goModules(repo, tracked)
 	if err != nil {
 		return false, err
 	}
@@ -53,11 +58,6 @@ func (r *run) coverage() (bool, error) {
 		}
 		r.outf("COVERAGE %s: %d files", p, len(m))
 		measures = append(measures, m)
-	}
-	_, listed := r.g.git.Run(repo, "ls-files")
-	tracked := map[string]bool{}
-	for _, f := range strings.Split(listed, "\n") {
-		tracked[f] = true
 	}
 	production := func(f string) bool { return tracked[f] && !tdd.IsTestPath(f) }
 	findings := coverage.Merge(measures...).Select(production).Findings()
@@ -88,11 +88,13 @@ func (r *run) coverage() (bool, error) {
 	return len(findings) == 0, nil
 }
 
-// goModules maps the module path of each go.mod tracked by git to its directory.
-func (r *run) goModules(repo string) (map[string]string, error) {
-	_, listed := r.g.git.Run(repo, "ls-files", "--", "go.mod", "*/go.mod")
+// goModules maps the module path of each tracked go.mod to its directory.
+func (r *run) goModules(repo string, tracked map[string]bool) (map[string]string, error) {
 	modules := map[string]string{}
-	for _, f := range strings.Fields(listed) {
+	for f := range tracked {
+		if path.Base(f) != "go.mod" {
+			continue
+		}
 		text, err := r.g.files.Read(repo + "/" + f)
 		if err != nil {
 			return nil, failure{err.Error()}
