@@ -94,6 +94,9 @@ CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION = "false"
 TF_PLUGIN_CACHE_DIR = "{{env.HOME}}/.cache/opentofu/providers"
 OCO_AI_PROVIDER = "anthropic"
 OCO_MODEL = "claude-sonnet-5-5"
+# mise retient par défaut 24 h les versions tout juste publiées
+# (`minimum_release_age`). `0s` lève ce délai dans les shells où mise est activé.
+MISE_MINIMUM_RELEASE_AGE = "0s"
 
 # docker.io crée le groupe docker et active dockerd ; docker-compose-v2 fournit
 # `docker compose`. skopeo copie et inspecte les images sans démon. Le groupe
