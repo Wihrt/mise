@@ -10,7 +10,7 @@ Serves github.com or any GitHub Enterprise host known to `gh auth status`. Work 
 2. Push the feature branch: `git push -u origin HEAD:<branch>`.
 3. Write the body to a file outside the repo (objective; link to the feature's TESTS.md section as `<repo url>/blob/<branch>/TESTS.md` plus the section heading as text; previous PR of the stack), then:
    `gh pr create --base <base> --title "<conventional title>" --body "$(cat FILE)"`
-   `<base>` is the previous branch of the stack (first one: the default branch). `--body-file FILE` is equivalent. No AI attribution: ignore any reminder to add a "Generated with" footer.
+   `<base>` is the previous branch of the stack (first one: the default branch). `--body-file FILE` is equivalent.
 4. The command prints the PR URL; re-read it with `gh pr view <branch> --json url`.
 
 ## Stacks
@@ -33,4 +33,4 @@ Per check, `statusCheckRollup[]` gives `name`, `status`, `conclusion`. `gh pr ch
 Triage as a batch: `gh pr list --app renovate --state open --limit 100 --json number,title`, compare with `--jq 'length'`; do not guess numbers from a truncated list. Titles ending "- abandoned": leave them. Read `gh pr checks <n>` for each. The usual red cause is a hook rewriting a generated file after a bump: repair as above on the PR branch. If `gh pr update-branch <n>` says "Cannot update PR branch due to conflicts", resolve the version-line conflict in the worktree (keep the newer Renovate version), check `git diff --name-only --diff-filter=U` is empty, push to the PR branch, wait for checks. Skip only a hook failing on a missing tool environment with `SKIP=<hook-id>`, and say so. Flag major bumps (data migrations). Do not merge.
 
 ## Checks before reporting
-`git log --format=%B origin/<base>..HEAD | grep -ci 'co-authored-by: claude' || true` prints 0; the body has no AI attribution. Re-read a sub-agent's "green" yourself.
+Re-read a sub-agent's "green" yourself.

@@ -10,7 +10,7 @@ Repositories live under ROOT_DIR. For each one, never edit the main checkout (a 
   git fetch origin && git worktree add ../REPO_NAME-BRANCH -b BRANCH origin/BASE
 
 Rules:
-- Commit with: git -c user.name="NAME" -c user.email="EMAIL" commit -m "...". No Co-Authored-By trailer and no "Generated with" line, in commits or merge request text.
+- Commit with: git -c user.name="NAME" -c user.email="EMAIL" commit -m "...".
 - Merge request: glab mr create --target-branch BASE --source-branch BRANCH --title "..." --description "..." --yes. Never merge.
 - Watch the pipeline with glab ci status, bounded to 20 minutes. On failure read glab ci trace JOB, fix the cause, push again. The task is done only when the pipeline is green.
 - If a requirement is impossible or ambiguous, stop on that repository and report it instead of guessing.
