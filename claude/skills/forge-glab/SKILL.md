@@ -10,7 +10,7 @@ Serves gitlab.com or any host known to `glab auth status`. Run `glab` from insid
 2. Push the feature branch only, with an explicit refspec: `git push -u origin HEAD:<branch>`. Never push the default branch.
 3. Write the description to a file outside the repo (objective; link to the feature's TESTS.md section as `<web_url of the project>/-/blob/<branch>/TESTS.md` plus the section heading as text, no hand-built anchor; previous MR of the stack), then:
    `glab mr create --target-branch <base> --title "<conventional title>" --description "$(cat FILE)" --yes --no-editor`
-   `<base>` is the previous branch of the stack (first one: the branch feature 1 was cut from, the default branch unless the user names another; cut and target are the same branch). No AI attribution.
+   `<base>` is the previous branch of the stack (first one: the branch feature 1 was cut from, the default branch unless the user names another; cut and target are the same branch).
 4. Before retrying a create that printed only a link or failed, check `glab mr list --source-branch <branch> -F json`: a duplicate is worse than a pause. After a batch, list per source branch; never trust the loop's exit status.
 5. Take every MR link from `web_url`, never hand-built (the TESTS.md link above is the one exception). Read the MR back (below).
 
@@ -37,5 +37,4 @@ Poll `glab ci get --merge-request <iid> -F json` (head pipeline of the MR, detac
 Triage as a batch: `glab mr list --author <renovate-bot-username> -F json --per-page 100` (read the username from an existing Renovate MR: `glab mr list --search renovate -F json | jq -r '.[0].author.username'`), compare the count with the API total, read each `head_pipeline`. Repair red ones whose cause is a stale generated file or a version-line conflict in a worktree on the MR branch, push to that branch, wait for green. Leave "abandoned" ones. Flag major bumps (data migrations). Do not merge.
 
 ## Checks before reporting
-- No AI attribution: `git log --format=%B origin/<base>..HEAD | grep -ci 'co-authored-by: claude' || true` prints 0, and the description has no "generated with".
 - A sub-agent's "green" is re-read from the API before relaying it.

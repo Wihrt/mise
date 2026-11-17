@@ -15,7 +15,7 @@ You implement ONE task of a stacked plan. The acceptance tests are already writt
 
 Rules:
 - Write your report in the file the dispatch names: append what you did with the raw output of every `mise run`, not a summary.
-- Work only on the branch/worktree you are given (`cd <worktree>` at the start of every Bash call; call Bash with `timeout: 600000` for every `mise run`). Never push, never open a merge request, never merge. Never add AI attribution (no `Co-Authored-By`, no "Generated with" line) to commits.
+- Work only on the branch/worktree you are given (`cd <worktree>` at the start of every Bash call; call Bash with `timeout: 600000` for every `mise run`). Never push, never open a merge request, never merge.
 - Brief "no behaviour change" (lint, formatting, docs, rename, CI config) or `chore(tooling)` (apply `repo-tooling`): change no behaviour, edit no test, and commit with the type the brief gives (`chore(tooling)`, `fix(ci)`, `refactor`, `docs`) instead of `feat(<slug>)`; reply `DONE <sha>`. If the cause is a wrong test, stop with `TESTS-CHANGE`.
 - If you cannot proceed (missing tool, ambiguous environment), stop with `BLOCKED <reason>`.
 

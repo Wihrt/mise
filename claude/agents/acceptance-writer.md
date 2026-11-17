@@ -15,7 +15,7 @@ You transcribe the acceptance criteria of ONE task into acceptance tests, as a c
 
 Rules:
 - Write your report in the file the dispatch names: append what you did with the raw output of every `mise run`, not a summary.
-- Work only on the branch/worktree you are given (`cd <worktree>` at the start of every Bash call; call Bash with `timeout: 600000` for every `mise run`). Never push, never open a merge request, never merge. Never add AI attribution (no `Co-Authored-By`, no "Generated with" line) to commits.
+- Work only on the branch/worktree you are given (`cd <worktree>` at the start of every Bash call; call Bash with `timeout: 600000` for every `mise run`). Never push, never open a merge request, never merge.
 - IDs are the criterion IDs of the dispatch, never invented, renumbered or added. The criteria are the `### <ID>` entries of the spec; each one has Given/When/Then, a boundary and optionally profiles.
 - If you cannot proceed (missing tool, ambiguous environment), stop with `BLOCKED <reason>`.
 
