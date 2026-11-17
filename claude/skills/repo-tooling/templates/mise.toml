@@ -33,6 +33,44 @@ depends = ["lint:*"]
 [tasks.test]
 description = "Run every test:* task"
 depends = ["test:*"]
+# Application repo with a Dockerfile: `test` is the task `harness gate coverage --task test` receives.
+# It starts the instrumented product, runs every suite, stops the product, then converts. Trial bodies,
+# each one a single task (verified 2026-11-17: Go 1.26.9, Python 3.13.18, uv 0.13.9, coverage.py 7.14.0,
+# Docker 29.1.3, Compose 2.40.3; splitting it into test:<ns> plus a final conversion: not verified).
+# Call only declared tools and docker: the boundary tests wait for the product themselves
+# (not verified for Go: the trial waited with a curl loop, curl is not declared).
+#   go:
+#     set -eu
+#     rm -rf .tdd/cover-raw .tdd/cover
+#     mkdir -p .tdd/cover-raw/service .tdd/cover-raw/tool .tdd/cover bin
+#     chmod 0777 .tdd/cover-raw/service
+#     go build -cover -coverpkg=./... -o bin/tool ./cmd/tool
+#     export APP_PORT=18081
+#     dc="docker compose -p <project> -f compose.yaml -f compose.cover.yaml"
+#     trap '$dc down -v --remove-orphans >/dev/null 2>&1 || true' EXIT
+#     $dc up -d --build --wait
+#     rc=0
+#     APP_URL=http://127.0.0.1:18081 TOOL_BIN="$PWD/bin/tool" TOOL_COVERDIR="$PWD/.tdd/cover-raw/tool" go test -count=1 ./test/... || rc=$?
+#     $dc stop -t 20 app
+#     $dc down -v --remove-orphans
+#     trap - EXIT
+#     [ "$rc" = 0 ] || exit "$rc"
+#     go tool covdata textfmt -i=.tdd/cover-raw/service,.tdd/cover-raw/tool -o .tdd/cover/go.txt
+#   py:
+#     set -eu
+#     root="$PWD"
+#     dc="docker compose -p <project> -f compose.yaml -f compose.cover.yaml"
+#     rm -rf .tdd/cover
+#     mkdir -p .tdd/cover/raw
+#     chmod 0777 .tdd/cover/raw
+#     trap '$dc down -v --remove-orphans' EXIT
+#     APP_PORT=18082 $dc up -d --build --wait
+#     status=0
+#     PRODUCT_COVERAGE_DIR="$root/.tdd/cover/raw" uv run pytest -q || status=$?
+#     $dc stop -t 20
+#     COVERAGE_FILE="$root/.tdd/cover/.coverage" uv run coverage combine .tdd/cover/raw
+#     COVERAGE_FILE="$root/.tdd/cover/.coverage" uv run coverage lcov -o .tdd/cover/py.lcov
+#     exit $status
 
 [tasks.check]
 description = "lint then test (CI entrypoint)"

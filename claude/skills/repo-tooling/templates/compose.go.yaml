@@ -2,7 +2,10 @@
 # Replace <db>, <user> and the image digests; keep the service name `app` (the test helpers use it).
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        GO_COVER_FLAGS: "${GO_COVER_FLAGS:-}"  # empty: the published image and `mise run dev` are not instrumented
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -38,3 +41,15 @@ services:
       interval: 2s
       timeout: 2s
       retries: 15
+
+# Test override: save as compose.cover.yaml. Only the test task passes it
+# (docker compose -p <project> -f compose.yaml -f compose.cover.yaml ...). Verified 2026-11-17, Compose 2.40.3.
+# services:
+#   app:
+#     build:
+#       args:
+#         GO_COVER_FLAGS: "-cover -coverpkg=./..."
+#     environment:
+#       GOCOVERDIR: /cover
+#     volumes:
+#       - ./.tdd/cover-raw/service:/cover  # the task creates it and runs chmod 0777 (compose-dev)

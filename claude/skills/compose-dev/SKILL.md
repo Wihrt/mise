@@ -8,7 +8,7 @@ One `compose.yaml` at the repo root starts the application the way production ru
 Status: written 2026-11-14 on a workstation without Docker. Every command and every file below is **unverified** until run once with Docker (Compose 2.22 or later for `develop.watch`); then replace this line with the versions seen. The templates are `repo-tooling/templates/compose.go.yaml` and `compose.py.yaml`.
 
 ## The application service
-- `build:` points at the production `Dockerfile`, same target as the published image. No second Dockerfile for development (twelve-factor X: dev and prod run the same image).
+- `build:` points at the production `Dockerfile`, same target as the published image. No second Dockerfile for development (twelve-factor X: dev and prod run the same image). One exception, for the test tasks only: see "Coverage of the product".
 - `read_only: true`, `cap_drop: [ALL]`, `security_opt: ["no-new-privileges:true"]`; the user comes from the image (non-root, see `dockerfile-restricted`). A directory the process must write is a `tmpfs:` entry, named in the review.
 - Settings only through `environment:` (twelve-factor III). Values are development values; no secret of a real environment in the file.
 - Port: `PORT: "${PORT:-8080}"` in `environment:` and `"${APP_PORT:-8080}:${PORT:-8080}"` in `ports:`. `PORT` is the port the process listens on inside the container, `APP_PORT` the host port. A developer gets 8080 for both; a test run sets its own (see "Started by the tests").
@@ -45,6 +45,13 @@ port=$(docker compose -p "$project" port app "${PORT:-8080}" | sed 's/.*://')
 - `down -v --rmi local` in a trap: a failed run leaves no container, network, volume or built image behind (each project builds an image named after it).
 - Another listening port (`FAC-001`): `PORT=9090 APP_PORT=0 docker compose -p "$project" up -d --build --wait`, then `docker compose -p "$project" port app 9090`. The test fails when the application ignores `PORT`: nothing listens on 9090 inside the container.
 - A missing mandatory variable (`FAC-002`): Compose cannot unset a variable its file sets, so the test runs the image the project built, alone, with every mandatory variable but one: `docker compose -p "$project" build`, then `docker run --rm --read-only -e PORT=8080 "$(docker compose -p "$project" config --images | grep -- '-app$')"` and it reads the exit code and the output. No backing service is needed: the process must stop before it connects anywhere.
+
+## Coverage of the product
+`harness gate coverage` needs the product itself to write its coverage (rules per language in `stack-go-app`, `stack-py-app`). Verified 2026-11-17, Docker 29.1.3, Compose 2.40.3, Go 1.26.9, coverage.py 7.14.0:
+- Same Dockerfile, same target, ONE build argument, empty by default (Go `GO_COVER_FLAGS`, Python `COVERAGE`). Only the test tasks pass it, through an override file (`docker compose -f compose.yaml -f compose.cover.yaml`) that also sets the report variable and mounts the measure directory. `compose.yaml`, `mise run dev` and the published image never pass it; built without it, the image has no measure (Go: no `-cover` in `go version -m`; Python: no `coverage` module; no file written even with the variables and the mount set).
+- The directory is under `.tdd/` and the container user is non-root: the test task runs `mkdir -p` then `chmod 0777` on it (the next run's `rm -rf .tdd/cover*` still works). Without it nothing fails before the stop: Go exits 0 with `permission denied` on stderr, Python exits 1 at the stop with `DataError`; no file either way.
+- The measure is written at a normal exit only: `docker compose stop -t 20` (SIGTERM) before the conversion. SIGKILL (`compose kill`) leaves Go with no counters (the conversion writes every count at 0) and Python with no file.
+- Not verified: `user:` or `chown` instead of `chmod`, macOS and Docker Desktop, distroless images, several replicas on one directory, `down` alone or a stop timeout too short, `mise run dev` (watch) after the change.
 
 ## Checks
 - `lint:compose`: `docker compose config --quiet` (the file parses and its variables resolve).
