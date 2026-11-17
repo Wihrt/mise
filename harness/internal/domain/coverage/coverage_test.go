@@ -24,7 +24,7 @@ func TestMergeAndFindings(t *testing.T) {
 	a, _ := ParseGoProfile("mode: set\nex.test/app/a.go:2.1,3.2 1 1\nex.test/app/a.go:5.1,6.2 1 0\nex.test/app/a.go:8.1,8.1 0 0\n", modules)
 	b, _ := ParseGoProfile("mode: count\nex.test/app/a.go:2.1,3.2 1 0\nex.test/app/a.go:5.1,6.2 1 0\n", modules)
 	got := Merge(a, b).Findings()
-	want := []Finding{{Kind: "UNCOVERED", File: "a.go", Start: 5, End: 6}}
+	want := []Finding{{Kind: "UNCOVERED", File: "a.go", Start: 5, End: 6, Col: 1}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("findings %+v, want %+v", got, want)
 	}

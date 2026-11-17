@@ -78,6 +78,10 @@ func (r *run) coverage() (bool, error) {
 		}
 		findings[i].Text = coverage.LineText(s, f.Start)
 	}
+	findings, ignored, err := r.withoutErrorReturns(findings, source)
+	if err != nil {
+		return false, err
+	}
 	notJudged := 0
 	for f := range tracked {
 		ext := path.Ext(f)
@@ -140,9 +144,38 @@ func (r *run) coverage() (bool, error) {
 	for _, s := range stale {
 		r.outf("STALE EXCEPTION %s: %s", s.File, s.Text)
 	}
-	r.out("ERROR RETURNS IGNORED 0")
+	r.outf("ERROR RETURNS IGNORED %d", ignored)
 	r.outf("NOT JUDGED %d files: neither Go nor Python", notJudged)
 	return pass, nil
+}
+
+// withoutErrorReturns drops the never-executed Go blocks that only return an
+// error, and counts them.
+func (r *run) withoutErrorReturns(findings []coverage.Finding, source func(string) (string, error)) ([]coverage.Finding, int, error) {
+	returns := map[string]map[[2]int]bool{}
+	var kept []coverage.Finding
+	ignored := 0
+	for _, f := range findings {
+		if f.Kind != "UNCOVERED" || path.Ext(f.File) != ".go" {
+			kept = append(kept, f)
+			continue
+		}
+		if returns[f.File] == nil {
+			s, err := source(f.File)
+			if err != nil {
+				return nil, 0, failure{err.Error()}
+			}
+			if returns[f.File], err = coverage.ErrorReturns(s); err != nil {
+				return nil, 0, failf("%s: %v", f.File, err)
+			}
+		}
+		if returns[f.File][[2]int{f.Start, f.Col}] {
+			ignored++
+			continue
+		}
+		kept = append(kept, f)
+	}
+	return kept, ignored, nil
 }
 
 // exceptions reads COVERAGE.md; a missing file holds no exception.

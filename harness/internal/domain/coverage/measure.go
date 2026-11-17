@@ -36,6 +36,7 @@ type Measure map[string]map[span]bool
 type Finding struct {
 	Kind, File string
 	Start, End int    // first and last line
+	Col        int    // column where a Go block starts
 	Text       string // first line, trimmed: what a written exception names
 	Reason     string // why a written exception accepts it
 }
@@ -108,7 +109,7 @@ func (m Measure) Findings() []Finding {
 					out = append(out, Finding{Kind: "UNCOVERED BRANCH", File: file, Start: s.start.line, End: s.start.line})
 				}
 			case s.kind == block && !covered:
-				out = append(out, Finding{Kind: "UNCOVERED", File: file, Start: s.start.line, End: s.end.line})
+				out = append(out, Finding{Kind: "UNCOVERED", File: file, Start: s.start.line, End: s.end.line, Col: s.start.col})
 			}
 		}
 	}
