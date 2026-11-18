@@ -538,3 +538,15 @@ Branche : `fix/couverture-revue-finale` · Commande : `mise run test`
     - elle contient `PRAGMA` avec le fichier et la ligne du `# PRAGMA: NO COVER`
     - elle contient `PRAGMA` avec le fichier et la ligne du `#  pragma:no branch`
 - **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV011_RecognizedPragmaSpellingsAreRefused`
+
+## couverture-fichier-vide — Un fichier Go dont les fonctions sont vides est mesuré
+Branche : `fix/couverture-fichier-vide` · Commande : `mise run test`
+
+### COV-012 — Un fichier Go dont les fonctions sont vides est mesuré
+- **Critère** :
+  - **Étant donné** un fichier Go de production dont la seule fonction a un corps vide, et un profil Go qui ne porte pour ce fichier qu'un bloc sans instruction
+  - **Quand** `harness gate coverage` est lancé avec ce profil
+  - **Alors**
+    - la sortie ne contient aucune ligne `NOT MEASURED` pour ce fichier
+    - elle ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV012_FileOfEmptyFunctionsIsMeasured`
