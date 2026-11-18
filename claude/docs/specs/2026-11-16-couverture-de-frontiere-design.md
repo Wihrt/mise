@@ -36,6 +36,7 @@ Faits établis le 16/11 :
 | Ancrage d'une exception | Par le texte de la ligne, pas par son numéro : l'exception survit à un déplacement du code. | choix de conception |
 | Exception périmée | Une exception qui ne correspond plus à rien fait échouer la porte : la liste se vide d'elle-même. | choix de conception |
 | `# pragma: no cover` | Refusé dans le code Python de production. Une exception s'écrit dans `COVERAGE.md`, jamais dans le code. | choix de conception |
+| Exclusions dans la configuration de coverage.py | Refusées comme un pragma : la porte lit la configuration et imprime `PRAGMA`. Sans cela, `COVERAGE.md` se contourne sans toucher au code. | utilisateur, 18/11, après la revue finale |
 | Fichiers d'un autre langage | Décision 5 appliquée à tout le dépôt : une seule ligne en donne le nombre, pour ne pas noyer la sortie. Un fichier Go ou Python que nul rapport ne mesure est, lui, un échec. | choix de conception |
 | Dette de départ | `--baseline` écrit dans `COVERAGE.md` ce qui n'est pas couvert aujourd'hui, avec la raison « dette initiale ». | choix de conception (promis avec la décision 10) |
 | Dépôt du harnais | Hors périmètre : ses hooks sont testés par bats avec un binaire non instrumenté. | choix de conception |
@@ -74,6 +75,7 @@ Le code de production en Go et en Python : les fichiers `.go` et `.py` suivis pa
 | Branche Python jamais prise, sur une ligne exécutée | `UNCOVERED BRANCH <fichier>:<ligne>` | `FAIL` |
 | Fichier `.go` ou `.py` de production absent de tous les rapports | `NOT MEASURED <fichier>` | `FAIL` |
 | `# pragma: no cover` ou `# pragma: no branch` dans un fichier Python de production, dans toute écriture que coverage.py reconnaît (sans deux-points, en majuscules, espaces libres) | `PRAGMA <fichier>:<ligne>` | `FAIL` |
+| Clé d'exclusion de lignes dans un fichier de configuration de coverage.py | `PRAGMA <fichier>:<ligne>` | `FAIL` |
 | Fichiers suivis dont l'extension n'est ni `.go` ni `.py` | `NOT JUDGED <n> files: neither Go nor Python`, une seule ligne | aucun |
 
 Précisions :
@@ -104,6 +106,17 @@ if err != nil {
 ```
 
 La porte imprime une ligne `ERROR RETURNS IGNORED <n>`, même quand `n` vaut 0 : `n` est le nombre de blocs jamais exécutés qu'elle a écartés ainsi. Un bloc écarté ne passe pas par `COVERAGE.md` : une entrée écrite pour lui n'accepte rien, donc elle est périmée. Elle lit pour cela le code Go du dépôt avec l'analyseur de la bibliothèque standard : aucune dépendance nouvelle. En Python, rien d'équivalent : la règle reste stricte.
+
+### Exclusions dans la configuration de coverage.py
+
+coverage.py retire du rapport les lignes que sa configuration exclut : la porte ne voit alors rien, et l'exception n'a jamais été écrite dans `COVERAGE.md`. La porte lit donc cette configuration et refuse ces clés comme elle refuse un pragma.
+
+- **Fichiers lus** : les fichiers suivis par git nommés `.coveragerc`, `setup.cfg`, `tox.ini` ou `pyproject.toml`, où qu'ils soient dans le dépôt. Ces quatre noms sont parmi ceux que coverage.py essaie (7.14.0, `coverage/config.py:660-664`) ; `.coveragerc.toml`, ligne 661, n'est pas lu : c'est une limite plus bas.
+- **Section** : `[report]` ou `[coverage:report]` dans `.coveragerc` ; `[coverage:report]` dans `setup.cfg` et `tox.ini` ; `[tool.coverage.report]` dans `pyproject.toml` (`config.py:46-48`, `tomlconfig.py:86`).
+- **Clés refusées**, celles qui retirent des lignes ou des branches : `exclude_lines`, `exclude_also`, `partial_branches`, `partial_branches_always`, `partial_also` (`config.py:431-439`).
+- **Constat** : `PRAGMA <fichier>:<ligne>`, la ligne étant celle de la clé. Il fait échouer, aucune entrée de `COVERAGE.md` ne l'accepte et `--baseline` ne l'écrit pas : c'est la règle de `PRAGMA`.
+- **Lecture** : ligne à ligne, avec la bibliothèque standard seule. La porte retient l'en-tête de section en cours et reconnaît une ligne qui commence par une de ces clés suivie de `=` ou de `:`. Les lignes de suite d'une valeur ne donnent pas de constat de plus.
+- **Clés de fichiers** (`omit`, `include`) : pas lues. Le fichier écarté disparaît du rapport et sort déjà `NOT MEASURED` (sondé le 18/11 sur l'application d'essai : `coverage lcov --omit='*/serve.py'` écrit 5 lignes `SF:` au lieu de 6).
 
 ### Exceptions : `COVERAGE.md`
 
@@ -159,6 +172,8 @@ Vérification des gabarits : deux applications d'essai hors dépôt, une Go et u
 - La mise en conformité des dépôts existants, au-delà de `--baseline`.
 - Un langage autre que Go et Python.
 - Une exception vaut pour toutes les lignes du fichier qui portent son texte : une nouvelle ligne identique, jamais exécutée, est acceptée sans décision. Ancrer plus finement (par fonction) attendra qu'on le constate.
+- Configuration de coverage.py hors des quatre noms lus : un fichier désigné par `COVERAGE_RCFILE`, `COVERAGE_PROCESS_START` ou `--rcfile` sous un autre nom, et `.coveragerc.toml`. De même une clé TOML écrite en notation pointée ou en table en ligne (`report = { exclude_also = [...] }`), une clé INI en majuscules ou casse mixte (`Exclude_Lines` : configparser met les clés en minuscules), un en-tête de table TOML suivi d'un commentaire (`[tool.coverage.report] # ...`) et une clé TOML entre guillemets. La lecture donne une fausse alerte : une ligne de suite INI qui ressemble elle-même à l'une des clés. La règle écrite dans `implementer.md` reste seule à les interdire.
+- Les exclusions par défaut de coverage.py, hors pragma : un corps `...` et un bloc `if TYPE_CHECKING:` ne sont pas mesurés (7.14.0, `config.py:152-153`), donc pas jugés.
 - Empêcher par la porte qu'un implementer modifie `COVERAGE.md` : la règle est écrite, et chaque exécution imprime toutes les lignes `ACCEPTED`. On durcira si un agent passe outre.
 
 ## Critères d'acceptation
@@ -269,3 +284,22 @@ Frontière de tous les critères : la ligne de commande `harness gate coverage` 
   - la sortie ne contient aucune ligne `NOT MEASURED` pour ce fichier
   - elle ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
 - **Cas réel** : aucun constaté sur un dépôt ; l'outil Go écrit bien, pour une fonction au corps vide, un bloc à 0 instruction (profil go1.27.4 du 16/11 : `12.14,12.14 0 0`), et un fichier de méthodes marqueurs n'a que de tels blocs. Décision de l'utilisateur, 18/11, après la revue finale
+
+### COV-013 — Une clé d'exclusion dans `.coveragerc` est refusée
+- **Étant donné** un fichier Python de production, un rapport où tout ce qui est mesuré est couvert, et un `.coveragerc` suivi par git dont la section `[report]` porte une clé `exclude_lines` et une clé `partial_branches_always`
+- **Quand** `harness gate coverage` est lancé
+- **Alors**
+  - la sortie contient `PRAGMA` avec `.coveragerc` et la ligne de `exclude_lines`, et se termine par `FAIL`
+  - elle contient `PRAGMA` avec `.coveragerc` et la ligne de `partial_branches_always`
+  - quand `.coveragerc` ne porte que la section `[run]` (`branch`, `parallel`, `relative_files`, `sigterm`, `source`), la sortie ne contient aucune ligne `PRAGMA` et se termine par `PASS`
+- **Cas réel** : `.coveragerc` de l'application d'essai Python du 18/11 (section `[run]` seule, celle de `stack-py-app`) ; clés lues dans coverage.py 7.14.0, `coverage/config.py:431-439`
+
+### COV-014 — Les autres fichiers de configuration de coverage.py sont lus
+- **Étant donné** un fichier Python de production, un rapport où tout ce qui est mesuré est couvert, et trois fichiers suivis par git : `pyproject.toml` dont la table `[tool.coverage.report]` porte `exclude_also`, `setup.cfg` dont la section `[coverage:report]` porte `partial_branches`, `tox.ini` dont la section `[coverage:report]` porte `partial_also`
+- **Quand** `harness gate coverage` est lancé
+- **Alors**
+  - la sortie contient `PRAGMA` avec `pyproject.toml` et la ligne de `exclude_also`, et se termine par `FAIL`
+  - elle contient `PRAGMA` avec `setup.cfg` et la ligne de `partial_branches`
+  - elle contient `PRAGMA` avec `tox.ini` et la ligne de `partial_also`
+  - quand `pyproject.toml` ne porte aucune table `tool.coverage` (`[project]`, `[tool.hatch.build.targets.wheel]`, `[dependency-groups]`) et que les deux autres fichiers sont absents, la sortie ne contient aucune ligne `PRAGMA` et se termine par `PASS`
+- **Cas réel** : fichiers que coverage.py 7.14.0 essaie (`coverage/config.py:660-664`) et préfixes de section qu'il y lit (`config.py:46-48`, `tomlconfig.py:86`) ; `pyproject.toml` de l'application d'essai Python du 18/11 (`[project]`, `[project.scripts]`, `[build-system]`, `[tool.hatch.build.targets.wheel]`, `[dependency-groups]` : aucune table `tool.coverage`)

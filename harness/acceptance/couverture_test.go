@@ -463,3 +463,56 @@ func TestCOV011_RecognizedPragmaSpellingsAreRefused(t *testing.T) {
 	with(t, out, "PRAGMA app/spell.py:3", "PRAGMA app/spell.py:4", "PRAGMA app/spell.py:5")
 	ends(t, code, out, 1, "FAIL")
 }
+
+// A clean Python file whose every measured line is covered, and tracked
+// configuration files of coverage.py as real projects write them.
+const (
+	covCleanPy  = "app/clean.py"
+	covCleanSrc = "def f(n):\n    return n\n"
+	covCleanRec = "SF:app/clean.py\nDA:1,1\nDA:2,1\nend_of_record\n"
+
+	// The [run] section of the recipe, as in the trial application.
+	covRcRun = "[run]\nbranch = True\nparallel = True\nrelative_files = True\nsigterm = True\nsource = src\n"
+	// With covRcRun first: exclude_lines is on line 9, partial_branches_always on line 12.
+	covRcReport = "\n[report]\nexclude_lines =\n    if TYPE_CHECKING:\n    raise NotImplementedError\npartial_branches_always =\n    while True:\n"
+
+	covPyprojectPlain = "[project]\nname = \"app\"\nversion = \"0.1.0\"\n\n[tool.hatch.build.targets.wheel]\npackages = [\"src/app\"]\n\n[dependency-groups]\ndev = [\"pytest\"]\n"
+	// exclude_also is on line 12.
+	covPyprojectCov = covPyprojectPlain + "\n[tool.coverage.report]\nexclude_also = [\n  \"if TYPE_CHECKING:\",\n  \"raise NotImplementedError\",\n]\n"
+	// partial_branches and partial_also are on line 5.
+	covSetupCfg = "[metadata]\nname = app\n\n[coverage:report]\npartial_branches =\n    while True:\n"
+	covToxIni   = "[tox]\nenvlist = py\n\n[coverage:report]\npartial_also =\n    if x:\n"
+)
+
+func TestCOV013_ExclusionKeysInCoveragercAreRefused(t *testing.T) {
+	r := covRepo(t, files{covCleanPy: covCleanSrc, ".coveragerc": covRcRun + covRcReport}, files{covPyLcov: covCleanRec}, 0)
+	code, out := r.coverage()
+	with(t, out, "PRAGMA .coveragerc:9", "PRAGMA .coveragerc:12")
+	ends(t, code, out, 1, "FAIL")
+}
+
+func TestCOV013_RunOnlyCoveragercIsAccepted(t *testing.T) {
+	r := covRepo(t, files{covCleanPy: covCleanSrc, ".coveragerc": covRcRun}, files{covPyLcov: covCleanRec}, 0)
+	code, out := r.coverage()
+	without(t, out, "PRAGMA")
+	ends(t, code, out, 0, "PASS")
+}
+
+func TestCOV014_OtherConfigurationFilesAreRead(t *testing.T) {
+	r := covRepo(t, files{
+		covCleanPy:       covCleanSrc,
+		"pyproject.toml": covPyprojectCov,
+		"setup.cfg":      covSetupCfg,
+		"tox.ini":        covToxIni,
+	}, files{covPyLcov: covCleanRec}, 0)
+	code, out := r.coverage()
+	with(t, out, "PRAGMA pyproject.toml:12", "PRAGMA setup.cfg:5", "PRAGMA tox.ini:5")
+	ends(t, code, out, 1, "FAIL")
+}
+
+func TestCOV014_PyprojectWithoutCoverageTableIsAccepted(t *testing.T) {
+	r := covRepo(t, files{covCleanPy: covCleanSrc, "pyproject.toml": covPyprojectPlain}, files{covPyLcov: covCleanRec}, 0)
+	code, out := r.coverage()
+	without(t, out, "PRAGMA")
+	ends(t, code, out, 0, "PASS")
+}
