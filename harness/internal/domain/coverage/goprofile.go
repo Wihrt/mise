@@ -28,11 +28,14 @@ func ParseGoProfile(text string, modules map[string]string) (Measure, error) {
 			return nil, fmt.Errorf("bad profile line %q", line)
 		}
 		file, ok := repoFile(name, modules)
-		if !ok || stmts == 0 {
+		if !ok {
 			continue
 		}
 		if m[file] == nil {
 			m[file] = map[span]bool{}
+		}
+		if stmts == 0 {
+			continue
 		}
 		m[file][s] = m[file][s] || count > 0
 	}
