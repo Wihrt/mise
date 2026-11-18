@@ -70,6 +70,20 @@ func TestCOV001_EmptyBlockIsNotJudged(t *testing.T) {
 	ends(t, code, out, 0, "PASS")
 }
 
+// The Go file of a marker method and its profile as the toolchain writes it
+// (go test -coverprofile, go1.27.4): the only function has an empty body, so
+// the only block has no statement, starts and ends at the same position.
+func TestCOV012_FileOfEmptyFunctionsIsMeasured(t *testing.T) {
+	const event = "internal/app/event.go"
+	r := covRepo(t, files{
+		covModule: covGoMod,
+		event:     "package app\n\n// Placed is an event.\ntype Placed struct{}\n\nfunc (Placed) isEvent() {}\n",
+	}, files{covReport: "mode: set\nexample.test/app/internal/app/event.go:6.26,6.26 0 0\n"}, 0)
+	code, out := r.coverage()
+	without(t, out, "NOT MEASURED", "UNCOVERED")
+	ends(t, code, out, 0, "PASS")
+}
+
 func TestCOV003_ReportsComplementEachOther(t *testing.T) {
 	r := covRepo(t, covFiles(false), files{
 		".tdd/cover/a.txt": profile(false, hit, miss, miss),

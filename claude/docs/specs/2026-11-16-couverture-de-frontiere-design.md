@@ -79,7 +79,7 @@ Le code de production en Go et en Python : les fichiers `.go` et `.py` suivis pa
 Précisions :
 
 - **Bloc Go** : `<début>` et `<fin>` sont les lignes du profil. Le profil fait commencer un bloc à sa première instruction, pas à l'accolade ni au `if` : sur le harnais, le corps du `if err != nil {` de `characterize.go:96` est le bloc `97.3,98.1`, et le `default:` de `runner.go:31` le bloc `32.3,32.19`. La « première ligne » d'un bloc est donc celle de sa première instruction.
-- **Bloc Go sans instruction** (corps vide ; le profil lui donne 0 instruction, 3 cas sur le harnais) : pas jugé.
+- **Bloc Go sans instruction** (corps vide ; le profil lui donne 0 instruction, 3 cas sur le harnais) : pas jugé. Son fichier, lui, est mesuré : un fichier Go dont le profil ne porte que des blocs sans instruction n'est pas `NOT MEASURED`.
 - **Fichier Python vide** (`__init__.py`) : `coverage lcov` lui écrit une ligne `SF:` sans ligne `DA:` (vérifié le 16/11) ; il est donc mesuré, sans constat.
 - **Lignes Python** : des lignes jamais exécutées se groupent quand aucune ligne exécutée ne les sépare dans le rapport ; les lignes vides et les commentaires, que le rapport ne mesure pas, ne coupent pas le groupe.
 - **Branche** : une branche dont la ligne n'a jamais été exécutée n'est pas répétée, la ligne `UNCOVERED` la couvre.
@@ -261,3 +261,11 @@ Frontière de tous les critères : la ligne de commande `harness gate coverage` 
   - elle contient `PRAGMA` avec le fichier et la ligne du `# PRAGMA: NO COVER`
   - elle contient `PRAGMA` avec le fichier et la ligne du `#  pragma:no branch`
 - **Cas réel** : coverage.py 7.14.0, lu le 18/11 : `coverage/config.py:151` (`#\s*(pragma|PRAGMA)[:\s]?\s*(no|NO)\s*(cover|COVER)`) et `:158` (la même avec `branch|BRANCH`) : ces écritures retirent les lignes du rapport
+
+### COV-012 — Un fichier Go dont les fonctions sont vides est mesuré
+- **Étant donné** un fichier Go de production dont la seule fonction a un corps vide, et un profil Go qui ne porte pour ce fichier qu'un bloc sans instruction
+- **Quand** `harness gate coverage` est lancé avec ce profil
+- **Alors**
+  - la sortie ne contient aucune ligne `NOT MEASURED` pour ce fichier
+  - elle ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
+- **Cas réel** : aucun constaté sur un dépôt ; l'outil Go écrit bien, pour une fonction au corps vide, un bloc à 0 instruction (profil go1.27.4 du 16/11 : `12.14,12.14 0 0`), et un fichier de méthodes marqueurs n'a que de tels blocs. Décision de l'utilisateur, 18/11, après la revue finale
