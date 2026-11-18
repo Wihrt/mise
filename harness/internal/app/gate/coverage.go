@@ -87,6 +87,13 @@ func (r *run) coverage() (bool, error) {
 		ext := path.Ext(f)
 		if ext != ".go" && ext != ".py" {
 			notJudged++
+			if coverage.IsCoverageConfig(f) {
+				s, err := source(f)
+				if err != nil {
+					return false, failure{err.Error()}
+				}
+				findings = append(findings, coverage.Exclusions(f, s)...)
+			}
 			continue
 		}
 		if !production(f) {
