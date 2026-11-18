@@ -27,6 +27,10 @@ func (f fakeFiles) Read(path string) (string, error) {
 	}
 	return "", errors.New("no such file")
 }
+func (f fakeFiles) Write(path, content string) error {
+	f[path] = content
+	return nil
+}
 func (f fakeFiles) IsFile(path string) bool    { _, ok := f[path]; return ok }
 func (f fakeFiles) Remove(path string)         { delete(f, path) }
 func (f fakeFiles) MkdirAll(string) error      { return nil }

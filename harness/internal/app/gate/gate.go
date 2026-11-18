@@ -33,6 +33,7 @@ type Options struct {
 	Base, Head      string
 	AcceptLost      []string
 	Coverage        []string // coverage reports the task writes, for mode coverage
+	Baseline        bool     // write the findings as exceptions of reason "dette initiale"
 }
 
 // Gate runs the gates.

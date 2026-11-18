@@ -24,7 +24,7 @@ var gateUsage = strings.Join([]string{
 	"  harness gate characterize --slug S --test SHA --task T --spec PATH --ac ID,ID --proofs|--mutants DIR [--repo DIR]",
 	"                     [--ac-changed ID,ID] [--replaces S,S] [--jobs N]",
 	"  harness gate replay --base SHA --head SHA --proofs DIR --task T [--repo DIR] [--accept-lost NAME]",
-	"  harness gate coverage --task T --coverage REPORT [--coverage REPORT ...] [--repo DIR]",
+	"  harness gate coverage --task T --coverage REPORT [--coverage REPORT ...] [--repo DIR] [--baseline]",
 	"Common: [--format junit|tofu-json] [--report PATH] [--timeout SECONDS]",
 	"Last output line is PASS or FAIL. Exit 0 PASS, 1 FAIL, 2 usage or environment error.",
 }, "\n")
@@ -85,6 +85,7 @@ func parseGate(args []string) (gate.Options, error) {
 	case "coverage":
 		required = append(required, "coverage")
 		fs.Var(list{&o.Coverage}, "coverage", "REPORT (repeatable)")
+		fs.BoolVar(&o.Baseline, "baseline", false, "write the findings to COVERAGE.md as initial debt")
 	case "red", "green", "characterize":
 		required = append(required, "slug", "test")
 		fs.StringVar(&o.Slug, "slug", "", "slug")

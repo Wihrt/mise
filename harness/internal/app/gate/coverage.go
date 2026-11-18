@@ -60,32 +60,105 @@ func (r *run) coverage() (bool, error) {
 		measures = append(measures, m)
 	}
 	production := func(f string) bool { return tracked[f] && !tdd.IsTestPath(f) }
-	findings := coverage.Merge(measures...).Select(production).Findings()
-	for f := range tracked {
-		if !strings.HasSuffix(f, ".py") || !production(f) {
-			continue
+	merged := coverage.Merge(measures...)
+	findings := merged.Select(production).Findings()
+	sources := map[string]string{}
+	source := func(f string) (string, error) {
+		if s, ok := sources[f]; ok {
+			return s, nil
 		}
-		source, err := r.g.files.Read(abs(f))
+		s, err := r.g.files.Read(abs(f))
+		sources[f] = s
+		return s, err
+	}
+	for i, f := range findings {
+		s, err := source(f.File)
 		if err != nil {
 			return false, failure{err.Error()}
 		}
-		findings = append(findings, coverage.Pragmas(f, source)...)
+		findings[i].Text = coverage.LineText(s, f.Start)
 	}
-	sort.SliceStable(findings, func(i, j int) bool {
-		if findings[i].File != findings[j].File {
-			return findings[i].File < findings[j].File
+	notJudged := 0
+	for f := range tracked {
+		ext := path.Ext(f)
+		if ext != ".go" && ext != ".py" {
+			notJudged++
+			continue
 		}
-		return findings[i].Start < findings[j].Start
+		if !production(f) {
+			continue
+		}
+		s, err := source(f)
+		if err != nil {
+			return false, failure{err.Error()}
+		}
+		if ext == ".py" {
+			findings = append(findings, coverage.Pragmas(f, s)...)
+		}
+		if _, measured := merged[f]; !measured && (ext == ".py" || coverage.HasFunc(s)) {
+			findings = append(findings, coverage.Finding{Kind: "NOT MEASURED", File: f})
+		}
+	}
+	exceptions, err := r.exceptions(abs("COVERAGE.md"))
+	if err != nil {
+		return false, err
+	}
+	accepted, refused, stale := exceptions.Apply(findings)
+	if r.o.Baseline {
+		if debt := exceptions.WithDebt(refused); debt.Markdown() != exceptions.Markdown() {
+			if err := r.g.files.Write(abs("COVERAGE.md"), debt.Markdown()); err != nil {
+				return false, failure{err.Error()}
+			}
+			accepted, refused, stale = debt.Apply(findings)
+		}
+	}
+	pass := len(stale) == 0
+	all := append(accepted, refused...)
+	sort.SliceStable(all, func(i, j int) bool {
+		if all[i].File != all[j].File {
+			return all[i].File < all[j].File
+		}
+		return all[i].Start < all[j].Start
 	})
-	for _, f := range findings {
-		if f.Kind == "UNCOVERED" {
+	for _, f := range all {
+		switch {
+		case f.Reason != "" && f.Kind == "NOT MEASURED":
+			r.outf("ACCEPTED %s: %s", f.File, f.Reason)
+		case f.Reason != "":
+			r.outf("ACCEPTED %s:%d-%d: %s", f.File, f.Start, f.End, f.Reason)
+		case f.Kind == "UNCOVERED":
+			pass = false
 			r.outf("UNCOVERED %s:%d-%d", f.File, f.Start, f.End)
-		} else {
+		case f.Kind == "NOT MEASURED":
+			pass = false
+			r.outf("NOT MEASURED %s", f.File)
+		default:
+			pass = false
 			r.outf("%s %s:%d", f.Kind, f.File, f.Start)
 		}
 	}
+	for _, s := range stale {
+		r.outf("STALE EXCEPTION %s: %s", s.File, s.Text)
+	}
 	r.out("ERROR RETURNS IGNORED 0")
-	return len(findings) == 0, nil
+	r.outf("NOT JUDGED %d files: neither Go nor Python", notJudged)
+	return pass, nil
+}
+
+// exceptions reads COVERAGE.md; a missing file holds no exception.
+func (r *run) exceptions(file string) (coverage.Exceptions, error) {
+	if !r.g.files.IsFile(file) {
+		return nil, nil
+	}
+	md, err := r.g.files.Read(file)
+	if err != nil {
+		return nil, failure{err.Error()}
+	}
+	e, err := coverage.ParseExceptions(md)
+	if err != nil {
+		return nil, failure{err.Error()}
+	}
+	return e, nil
 }
 
 // goModules maps the module path of each tracked go.mod to its directory.
