@@ -8,9 +8,9 @@ import (
 )
 
 // ErrorReturns gives the positions (line, column) of the return statements that
-// are the whole body of an if testing an error against nil and give that error
-// back: `if err != nil { return ..., err }`, with an identifier named err or ending in err
-// or Err.
+// are the whole body of an if testing an error against nil and one of whose
+// results names that error: `if err != nil { return ..., err }`, with an
+// identifier named err or ending in err or Err.
 func ErrorReturns(source string) (map[[2]int]bool, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "", source, 0)
