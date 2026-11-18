@@ -111,7 +111,7 @@ La porte imprime une ligne `ERROR RETURNS IGNORED <n>`, même quand `n` vaut 0 :
 
 coverage.py retire du rapport les lignes que sa configuration exclut : la porte ne voit alors rien, et l'exception n'a jamais été écrite dans `COVERAGE.md`. La porte lit donc cette configuration et refuse ces clés comme elle refuse un pragma.
 
-- **Fichiers lus** : les fichiers suivis par git nommés `.coveragerc`, `setup.cfg`, `tox.ini` ou `pyproject.toml`, où qu'ils soient dans le dépôt. Ce sont ceux que coverage.py essaie (7.14.0, `coverage/config.py:660-664`).
+- **Fichiers lus** : les fichiers suivis par git nommés `.coveragerc`, `setup.cfg`, `tox.ini` ou `pyproject.toml`, où qu'ils soient dans le dépôt. Ces quatre noms sont parmi ceux que coverage.py essaie (7.14.0, `coverage/config.py:660-664`) ; `.coveragerc.toml`, ligne 661, n'est pas lu : c'est une limite plus bas.
 - **Section** : `[report]` ou `[coverage:report]` dans `.coveragerc` ; `[coverage:report]` dans `setup.cfg` et `tox.ini` ; `[tool.coverage.report]` dans `pyproject.toml` (`config.py:46-48`, `tomlconfig.py:86`).
 - **Clés refusées**, celles qui retirent des lignes ou des branches : `exclude_lines`, `exclude_also`, `partial_branches`, `partial_branches_always`, `partial_also` (`config.py:431-439`).
 - **Constat** : `PRAGMA <fichier>:<ligne>`, la ligne étant celle de la clé. Il fait échouer, aucune entrée de `COVERAGE.md` ne l'accepte et `--baseline` ne l'écrit pas : c'est la règle de `PRAGMA`.
@@ -172,7 +172,7 @@ Vérification des gabarits : deux applications d'essai hors dépôt, une Go et u
 - La mise en conformité des dépôts existants, au-delà de `--baseline`.
 - Un langage autre que Go et Python.
 - Une exception vaut pour toutes les lignes du fichier qui portent son texte : une nouvelle ligne identique, jamais exécutée, est acceptée sans décision. Ancrer plus finement (par fonction) attendra qu'on le constate.
-- Configuration de coverage.py hors des quatre noms lus : un fichier désigné par `COVERAGE_RCFILE`, `COVERAGE_PROCESS_START` ou `--rcfile` sous un autre nom, et `.coveragerc.toml`. De même une clé TOML écrite en notation pointée ou en table en ligne (`report = { exclude_also = [...] }`). La règle écrite dans `implementer.md` reste seule à les interdire.
+- Configuration de coverage.py hors des quatre noms lus : un fichier désigné par `COVERAGE_RCFILE`, `COVERAGE_PROCESS_START` ou `--rcfile` sous un autre nom, et `.coveragerc.toml`. De même une clé TOML écrite en notation pointée ou en table en ligne (`report = { exclude_also = [...] }`), une clé INI en majuscules ou casse mixte (`Exclude_Lines` : configparser met les clés en minuscules), un en-tête de table TOML suivi d'un commentaire (`[tool.coverage.report] # ...`) et une clé TOML entre guillemets. La lecture donne une fausse alerte : une ligne de suite INI qui ressemble elle-même à l'une des clés. La règle écrite dans `implementer.md` reste seule à les interdire.
 - Les exclusions par défaut de coverage.py, hors pragma : un corps `...` et un bloc `if TYPE_CHECKING:` ne sont pas mesurés (7.14.0, `config.py:152-153`), donc pas jugés.
 - Empêcher par la porte qu'un implementer modifie `COVERAGE.md` : la règle est écrite, et chaque exécution imprime toutes les lignes `ACCEPTED`. On durcira si un agent passe outre.
 
