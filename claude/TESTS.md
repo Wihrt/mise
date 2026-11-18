@@ -550,3 +550,27 @@ Branche : `fix/couverture-fichier-vide` · Commande : `mise run test`
     - la sortie ne contient aucune ligne `NOT MEASURED` pour ce fichier
     - elle ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
 - **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV012_FileOfEmptyFunctionsIsMeasured`
+
+## couverture-exclusions — Une exclusion dans la configuration de coverage.py est refusée
+Branche : `feat/couverture-exclusions` · Commande : `mise run test`
+
+### COV-013 — Une clé d'exclusion dans `.coveragerc` est refusée
+- **Critère** :
+  - **Étant donné** un fichier Python de production, un rapport où tout ce qui est mesuré est couvert, et un `.coveragerc` suivi par git dont la section `[report]` porte une clé `exclude_lines` et une clé `partial_branches_always`
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie contient `PRAGMA` avec `.coveragerc` et la ligne de `exclude_lines`, et se termine par `FAIL`
+    - elle contient `PRAGMA` avec `.coveragerc` et la ligne de `partial_branches_always`
+    - quand `.coveragerc` ne porte que la section `[run]` (`branch`, `parallel`, `relative_files`, `sigterm`, `source`), la sortie ne contient aucune ligne `PRAGMA` et se termine par `PASS`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV013_ExclusionKeysInCoveragercAreRefused`, `TestCOV013_RunOnlyCoveragercIsAccepted`
+
+### COV-014 — Les autres fichiers de configuration de coverage.py sont lus
+- **Critère** :
+  - **Étant donné** un fichier Python de production, un rapport où tout ce qui est mesuré est couvert, et trois fichiers suivis par git : `pyproject.toml` dont la table `[tool.coverage.report]` porte `exclude_also`, `setup.cfg` dont la section `[coverage:report]` porte `partial_branches`, `tox.ini` dont la section `[coverage:report]` porte `partial_also`
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie contient `PRAGMA` avec `pyproject.toml` et la ligne de `exclude_also`, et se termine par `FAIL`
+    - elle contient `PRAGMA` avec `setup.cfg` et la ligne de `partial_branches`
+    - elle contient `PRAGMA` avec `tox.ini` et la ligne de `partial_also`
+    - quand `pyproject.toml` ne porte aucune table `tool.coverage` (`[project]`, `[tool.hatch.build.targets.wheel]`, `[dependency-groups]`) et que les deux autres fichiers sont absents, la sortie ne contient aucune ligne `PRAGMA` et se termine par `PASS`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV014_OtherConfigurationFilesAreRead`, `TestCOV014_PyprojectWithoutCoverageTableIsAccepted`
