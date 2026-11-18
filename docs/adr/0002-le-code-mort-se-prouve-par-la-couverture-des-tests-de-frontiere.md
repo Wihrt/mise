@@ -4,7 +4,7 @@ Date: 2026-11-16
 
 ## Status
 
-Proposed
+Accepted
 
 Spec : [`claude/docs/specs/2026-11-16-couverture-de-frontiere-design.md`](../../claude/docs/specs/2026-11-16-couverture-de-frontiere-design.md)
 

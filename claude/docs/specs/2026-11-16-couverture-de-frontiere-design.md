@@ -169,7 +169,8 @@ Frontière de tous les critères : la ligne de commande `harness gate coverage` 
   - la sortie contient `UNCOVERED` avec le chemin du fichier dans le dépôt et les lignes du bloc, et se termine par `FAIL`
   - quand tous les blocs du profil ont un compteur positif, la sortie ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
   - dans ce second cas, la sortie contient `ERROR RETURNS IGNORED 0`
-- **Cas réel** : essai du 16/11, route jamais appelée d'un service en conteneur : `example.test/spike/internal/app/app.go:6.54,6.82 1 0`
+  - quand le seul bloc au compteur 0 est un bloc sans instruction, la sortie ne contient aucune ligne `UNCOVERED` et se termine par `PASS`
+- **Cas réel** : essai du 16/11, route jamais appelée d'un service en conteneur : `example.test/spike/internal/app/app.go:6.54,6.82 1 0` ; bloc sans instruction sur le harnais : 3 lignes du profil du 16/11 portent `0` instruction
 
 ### COV-002 — Une ligne ou une branche Python jamais exécutée fait échouer la porte
 - **Étant donné** un fichier Python de production et une tâche de test qui écrit un rapport LCOV où des lignes qui se suivent ont un compteur à 0, la première portant des branches au compteur `-`, et où une ligne exécutée porte une branche jamais prise
@@ -207,14 +208,15 @@ Frontière de tous les critères : la ligne de commande `harness gate coverage` 
 - **Cas réel** : harnais, 16/11 : `internal/adapters/git/runner.go:32`, `return 127, text`, atteint seulement quand git est introuvable
 
 ### COV-006 — Un fichier Go ou Python que nul rapport ne mesure est signalé
-- **Étant donné** un dépôt qui suit un fichier Python de production absent de tout rapport, un fichier de test Python absent lui aussi, et un fichier YAML
+- **Étant donné** un dépôt qui suit un fichier Python de production absent de tout rapport, un fichier de test Python absent lui aussi, un fichier Go de production absent lui aussi et qui ne déclare aucune fonction, et un fichier YAML
 - **Quand** `harness gate coverage` est lancé
 - **Alors**
   - la sortie contient `NOT MEASURED` avec le fichier de production et se termine par `FAIL`
   - elle ne contient aucune ligne `NOT MEASURED` pour le fichier de test ni pour le fichier YAML
+  - elle n'en contient aucune pour le fichier Go sans fonction
   - elle contient une ligne `NOT JUDGED` qui compte le fichier YAML
   - quand `COVERAGE.md` porte une entrée `fichier entier` pour le fichier de production, la sortie contient `ACCEPTED` pour lui et se termine par `PASS`
-- **Cas réel** : essai du 16/11 : un module Python jamais importé apparaît à 0 % avec le réglage `source`, et disparaît du rapport sans lui
+- **Cas réel** : essai du 16/11 : un module Python jamais importé apparaît à 0 % avec le réglage `source`, et disparaît du rapport sans lui ; fichier Go sans fonction : `harness/internal/app/gate/ports.go`, absent du profil du 16/11
 
 ### COV-007 — Un rapport non écrit ou une suite en échec ne passent pas
 - **Étant donné** un rapport resté d'une exécution précédente, où tout est couvert
