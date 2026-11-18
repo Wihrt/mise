@@ -10,6 +10,7 @@ typos = "1.52.2"
 
 [env]
 RENOVATE_VERSION = "44.175.3"
+# UV_PYTHON_PREFERENCE = "only-system"  # Python application: else uv picks its own Python over the pinned one
 
 [tasks.setup]
 description = "Install the git hooks"
@@ -33,6 +34,56 @@ depends = ["lint:*"]
 [tasks.test]
 description = "Run every test:* task"
 depends = ["test:*"]
+# Application repo with a Dockerfile (verified 2026-11-18: Go 1.26.9, Python 3.13.18, uv 0.13.9, coverage.py 7.14.0,
+# Docker 29.1.3, Compose 2.40.3, mise 2026.11.9). `test` is the task `harness gate coverage --task test` receives.
+# Its `run` executes after every test:* task finished (skipped when one fails). Uncomment the `run` of your language:
+# go:
+# run = '''
+# set -eu
+# mkdir -p .tdd/cover
+# go tool covdata textfmt -i=.tdd/cover-raw/service,.tdd/cover-raw/tool -o .tdd/cover/go.txt
+# '''
+# py:
+# run = '''
+# set -eu
+# COVERAGE_FILE="$PWD/.tdd/cover/.coverage" uv run coverage combine .tdd/cover/raw
+# COVERAGE_FILE="$PWD/.tdd/cover/.coverage" uv run coverage lcov -o .tdd/cover/py.lcov
+# '''
+
+# Unit suites (test:go, test:py) are not instrumented and do not count; each task writes its own report.
+# Boundary tests: the TEST HELPER starts and stops the product (compose-dev); this task only prepares the
+# measure directories and runs the suite. Report .tdd/container.xml, as `repo-tooling` asks for container tests.
+# go (gotestsum in [tools]; every file of the ./test package starts with //go:build container; the tests wait for the product themselves):
+# [tasks."test:go"]
+# description = "Unit tests (not instrumented, not counted, no container)"
+# run = '''
+# set -eu
+# mkdir -p .tdd
+# gotestsum --junitfile .tdd/junit.xml -- -count=1 ./...
+# '''
+# [tasks."test:container"]
+# description = "Boundary tests; the test helper starts and stops the product"
+# run = '''
+# set -eu
+# rm -rf .tdd/cover-raw
+# mkdir -p .tdd/cover-raw/service .tdd/cover-raw/tool bin
+# chmod 0777 .tdd/cover-raw/service
+# go build -cover -coverpkg=./... -o bin/tool ./cmd/tool
+# TOOL_BIN="$PWD/bin/tool" TOOL_COVERDIR="$PWD/.tdd/cover-raw/tool" gotestsum --junitfile .tdd/container.xml -- -tags container -count=1 ./test/...
+# '''
+# py (unit tests in tests/unit, boundary tests in tests/container, no testpaths; see UV_PYTHON_PREFERENCE under [env]):
+# [tasks."test:py"]
+# description = "Unit suite, not instrumented"
+# run = "uv run pytest -q tests/unit --junitxml=.tdd/junit.xml"
+# [tasks."test:container"]
+# description = "Boundary tests: the fixture starts the instrumented product; no conversion here"
+# run = '''
+# set -eu
+# rm -rf .tdd/cover
+# mkdir -p .tdd/cover/raw
+# chmod 0777 .tdd/cover/raw
+# uv run pytest -q tests/container --junitxml=.tdd/container.xml
+# '''
 
 [tasks.check]
 description = "lint then test (CI entrypoint)"
