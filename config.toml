@@ -28,8 +28,7 @@ kind = "latest"
 kubeconform = "latest"
 kubectl = "latest"
 kubectx = "latest"
-# Épinglé : la 1.20.0 échoue à la vérification cosign de mise (identité du workflow de release changée). Revenir à "latest" quand elle s'installe.
-kyverno = "1.19.2"
+kyverno = "latest"
 lazydocker = "latest"
 lazygit = "latest"
 # Chaque nouvelle version de Node.js a son propre préfixe npm global :
