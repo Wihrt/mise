@@ -363,3 +363,39 @@ func TestCOV009_BaselineWritesNothingWhenTaskFails(t *testing.T) {
 		t.Error("COVERAGE.md was written although the task failed")
 	}
 }
+
+// The Go file of the real output of go1.27.4 (go build -cover), whose profile
+// is below when Load("go.mod", 0) ran: lines 12-13 and 15-16 never ran.
+const covLoadSrc = "package app\n" +
+	"\n" +
+	"import (\n" +
+	"\t\"errors\"\n" +
+	"\t\"os\"\n" +
+	")\n" +
+	"\n" +
+	"// Load reads a file and checks a return code.\n" +
+	"func Load(path string, rc int) (string, error) {\n" +
+	"\tdata, err := os.ReadFile(path)\n" +
+	"\tif err != nil {\n" +
+	"\t\treturn \"\", err\n" +
+	"\t}\n" +
+	"\tif rc != 0 {\n" +
+	"\t\treturn \"\", errors.New(\"command failed\")\n" +
+	"\t}\n" +
+	"\treturn string(data), nil\n" +
+	"}\n"
+
+const covLoadProfile = "mode: set\n" +
+	"example.test/app/internal/app/app.go:10.2,11.16 2 1\n" +
+	"example.test/app/internal/app/app.go:12.3,13.1 1 0\n" +
+	"example.test/app/internal/app/app.go:14.2,14.13 1 1\n" +
+	"example.test/app/internal/app/app.go:15.3,16.1 1 0\n" +
+	"example.test/app/internal/app/app.go:17.2,17.26 1 1\n"
+
+func TestCOV004_ErrorReturnIsIgnoredAndCounted(t *testing.T) {
+	r := covRepo(t, files{covModule: covGoMod, covApp: covLoadSrc}, files{covReport: covLoadProfile}, 0)
+	code, out := r.coverage()
+	without(t, out, "UNCOVERED internal/app/app.go:12-13")
+	with(t, out, "ERROR RETURNS IGNORED 1", "UNCOVERED internal/app/app.go:15-16")
+	ends(t, code, out, 1, "FAIL")
+}
