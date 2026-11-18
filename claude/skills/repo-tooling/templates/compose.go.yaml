@@ -42,8 +42,8 @@ services:
       timeout: 2s
       retries: 15
 
-# Test override: save as compose.cover.yaml. Only the test task passes it
-# (docker compose -p <project> -f compose.yaml -f compose.cover.yaml ...). Verified 2026-11-17, Compose 2.40.3.
+# Test override: save as compose.cover.yaml. Only the test helper passes it, next to the project of its run
+# (docker compose -p "$project" -f compose.yaml -f compose.cover.yaml ..., compose-dev). Verified 2026-11-18, Compose 2.40.3.
 # services:
 #   app:
 #     build:
@@ -52,4 +52,4 @@ services:
 #     environment:
 #       GOCOVERDIR: /cover
 #     volumes:
-#       - ./.tdd/cover-raw/service:/cover  # the task creates it and runs chmod 0777 (compose-dev)
+#       - ./.tdd/cover-raw/service:/cover  # the test:container task creates it and runs chmod 0777 before up (compose-dev)
