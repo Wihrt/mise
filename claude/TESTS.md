@@ -516,3 +516,25 @@ Branche : `feat/couverture-remontees` · Commande : `mise run test`
     - la sortie ne contient aucune ligne `UNCOVERED` pour le premier bloc, et contient `ERROR RETURNS IGNORED 1`
     - elle contient `UNCOVERED` pour le second et se termine par `FAIL`
 - **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV004_ErrorReturnIsIgnoredAndCounted`
+
+## couverture-revue-finale — La revue finale resserre deux règles
+Branche : `fix/couverture-revue-finale` · Commande : `mise run test`
+
+### COV-010 — Un `return` qui avale l'erreur est jugé
+- **Critère** :
+  - **Étant donné** un fichier Go avec deux blocs jamais exécutés, chacun le corps entier d'un `if err != nil` fait d'un seul `return` : le premier rend l'erreur testée, le second ne la nomme dans aucun de ses résultats
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie ne contient aucune ligne `UNCOVERED` pour le premier bloc, et contient `ERROR RETURNS IGNORED 1`
+    - elle contient `UNCOVERED` pour le second et se termine par `FAIL`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV010_ReturnSwallowingTheErrorIsJudged`
+
+### COV-011 — Les écritures de pragma que coverage.py reconnaît sont refusées
+- **Critère** :
+  - **Étant donné** un fichier Python de production dont trois lignes portent `# pragma no cover`, `# PRAGMA: NO COVER` et `#  pragma:no branch`, et un rapport où tout ce qui est mesuré est couvert
+  - **Quand** `harness gate coverage` est lancé
+  - **Alors**
+    - la sortie contient `PRAGMA` avec le fichier et la ligne du `# pragma no cover`, et se termine par `FAIL`
+    - elle contient `PRAGMA` avec le fichier et la ligne du `# PRAGMA: NO COVER`
+    - elle contient `PRAGMA` avec le fichier et la ligne du `#  pragma:no branch`
+- **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV011_RecognizedPragmaSpellingsAreRefused`

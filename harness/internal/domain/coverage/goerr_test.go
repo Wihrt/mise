@@ -16,6 +16,9 @@ func TestErrorReturnsForms(t *testing.T) {
 		{"statement before", "if err != nil {\n\t\tlog()\n\t\treturn err\n\t}", false},
 		{"else body", "if x {\n\t\tg()\n\t} else {\n\t\treturn err\n\t}", false},
 		{"equal nil", "if err == nil {\n\t\treturn err\n\t}", false},
+		{"wrapped", "if err != nil {\n\t\treturn fmt.Errorf(\"x: %w\", err)\n\t}", true},
+		{"swallowed", "if err != nil {\n\t\treturn nil\n\t}", false},
+		{"bare return", "if err != nil {\n\t\treturn\n\t}", false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

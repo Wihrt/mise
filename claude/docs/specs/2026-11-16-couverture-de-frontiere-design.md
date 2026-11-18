@@ -73,7 +73,7 @@ Le code de production en Go et en Python : les fichiers `.go` et `.py` suivis pa
 | Lignes Python jamais exécutées, groupées quand elles se suivent | `UNCOVERED <fichier>:<début>-<fin>` | `FAIL` |
 | Branche Python jamais prise, sur une ligne exécutée | `UNCOVERED BRANCH <fichier>:<ligne>` | `FAIL` |
 | Fichier `.go` ou `.py` de production absent de tous les rapports | `NOT MEASURED <fichier>` | `FAIL` |
-| `# pragma: no cover` ou `# pragma: no branch` dans un fichier Python de production | `PRAGMA <fichier>:<ligne>` | `FAIL` |
+| `# pragma: no cover` ou `# pragma: no branch` dans un fichier Python de production, dans toute écriture que coverage.py reconnaît (sans deux-points, en majuscules, espaces libres) | `PRAGMA <fichier>:<ligne>` | `FAIL` |
 | Fichiers suivis dont l'extension n'est ni `.go` ni `.py` | `NOT JUDGED <n> files: neither Go nor Python`, une seule ligne | aucun |
 
 Précisions :
@@ -89,7 +89,7 @@ Finesse, à dire telle quelle dans la compétence : en Go, la mesure porte sur d
 
 ### Blocs Go qui ne font que remonter une erreur
 
-Un bloc Go jamais exécuté est écarté d'office quand il est le corps entier d'un `if` dont la condition compare à `nil`, par `!=`, un identifiant nommé `err` ou dont le nom finit par `err` ou `Err`, et que ce corps est une seule instruction, un `return`. La forme `if err := f(); err != nil` et un `else if` comptent ; un corps qui fait autre chose avant de rendre la main (journal, nettoyage) ne compte pas, ni le `else`.
+Un bloc Go jamais exécuté est écarté d'office quand il est le corps entier d'un `if` dont la condition compare à `nil`, par `!=`, un identifiant nommé `err` ou dont le nom finit par `err` ou `Err`, et que ce corps est une seule instruction, un `return` dont un des résultats nomme cet identifiant. La forme `if err := f(); err != nil` et un `else if` comptent ; un corps qui fait autre chose avant de rendre la main (journal, nettoyage) ne compte pas, ni le `else`, ni un `return` qui ne rend pas l'erreur testée : celui-là l'avale, c'est une décision.
 
 ```go
 if err != nil {
@@ -97,6 +97,9 @@ if err != nil {
 }
 if rc != 0 {
     return errors.New("git a échoué")            // jugé : c'est une décision, pas une remontée
+}
+if err != nil {
+    return ""                                    // jugé : l'erreur est avalée, c'est une décision
 }
 ```
 
@@ -241,3 +244,20 @@ Frontière de tous les critères : la ligne de commande `harness gate coverage` 
   - après le premier lancement, `COVERAGE.md` porte, sous le fichier de chaque bloc, une entrée avec le texte de sa première ligne et la raison `dette initiale` ; ce lancement se termine par `PASS`
   - le second lancement imprime `ACCEPTED` pour chacun, aucune ligne `UNCOVERED`, et se termine par `PASS`
 - **Cas réel** : mesure du 16/11 sur le harnais : 107 blocs jamais exécutés dans du code déjà en place
+
+### COV-010 — Un `return` qui avale l'erreur est jugé
+- **Étant donné** un fichier Go avec deux blocs jamais exécutés, chacun le corps entier d'un `if err != nil` fait d'un seul `return` : le premier rend l'erreur testée, le second ne la nomme dans aucun de ses résultats
+- **Quand** `harness gate coverage` est lancé
+- **Alors**
+  - la sortie ne contient aucune ligne `UNCOVERED` pour le premier bloc, et contient `ERROR RETURNS IGNORED 1`
+  - elle contient `UNCOVERED` pour le second et se termine par `FAIL`
+- **Cas réel** : harnais, revue finale du 18/11 : `internal/adapters/kubeconfig/context.go:28-29` (`return ""` sous `if err != nil`) et `internal/domain/coverage/gofile.go:13-14` (`return true` sous `if err != nil`), écartés à tort comme des remontées
+
+### COV-011 — Les écritures de pragma que coverage.py reconnaît sont refusées
+- **Étant donné** un fichier Python de production dont trois lignes portent `# pragma no cover`, `# PRAGMA: NO COVER` et `#  pragma:no branch`, et un rapport où tout ce qui est mesuré est couvert
+- **Quand** `harness gate coverage` est lancé
+- **Alors**
+  - la sortie contient `PRAGMA` avec le fichier et la ligne du `# pragma no cover`, et se termine par `FAIL`
+  - elle contient `PRAGMA` avec le fichier et la ligne du `# PRAGMA: NO COVER`
+  - elle contient `PRAGMA` avec le fichier et la ligne du `#  pragma:no branch`
+- **Cas réel** : coverage.py 7.14.0, lu le 18/11 : `coverage/config.py:151` (`#\s*(pragma|PRAGMA)[:\s]?\s*(no|NO)\s*(cover|COVER)`) et `:158` (la même avec `branch|BRANCH`) : ces écritures retirent les lignes du rapport

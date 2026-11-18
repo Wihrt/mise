@@ -399,3 +399,53 @@ func TestCOV004_ErrorReturnIsIgnoredAndCounted(t *testing.T) {
 	with(t, out, "ERROR RETURNS IGNORED 1", "UNCOVERED internal/app/app.go:15-16")
 	ends(t, code, out, 1, "FAIL")
 }
+
+// Two blocks never run, each the whole body of an if on err made of one return:
+// lines 9-10 return the tested error, lines 13-14 swallow it. Positions as the
+// Go toolchain writes them for this file.
+const covSwallowSrc = "package app\n" +
+	"\n" +
+	"import \"os\"\n" +
+	"\n" +
+	"// Load reads a file.\n" +
+	"func Load(path string) (string, error) {\n" +
+	"\tdata, err := os.ReadFile(path)\n" +
+	"\tif err != nil {\n" +
+	"\t\treturn \"\", err\n" +
+	"\t}\n" +
+	"\t_, err = os.Stat(path)\n" +
+	"\tif err != nil {\n" +
+	"\t\treturn \"\", nil\n" +
+	"\t}\n" +
+	"\treturn string(data), nil\n" +
+	"}\n"
+
+const covSwallowProfile = "mode: set\n" +
+	"example.test/app/internal/app/app.go:7.2,8.16 2 1\n" +
+	"example.test/app/internal/app/app.go:9.3,10.1 1 0\n" +
+	"example.test/app/internal/app/app.go:11.2,12.16 2 1\n" +
+	"example.test/app/internal/app/app.go:13.3,14.1 1 0\n" +
+	"example.test/app/internal/app/app.go:15.2,15.26 1 1\n"
+
+func TestCOV010_ReturnSwallowingTheErrorIsJudged(t *testing.T) {
+	r := covRepo(t, files{covModule: covGoMod, covApp: covSwallowSrc}, files{covReport: covSwallowProfile}, 0)
+	code, out := r.coverage()
+	without(t, out, "UNCOVERED internal/app/app.go:9-10")
+	with(t, out, "ERROR RETURNS IGNORED 1", "UNCOVERED internal/app/app.go:13-14")
+	ends(t, code, out, 1, "FAIL")
+}
+
+// Three pragma spellings coverage.py recognizes, on lines 3, 4 and 5; every
+// measured line and branch is covered.
+const (
+	covSpellPy  = "app/spell.py"
+	covSpellSrc = "def f(n):\n    if n:\n        a = 1  # pragma no cover\n        b = 2  # PRAGMA: NO COVER\n    for x in n:  #  pragma:no branch\n        pass\n    return 2\n"
+	covSpellRec = "SF:app/spell.py\nDA:1,1\nDA:2,1\nDA:3,1\nDA:4,1\nDA:5,1\nDA:6,1\nDA:7,1\nBRDA:2,0,jump to line 3,1\nBRDA:2,0,jump to line 5,1\nBRDA:5,0,jump to line 6,1\nBRDA:5,0,jump to line 7,1\nend_of_record\n"
+)
+
+func TestCOV011_RecognizedPragmaSpellingsAreRefused(t *testing.T) {
+	r := covRepo(t, files{covSpellPy: covSpellSrc}, files{covPyLcov: covSpellRec}, 0)
+	code, out := r.coverage()
+	with(t, out, "PRAGMA app/spell.py:3", "PRAGMA app/spell.py:4", "PRAGMA app/spell.py:5")
+	ends(t, code, out, 1, "FAIL")
+}
