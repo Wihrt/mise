@@ -1,4 +1,4 @@
-# Template (Go application). Unverified: written without Docker on 2026-11-14, see skills/compose-dev.
+# Template (Go application). Verified 2026-11-18 by a trial application (Docker 29.1.3, Compose 2.40.3): the build argument and the test override at the end. The rest is unverified (written without Docker on 2026-11-14), see skills/compose-dev.
 # Replace <db>, <user> and the image digests; keep the service name `app` (the test helpers use it).
 services:
   app:
