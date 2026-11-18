@@ -32,6 +32,7 @@ type Options struct {
 	Timeout         int
 	Base, Head      string
 	AcceptLost      []string
+	Coverage        []string // coverage reports the task writes, for mode coverage
 }
 
 // Gate runs the gates.
@@ -83,6 +84,7 @@ func (g *Gate) Run(o Options) int {
 	r := &run{g: g, o: o}
 	modes := map[string]func() (bool, error){
 		"red": r.red, "green": r.green, "characterize": r.characterize, "replay": r.replay,
+		"coverage": r.coverage,
 	}
 	ok, err := modes[o.Mode]()
 	if err != nil {
