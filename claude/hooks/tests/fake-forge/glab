@@ -51,10 +51,20 @@ fi
 case "$method $route" in
   "GET projects/:id") echo '{"default_branch":"main"}' ;;
   "GET projects/:id/merge_requests")
-    jq -c --argjson q "$q" '[.[]
+    list=$(jq -c --argjson q "$q" '[.[]
       | select(($q.source_branch == null) or (.source_branch == $q.source_branch))
       | select(($q.state == null) or (.state == $q.state))
-      | del(.refuse, .head_pipeline, .pipelines)]' "$mrs" ;; # the list has no head_pipeline, as on GitLab
+      | del(.refuse, .head_pipeline, .pipelines)]' "$mrs") # the list has no head_pipeline, as on GitLab
+    # A scripted status belongs to the MR: a read through the list serves the next one too.
+    for n in $(jq -r '.[].iid' <<<"$list"); do
+      seq=$state/seq-active-$n
+      if [[ -s $seq ]]; then
+        scripted=$(head -n 1 "$seq")
+        tail -n +2 "$seq" >"$seq.new" && mv "$seq.new" "$seq"
+        list=$(jq -c --argjson n "$n" --arg s "$scripted" 'map(if .iid == $n then .detailed_merge_status = $s else . end)' <<<"$list")
+      fi
+    done
+    echo "$list" ;;
   "GET projects/:id/merge_requests/"*"/pipelines")
     mr_of "$iid" | jq -c '.pipelines // (if .head_pipeline then [.head_pipeline] else [] end)' ;;
   "GET projects/:id/merge_requests/"*)
