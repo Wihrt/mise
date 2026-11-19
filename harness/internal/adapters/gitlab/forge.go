@@ -97,6 +97,24 @@ func (f *Forge) read(number int) (mr, error) {
 	return m, err
 }
 
+// transient are the statuses GitLab goes through while it computes mergeability.
+var transient = map[string]bool{"checking": true, "unchecked": true, "preparing": true, "ci_still_running": true}
+
+// settled reads a request until GitLab has computed its mergeability.
+func (f *Forge) settled(number int) (mr, error) {
+	deadline := time.Now().Add(f.timing.Timeout)
+	for {
+		m, err := f.read(number)
+		if err != nil || !transient[m.DetailedMergeStatus] {
+			return m, err
+		}
+		if time.Now().After(deadline) {
+			return m, fmt.Errorf("the forge never said whether it can be merged, still %s", m.DetailedMergeStatus)
+		}
+		time.Sleep(f.timing.Interval)
+	}
+}
+
 // DefaultBranch implements app.Forge.
 func (f *Forge) DefaultBranch() (string, error) {
 	var p struct {
@@ -114,7 +132,7 @@ func (f *Forge) Get(ref string) (domain.PullRequest, error) {
 		if err != nil {
 			return domain.PullRequest{}, fmt.Errorf("%s is not a merge request URL", ref)
 		}
-		m, err := f.read(n)
+		m, err := f.settled(n)
 		if err != nil {
 			return domain.PullRequest{}, err
 		}
@@ -124,7 +142,7 @@ func (f *Forge) Get(ref string) (domain.PullRequest, error) {
 		return m.domain(), nil
 	}
 	if n, err := strconv.Atoi(strings.TrimPrefix(ref, "!")); err == nil {
-		m, err := f.read(n)
+		m, err := f.settled(n)
 		return m.domain(), err
 	}
 	pr, found, err := f.ByHead(ref)
@@ -143,7 +161,9 @@ func (f *Forge) ByHead(branch string) (domain.PullRequest, bool, error) {
 	if len(mrs) == 0 {
 		return domain.PullRequest{}, false, nil
 	}
-	return mrs[0].domain(), true, nil
+	// The list has no head pipeline and its merge status is not reliable: read the request.
+	m, err := f.settled(mrs[0].IID)
+	return m.domain(), err == nil, err
 }
 
 // Retarget implements app.Forge.
@@ -195,33 +215,20 @@ func (f *Forge) onMergeRequestPipeline(number int, head pipeline) (domain.Checks
 	return domain.ChecksPass, nil
 }
 
-// transient are the statuses GitLab goes through while it computes mergeability.
-var transient = map[string]bool{"checking": true, "unchecked": true, "preparing": true, "ci_still_running": true}
-
 // Merge implements app.Forge. After a change of target the forge computes
 // mergeability in the background: wait for its answer before merging.
 func (f *Forge) Merge(number int, sha string) error {
-	deadline := time.Now().Add(f.timing.Timeout)
-	for {
-		m, err := f.read(number)
-		if err != nil {
-			return err
-		}
-		if m.DetailedMergeStatus == "mergeable" {
-			break
-		}
-		if !transient[m.DetailedMergeStatus] {
-			return fmt.Errorf("not mergeable: %s", m.DetailedMergeStatus)
-		}
-		if time.Now().After(deadline) {
-			return fmt.Errorf("the forge never said whether it can be merged, still %s", m.DetailedMergeStatus)
-		}
-		time.Sleep(f.timing.Interval)
+	m, err := f.settled(number)
+	if err != nil {
+		return err
+	}
+	if m.DetailedMergeStatus != "mergeable" {
+		return fmt.Errorf("not mergeable: %s", m.DetailedMergeStatus)
 	}
 	if _, err := f.api("-X", "PUT", "-f", "sha="+sha, "-f", "should_remove_source_branch=true", path(number)+"/merge"); err != nil {
 		return err
 	}
-	m, err := f.read(number)
+	m, err = f.read(number)
 	if err != nil {
 		return err
 	}
