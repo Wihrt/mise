@@ -241,3 +241,21 @@ Section `TESTS.md` : `fusion-gitlab`. Tous les tests passent par le binaire `har
   - aucun appel de fusion de !2 n'est reçu tant que le statut est `checking`
   - la sortie se termine par `PASS`
 - **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-016 — Avant la première fusion, un statut GitLab transitoire est attendu, pas refusé
+- **Étant donné** la pile de FGL-001, et le faux `glab` répond `detailed_merge_status: checking` pour !2 aux deux premières lectures, puis `mergeable`
+- **Quand** `harness merge-stack 3`
+- **Alors**
+  - les trois MR sont `merged`
+  - la sortie ne contient pas `NOT MERGEABLE`
+  - la sortie se termine par `PASS`
+- **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-017 — Une pile GitLab dont les branches contiennent `/` se fusionne
+- **Étant donné** une pile !1 ← !2 sur `main` dont les branches sont `feat/a` et `feat/b`, ouvertes, vertes, `mergeable` ; la liste des MR du faux `glab` ne contient pas `head_pipeline`, comme l'API GitLab
+- **Quand** `harness merge-stack 2`
+- **Alors**
+  - !1 et !2 sont `merged`
+  - l'arbre de `main` est celui de la tête de !2
+  - la sortie se termine par `PASS`
+- **Frontière** : binaire `harness`, faux `glab`
