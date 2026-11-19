@@ -117,6 +117,9 @@ depends = ["build:harness"]
 run = """
 mkdir -p .tdd
 export HARNESS="$PWD/.tdd/harness"
-bats --report-formatter junit --output .tdd claude/hooks/tests/
+rm -f .tdd/junit.xml .tdd/report.xml
+status=0
+bats --report-formatter junit --output .tdd claude/hooks/tests/ || status=$?
 mv .tdd/report.xml .tdd/junit.xml
+exit "$status"
 """
