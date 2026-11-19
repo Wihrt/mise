@@ -128,7 +128,9 @@ case "$method $route" in
     # Only the pipeline of the tip of main and of the merge commits exists; any other sha has none.
     known=$(jq -r '.[] | .merge_commit_sha // empty' "$mrs"; git -C "$state/origin.git" rev-parse refs/heads/main)
     if [[ -n $status ]] && grep -qxF -- "$sha" <<<"$known"; then
-      jq -cn --arg s "$sha" --arg st "$status" '[{id: 1, sha: $s, ref: "main", source: "push", status: $st}]'
+      ref=main
+      [[ $(git -C "$state/origin.git" rev-parse --verify -q refs/heads/dev || true) == "$sha" ]] && ref=dev
+      jq -cn --arg s "$sha" --arg st "$status" --arg r "$ref" '[{id: 1, sha: $s, ref: $r, source: "push", status: $st}]'
     else
       echo '[]'
     fi ;;
