@@ -55,13 +55,27 @@ case "$method $route" in
       | select(($q.state == null) or (.state == $q.state))
       | del(.refuse)]' "$mrs" ;;
   "GET projects/:id/merge_requests/"*"/pipelines")
-    mr_of "$iid" | jq -c 'if .head_pipeline then [.head_pipeline] else [] end' ;;
-  "GET projects/:id/merge_requests/"*) mr_of "$iid" | public ;;
+    mr_of "$iid" | jq -c '.pipelines // (if .head_pipeline then [.head_pipeline] else [] end)' ;;
+  "GET projects/:id/merge_requests/"*)
+    # Scripted answers: once a merge has retargeted this MR, each read pops one detailed_merge_status
+    # from $GL_STATE/seq-active-<iid> until the file is empty.
+    seq=$state/seq-active-$iid
+    if [[ -s $seq ]]; then
+      scripted=$(head -n 1 "$seq")
+      tail -n +2 "$seq" >"$seq.new" && mv "$seq.new" "$seq"
+      mr_of "$iid" | jq -c --arg s "$scripted" '.detailed_merge_status = $s | del(.refuse)'
+    else
+      mr_of "$iid" | public
+    fi ;;
   "PUT projects/:id/merge_requests/"*"/merge")
     mr=$(mr_of "$iid")
     src=$(jq -r .source_branch <<<"$mr") tgt=$(jq -r .target_branch <<<"$mr")
     [[ $(jq -r .refuse <<<"$mr") != true ]] || fail "409 SHA does not match HEAD of source branch"
     [[ $(jq -r .state <<<"$mr") == opened ]] || fail "405 Method Not Allowed"
+    if [[ -s $state/seq-active-$iid ]]; then # a merge while GitLab is still checking
+      echo "$iid" >>"$state/early-merge"
+      fail "405 Branch cannot be merged"
+    fi
     [[ $(git -C "$state/origin.git" rev-parse "refs/heads/$src") == "$(field sha)" ]] \
       || fail "409 SHA does not match HEAD of source branch"
     [[ $(jq -r .detailed_merge_status <<<"$mr") == mergeable ]] || fail "405 Branch cannot be merged"
@@ -84,6 +98,9 @@ case "$method $route" in
       git -C "$state/origin.git" update-ref -d "refs/heads/$src"
       update --arg s "$src" --arg t "$tgt" \
         'map(if .state == "opened" and .target_branch == $s then .target_branch = $t else . end)'
+      for n in $(jq -r --arg t "$tgt" '.[] | select(.state == "opened" and .target_branch == $t) | .iid' "$mrs"); do
+        if [[ -f $state/seq-$n ]]; then mv "$state/seq-$n" "$state/seq-active-$n"; fi
+      done
     fi
     mr_of "$iid" | public ;;
   "PUT projects/:id/merge_requests/"*)

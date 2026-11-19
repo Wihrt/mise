@@ -181,3 +181,31 @@ merge_calls() { jq -c 'select(.method == "PUT" and (.path | test("merge_requests
   [ -z "$(writes)" ] || { echo "writes:"; writes; return 1; }
   last_line "PASS nothing merged (dry run)"
 }
+
+@test "FGL-013 a GitLab merge request is designated by !n or by its URL, not by the URL of another project" {
+  run harness merge-stack --dry-run '!3'
+  last_line "PASS nothing merged (dry run)"
+  run harness merge-stack --dry-run "$(jq -r '.[] | select(.iid == 3) | .web_url' "$GL_STATE/mrs.json")"
+  last_line "PASS nothing merged (dry run)"
+  run harness merge-stack --dry-run "https://forge.example.test/other/proj/-/merge_requests/3"
+  [ "$status" -eq 1 ]
+  [[ "${lines[-1]}" == FAIL* ]] || { echo "last line: ${lines[-1]}"; return 1; }
+}
+
+@test "FGL-014 on a project with merge request pipelines only a green merge request pipeline counts" {
+  set_mr 2 '.pipelines = [{id: 9, sha: .sha, source: "merge_request_event", status: "success"}]'
+  run harness merge-stack 3
+  [ "$(state_of 1) $(state_of 2) $(state_of 3)" = "opened opened opened" ]
+  [[ "$output" == *"CHECKS FAIL #2"* || "$output" == *"CHECKS UNKNOWN #2"* ]] || { echo "$output"; return 1; }
+  last_line "FAIL nothing merged"
+}
+
+@test "FGL-015 after a retarget the GitLab merge waits for GitLab to settle" {
+  printf 'checking\nchecking\n' >"$GL_STATE/seq-2"
+  run harness merge-stack 3
+  [ "$(state_of 1) $(state_of 2) $(state_of 3)" = "merged merged merged" ]
+  # Both scripted answers were served (so that the wait really happened), none before a merge call.
+  [ -e "$GL_STATE/seq-active-2" ] && [ ! -s "$GL_STATE/seq-active-2" ] || { echo "$output"; return 1; }
+  [ ! -e "$GL_STATE/early-merge" ] || { echo "merge of !2 received while checking"; return 1; }
+  last_line "PASS"
+}

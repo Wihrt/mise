@@ -678,3 +678,33 @@ Branche : `feat/fusion-gitlab` · Commande : `mise run test`
     - aucune MR n'est fusionnée et le faux `glab` n'a reçu aucun appel de fusion ni de repointage
     - la sortie se termine par `PASS nothing merged (dry run)`
 - **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-009 a GitLab dry run checks the stack and merges nothing`
+
+### FGL-013 — Une MR GitLab se désigne par `!n` ou par son URL, pas par l'URL d'un autre projet
+- **Critère** :
+  - **Étant donné** la pile de FGL-001
+  - **Quand** `harness merge-stack --dry-run '!3'`, puis `harness merge-stack --dry-run <web_url de !3>`, puis `harness merge-stack --dry-run <URL de MR d'un autre projet sur forge.example.test>`
+  - **Alors**
+    - avec `!3`, la sortie se termine par `PASS nothing merged (dry run)`
+    - avec l'URL de !3, la sortie se termine par `PASS nothing merged (dry run)`
+    - avec l'URL d'un autre projet, la sortie se termine par un `FAIL` et le code de sortie est 1
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-013 a GitLab merge request is designated by !n or by its URL, not by the URL of another project`
+
+### FGL-014 — Sur un projet à pipelines de MR, seul un pipeline de MR vert compte
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, le projet lance des pipelines de MR (une source `merge_request_event` dans les pipelines de !2), et le `head_pipeline` de !2 est un pipeline `push` en `success` sur le sha de tête
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - aucune MR n'est fusionnée
+    - la sortie nomme !2 (`CHECKS FAIL #2` ou `CHECKS UNKNOWN #2`)
+    - la sortie se termine par `FAIL nothing merged`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-014 on a project with merge request pipelines only a green merge request pipeline counts`
+
+### FGL-015 — Après un repointage, la fusion GitLab attend que GitLab se prononce
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, et après la fusion de !1 le faux `glab` répond `detailed_merge_status: checking` pour !2 aux deux premières lectures, puis `mergeable`
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - les trois MR sont `merged`
+    - aucun appel de fusion de !2 n'est reçu tant que le statut est `checking`
+    - la sortie se termine par `PASS`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-015 after a retarget the GitLab merge waits for GitLab to settle`
