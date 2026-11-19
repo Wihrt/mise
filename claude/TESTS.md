@@ -587,3 +587,94 @@ Branche : `feat/forge-hote` · Commande : `mise run test`
     - le code de sortie est 1
     - ni le faux `gh` ni le faux `glab` n'ont été appelés
 - **Test** : `hooks/tests/merge-stack-forge.bats` › `FGL-010 an unknown forge host is refused before any forge tool is called`
+
+## fusion-gitlab — `harness merge-stack` sur GitLab
+Branche : `feat/fusion-gitlab` · Commande : `mise run test`
+
+### FGL-001 — Une pile GitLab se fusionne du bas vers le haut et la cible porte le code du haut
+- **Critère** :
+  - **Étant donné** un dépôt dont `origin` est sur `forge.example.test`, déclaré `glab` dans `forges` ; une pile !1 ← !2 ← !3 sur `main`, ouvertes, vertes, `mergeable`
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - la sortie contient `MERGED #1`, `MERGED #2`, `MERGED #3` dans cet ordre
+    - les trois MR sont à l'état `merged`
+    - l'arbre de `main` sur le dépôt est celui de la tête de !3
+    - la sortie se termine par `PASS` et le code de sortie est 0
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-001 a GitLab stack is merged bottom first and main holds the code of its top`
+
+### FGL-002 — Une MR GitLab seule se fusionne sans celles du dessus
+- **Critère** :
+  - **Étant donné** la pile de FGL-001
+  - **Quand** `harness merge-stack 1`
+  - **Alors**
+    - !1 est `merged`
+    - !2 et !3 restent `opened`
+    - la sortie se termine par `PASS`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-002 a single GitLab merge request is merged without the ones above it`
+
+### FGL-003 — Rien n'est fusionné tant qu'une MR GitLab n'est pas prête
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, avec sur !2, dans un cas chacun : pipeline `failed` ; `head_pipeline` sur un autre sha que le sha de tête ; `has_conflicts` vrai ; `detailed_merge_status` à `not_approved` ; `main` qui a avancé sous la pile
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - aucune MR n'est fusionnée
+    - la sortie nomme !2 et la cause (`CHECKS FAIL #2`, `CONFLICTS #2`, `NOT MERGEABLE #2: not_approved`, `OUTDATED #1`)
+    - la sortie se termine par `FAIL nothing merged` et le code de sortie est 1
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-003 nothing is merged when a GitLab merge request has a failed pipeline`, `FGL-003 nothing is merged when the pipeline of a GitLab merge request is on another sha`, `FGL-003 nothing is merged when a GitLab merge request has conflicts`, `FGL-003 nothing is merged when GitLab does not say mergeable`, `FGL-003 nothing is merged when main has moved under the GitLab stack`
+
+### FGL-004 — La fusion GitLab est figée sur le sha vérifié et supprime la branche source
+- **Critère** :
+  - **Étant donné** la pile de FGL-001
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - chaque appel de fusion reçu par le faux `glab` porte `sha` égal au sha de tête de la MR lu avant la fusion
+    - chaque appel de fusion porte `should_remove_source_branch=true`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-004 a GitLab merge is frozen on the verified sha and removes the source branch`
+
+### FGL-005 — La fusion GitLab s'arrête à la MR qui résiste et dit ce qui reste
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, et le faux `glab` refuse la fusion de !2 (tête qui a bougé)
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - la sortie contient `STOPPED #2`, `MERGED: #1`, `REMAINING: #2 #3`
+    - la sortie se termine par `FAIL stack partly merged` et le code de sortie est 1
+    - !1 est `merged`, !2 et !3 restent `opened`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-005 the GitLab merge stops at the request that resists and says what is left`
+
+### FGL-006 — Après fusion GitLab, une cible qui n'est pas le code du haut est signalée
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, et un commit poussé sur `main` par un tiers pendant la fusion
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - la sortie contient `TREE DIFFERS`
+    - la sortie se termine par `FAIL stack merged, main differs from the top of the stack`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-006 after a GitLab merge a main that is not the code of the top is reported`
+
+### FGL-007 — Après fusion GitLab, une cible rouge est signalée
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, et le pipeline du commit de fusion sur `main` `failed`
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - la sortie contient `CHECKS FAIL main`
+    - la sortie se termine par `FAIL stack merged, main is red` et le code de sortie est 1
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-007 after a GitLab merge a red main is reported`
+
+### FGL-008 — Sans pipeline GitLab, la commande de validation fait foi
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, et aucun pipeline sur `main` après fusion
+  - **Quand** `harness merge-stack --validate <commande> 3`, avec une commande qui réussit, puis une qui échoue, puis sans `--validate`
+  - **Alors**
+    - commande qui réussit : `VALIDATION PASS`, puis `PASS`
+    - commande qui échoue : `VALIDATION FAIL`, puis `FAIL stack merged, main is red`
+    - sans `--validate` : `CHECKS NONE`, puis `FAIL stack merged, main not verified`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-008 without a GitLab pipeline a validation command that succeeds decides`, `FGL-008 without a GitLab pipeline a validation command that fails decides`, `FGL-008 without a GitLab pipeline nor a validation command the merge is not verified`
+
+### FGL-009 — Un essai à blanc GitLab vérifie la pile sans rien fusionner
+- **Critère** :
+  - **Étant donné** la pile de FGL-001
+  - **Quand** `harness merge-stack --dry-run 3`
+  - **Alors**
+    - la sortie contient `READY`
+    - aucune MR n'est fusionnée et le faux `glab` n'a reçu aucun appel de fusion ni de repointage
+    - la sortie se termine par `PASS nothing merged (dry run)`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-009 a GitLab dry run checks the stack and merges nothing`
