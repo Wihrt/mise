@@ -47,9 +47,18 @@ func Host(url string) string {
 	return host
 }
 
-// Tool is the forge CLI (gh, glab) for the host of the repository's origin,
-// empty when the host is unknown, and that host.
+// Tool is the forge CLI (gh, glab) for the host of the repository's origin, and
+// that host. A named host that is neither in forges nor public is an error; an
+// origin without host (a local path) gives an empty tool.
 func (l *Local) Tool(repo string) (tool, host string, err error) {
+	tool, host, err = l.lookup(repo)
+	if err == nil && tool == "" && host != "" {
+		err = fmt.Errorf("hôte %s absent de %s/forges", host, l.dir)
+	}
+	return tool, host, err
+}
+
+func (l *Local) lookup(repo string) (tool, host string, err error) {
 	url, err := l.remote.OriginURL(repo)
 	if err != nil {
 		return "", "", err
@@ -71,7 +80,7 @@ func (l *Local) Tool(repo string) (tool, host string, err error) {
 
 // Forge prints the forge CLI (gh, glab) for the host of the repository's origin.
 func (l *Local) Forge(repo string) (int, error) {
-	tool, host, err := l.Tool(repo)
+	tool, host, err := l.lookup(repo)
 	if err != nil {
 		return 1, err
 	}

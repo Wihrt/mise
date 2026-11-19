@@ -91,12 +91,12 @@ func mergeStack(args []string, stdout, stderr io.Writer, getenv func(string) str
 		return 1
 	}
 	clone := git.NewClone(dir)
-	tool, host, err := local.New(localDir(getenv), git.NewRunner(), fsys.New(), stdout).Tool(dir)
+	tool, _, err := local.New(localDir(getenv), git.NewRunner(), fsys.New(), stdout).Tool(dir)
 	if err != nil {
 		_, _ = fmt.Fprintf(stdout, "FAIL %v\n", err)
 		return 1
 	}
-	if host == "" {
+	if tool == "" {
 		tool = "gh" // origin is a local path: no forge host to look up
 	}
 	var forge app.Forge
@@ -109,9 +109,6 @@ func mergeStack(args []string, stdout, stderr io.Writer, getenv func(string) str
 		})
 	case "glab":
 		_, _ = fmt.Fprintln(stdout, "FAIL glab: not supported yet")
-		return 1
-	default:
-		_, _ = fmt.Fprintf(stdout, "FAIL hôte %s absent du fichier forges\n", host)
 		return 1
 	}
 	opt := app.MergeOptions{Top: flags.Arg(0), DryRun: *dryRun, Validate: *validate}
