@@ -708,3 +708,23 @@ Branche : `feat/fusion-gitlab` · Commande : `mise run test`
     - aucun appel de fusion de !2 n'est reçu tant que le statut est `checking`
     - la sortie se termine par `PASS`
 - **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-015 after a retarget the GitLab merge waits for GitLab to settle`
+
+### FGL-016 — Avant la première fusion, un statut GitLab transitoire est attendu, pas refusé
+- **Critère** :
+  - **Étant donné** la pile de FGL-001, et le faux `glab` répond `detailed_merge_status: checking` pour !2 aux deux premières lectures, puis `mergeable`
+  - **Quand** `harness merge-stack 3`
+  - **Alors**
+    - les trois MR sont `merged`
+    - la sortie ne contient pas `NOT MERGEABLE`
+    - la sortie se termine par `PASS`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-016 before the first merge a transient GitLab status is waited for, not refused`
+
+### FGL-017 — Une pile GitLab dont les branches contiennent `/` se fusionne
+- **Critère** :
+  - **Étant donné** une pile !1 ← !2 sur `main` dont les branches sont `feat/a` et `feat/b`, ouvertes, vertes, `mergeable` ; la liste des MR du faux `glab` ne contient pas `head_pipeline`, comme l'API GitLab
+  - **Quand** `harness merge-stack 2`
+  - **Alors**
+    - !1 et !2 sont `merged`
+    - l'arbre de `main` est celui de la tête de !2
+    - la sortie se termine par `PASS`
+- **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-017 a GitLab stack whose branches contain a slash is merged`

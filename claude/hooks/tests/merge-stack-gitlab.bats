@@ -209,3 +209,37 @@ merge_calls() { jq -c 'select(.method == "PUT" and (.path | test("merge_requests
   [ ! -e "$GL_STATE/early-merge" ] || { echo "merge of !2 received while checking"; return 1; }
   last_line "PASS"
 }
+
+@test "FGL-016 before the first merge a transient GitLab status is waited for, not refused" {
+  printf 'checking\nchecking\n' >"$GL_STATE/seq-active-2"
+  run harness merge-stack 3
+  [ "$(state_of 1) $(state_of 2) $(state_of 3)" = "merged merged merged" ]
+  # Both scripted answers were served, so that the wait really happened.
+  [ -e "$GL_STATE/seq-active-2" ] && [ ! -s "$GL_STATE/seq-active-2" ] || { echo "$output"; return 1; }
+  ! grep -qF "NOT MERGEABLE" <<<"$output" || { echo "$output"; return 1; }
+  last_line "PASS"
+}
+
+@test "FGL-017 a GitLab stack whose branches contain a slash is merged" {
+  git switch -q -c feat/a origin/main
+  echo a >fa.txt
+  git add fa.txt
+  g commit -q -m "feat: a"
+  g push -q origin feat/a
+  sha_a=$(git rev-parse HEAD)
+  git switch -q -c feat/b
+  echo b >fb.txt
+  git add fb.txt
+  g commit -q -m "feat: b"
+  g push -q origin feat/b
+  sha_b=$(git rev-parse HEAD)
+  jq -n --arg a "$sha_a" --arg b "$sha_b" '
+    def mr($n; $src; $tgt; $sha): {iid: $n, web_url: ("https://forge.example.test/grp/proj/-/merge_requests/" + ($n | tostring)),
+      source_branch: $src, target_branch: $tgt, sha: $sha, state: "opened", draft: false, has_conflicts: false,
+      detailed_merge_status: "mergeable", head_pipeline: {id: $n, sha: $sha, status: "success", source: "push"}, refuse: false};
+    [mr(1; "feat/a"; "main"; $a), mr(2; "feat/b"; "feat/a"; $b)]' >"$GL_STATE/mrs.json"
+  run harness merge-stack 2
+  [ "$(state_of 1) $(state_of 2)" = "merged merged" ] || { echo "$output"; return 1; }
+  [ "$(origin_main '^{tree}')" = "$(git rev-parse 'feat/b^{tree}')" ]
+  last_line "PASS"
+}
