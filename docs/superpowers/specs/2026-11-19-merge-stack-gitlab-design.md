@@ -214,3 +214,30 @@ Section `TESTS.md` : `fusion-gitlab`. Tous les tests passent par le binaire `har
   - la sortie se termine par un `FAIL` qui nomme la branche `a` et la MR #1
   - le code de sortie est 1
 - **Frontière** : binaire `harness`, faux `gh` et faux `glab`
+
+### FGL-013 — Une MR GitLab se désigne par `!n` ou par son URL, pas par l'URL d'un autre projet
+- **Étant donné** la pile de FGL-001
+- **Quand** `harness merge-stack --dry-run '!3'`, puis `harness merge-stack --dry-run <web_url de !3>`, puis `harness merge-stack --dry-run <URL de MR d'un autre projet sur forge.example.test>`
+- **Alors**
+  - avec `!3`, la sortie se termine par `PASS nothing merged (dry run)`
+  - avec l'URL de !3, la sortie se termine par `PASS nothing merged (dry run)`
+  - avec l'URL d'un autre projet, la sortie se termine par un `FAIL` et le code de sortie est 1
+- **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-014 — Sur un projet à pipelines de MR, seul un pipeline de MR vert compte
+- **Étant donné** la pile de FGL-001, le projet lance des pipelines de MR (une source `merge_request_event` dans les pipelines de !2), et le `head_pipeline` de !2 est un pipeline `push` en `success` sur le sha de tête
+- **Quand** `harness merge-stack 3`
+- **Alors**
+  - aucune MR n'est fusionnée
+  - la sortie nomme !2 (`CHECKS FAIL #2` ou `CHECKS UNKNOWN #2`)
+  - la sortie se termine par `FAIL nothing merged`
+- **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-015 — Après un repointage, la fusion GitLab attend que GitLab se prononce
+- **Étant donné** la pile de FGL-001, et après la fusion de !1 le faux `glab` répond `detailed_merge_status: checking` pour !2 aux deux premières lectures, puis `mergeable`
+- **Quand** `harness merge-stack 3`
+- **Alors**
+  - les trois MR sont `merged`
+  - aucun appel de fusion de !2 n'est reçu tant que le statut est `checking`
+  - la sortie se termine par `PASS`
+- **Frontière** : binaire `harness`, faux `glab`
