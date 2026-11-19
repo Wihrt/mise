@@ -47,15 +47,16 @@ func Host(url string) string {
 	return host
 }
 
-// Forge prints the forge CLI (gh, glab) for the host of the repository's origin.
-func (l *Local) Forge(repo string) (int, error) {
+// Tool is the forge CLI (gh, glab) for the host of the repository's origin,
+// empty when the host is unknown, and that host.
+func (l *Local) Tool(repo string) (tool, host string, err error) {
 	url, err := l.remote.OriginURL(repo)
 	if err != nil {
-		return 1, err
+		return "", "", err
 	}
 	tools := map[string]string{}
-	for host, tool := range public {
-		tools[host] = tool
+	for h, t := range public {
+		tools[h] = t
 	}
 	if forges, err := l.files.Read(l.dir + "/forges"); err == nil {
 		for _, line := range strings.Split(forges, "\n") {
@@ -64,9 +65,17 @@ func (l *Local) Forge(repo string) (int, error) {
 			}
 		}
 	}
-	host := Host(strings.TrimSpace(url))
-	tool, known := tools[host]
-	if !known {
+	host = Host(strings.TrimSpace(url))
+	return tools[host], host, nil
+}
+
+// Forge prints the forge CLI (gh, glab) for the host of the repository's origin.
+func (l *Local) Forge(repo string) (int, error) {
+	tool, host, err := l.Tool(repo)
+	if err != nil {
+		return 1, err
+	}
+	if tool == "" {
 		_, _ = fmt.Fprintf(l.stdout, "hôte %s inconnu\n", host)
 		return 1, nil
 	}

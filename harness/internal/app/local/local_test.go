@@ -75,3 +75,19 @@ func TestCasReels(t *testing.T) {
 		t.Errorf("no file: code %d, out %q", code, out.String())
 	}
 }
+
+func TestTool(t *testing.T) {
+	forges := files{"/l/forges": "forge.example.test glab\n"}
+	tests := []struct{ url, want string }{
+		{"https://forge.example.test/g/d.git", "glab"},
+		{"git@forge.example.test:g/d.git", "glab"},
+		{"https://github.com/o/r.git", "gh"},
+		{"https://inconnu.example.test/g/d.git", ""},
+	}
+	for _, tt := range tests {
+		got, host, err := New("/l", remote{url: tt.url}, forges, &bytes.Buffer{}).Tool("r")
+		if err != nil || got != tt.want || host != Host(tt.url) {
+			t.Errorf("Tool(%q) = %q, %q, %v; want %q", tt.url, got, host, err, tt.want)
+		}
+	}
+}
