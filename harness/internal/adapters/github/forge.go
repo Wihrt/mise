@@ -15,21 +15,14 @@ import (
 	"github.com/Wihrt/mise/harness/internal/domain"
 )
 
-// Timing bounds the waits on the forge.
-type Timing struct {
-	Interval time.Duration // between two polls
-	Grace    time.Duration // how long a commit may stay without any pipeline before it is said to have none
-	Timeout  time.Duration // longest wait for pipelines to end
-}
-
 // Forge runs gh in the directory of a clone.
 type Forge struct {
 	dir    string
-	timing Timing
+	timing domain.Timing
 }
 
 // NewForge builds the adapter.
-func NewForge(dir string, timing Timing) *Forge { return &Forge{dir: dir, timing: timing} }
+func NewForge(dir string, timing domain.Timing) *Forge { return &Forge{dir: dir, timing: timing} }
 
 // gh returns the trimmed standard output of a gh call; its error carries what gh wrote.
 func (f *Forge) gh(args ...string) (string, error) {

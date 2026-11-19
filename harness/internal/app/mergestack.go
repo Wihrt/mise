@@ -148,6 +148,12 @@ func (m *MergeStack) ready(def string, stack domain.Stack) bool {
 		case pr.Draft:
 			m.say("DRAFT #%d", pr.Number)
 			ok = false
+		case pr.Conflicts:
+			m.say("CONFLICTS #%d", pr.Number)
+			ok = false
+		case pr.MergeStatus != "" && pr.MergeStatus != "mergeable":
+			m.say("NOT MERGEABLE #%d: %s", pr.Number, pr.MergeStatus)
+			ok = false
 		}
 		if !m.history.IsAncestor(below, pr.SHA) {
 			if below == base {

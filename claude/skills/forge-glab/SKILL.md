@@ -3,7 +3,7 @@ name: forge-glab
 description: Use when opening, stacking or checking MRs, or watching their CI, on a GitLab host with glab.
 ---
 
-Serves gitlab.com or any host known to `glab auth status`. Run `glab` from inside the worktree (it needs a git directory). Never merge: stop at a green pipeline and give the `web_url`.
+Serves gitlab.com or any host known to `glab auth status`. Run `glab` from inside the worktree (it needs a git directory). Never merge on your own: stop at a green pipeline and give the `web_url`. When the user asks for the merge: `harness merge-stack <top MR>`, never `glab mr merge` (`stacked-tdd-mr`, "Merging a stack").
 
 ## Open an MR
 1. Before pushing: `git log --oneline origin/<base>..HEAD`, `git status --short`, and `git log --format='%h %an <%ae> %s' origin/<base>..HEAD` (every commit carries the user's identity). Grep the range for `glpat-|AKIA|-----BEGIN`; on a hit do not push, report SHA and pattern only.
