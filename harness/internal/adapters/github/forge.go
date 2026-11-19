@@ -58,18 +58,15 @@ type pr struct {
 	HeadRefOid  string `json:"headRefOid"`
 	State       string `json:"state"`
 	IsDraft     bool   `json:"isDraft"`
+
+	IsCrossRepository bool `json:"isCrossRepository"`
 }
 
 func (p pr) domain() domain.PullRequest {
 	return domain.PullRequest{
 		Number: p.Number, URL: p.URL, Head: p.HeadRefName, Base: p.BaseRefName,
-		SHA: p.HeadRefOid, Open: p.State == "OPEN", Draft: p.IsDraft,
+		SHA: p.HeadRefOid, State: strings.ToLower(p.State), Open: p.State == "OPEN", Draft: p.IsDraft,
 	}
-}
-
-// DefaultBranch implements app.Forge.
-func (f *Forge) DefaultBranch() (string, error) {
-	return f.gh("repo", "view", "--json", "defaultBranchRef", "--jq", ".defaultBranchRef.name")
 }
 
 // Get implements app.Forge.
@@ -99,6 +96,24 @@ func (f *Forge) ByHead(branch string) (domain.PullRequest, bool, error) {
 		return domain.PullRequest{}, false, nil
 	}
 	return prs[0].domain(), true, nil
+}
+
+// WasHead implements app.Forge: a request of this repository, in any state, never a fork's.
+func (f *Forge) WasHead(branch string) (domain.PullRequest, bool, error) {
+	out, err := f.gh("pr", "list", "--head", branch, "--state", "all", "--limit", "1000", "--json", prFields+",isCrossRepository")
+	if err != nil {
+		return domain.PullRequest{}, false, err
+	}
+	var prs []pr
+	if err := json.Unmarshal([]byte(out), &prs); err != nil {
+		return domain.PullRequest{}, false, fmt.Errorf("decode gh pr list: %w", err)
+	}
+	for _, p := range prs {
+		if !p.IsCrossRepository {
+			return p.domain(), true, nil
+		}
+	}
+	return domain.PullRequest{}, false, nil
 }
 
 // Retarget implements app.Forge.
