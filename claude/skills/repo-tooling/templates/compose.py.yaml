@@ -29,7 +29,7 @@ services:
           path: ./uv.lock
 
   db:
-    image: postgres:18-alpine  # pin the digest
+    image: postgres:19-alpine  # pin the digest
     environment:
       POSTGRES_USER: <user>
       POSTGRES_PASSWORD: dev
