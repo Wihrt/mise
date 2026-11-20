@@ -63,7 +63,7 @@ Tous les appels : `glab api` dans le clone courant, projet `:id`.
 
 - **Branche par défaut** : `projects/:id`, champ `default_branch`.
 - **MR lue** (`Get`) : référence acceptée = numéro (`12`), `!12`, URL web de MR du projet (`…/-/merge_requests/12`), ou nom de branche source (renvoie à la recherche par branche). Lecture `projects/:id/merge_requests/<iid>`. Correspondance : `iid` → numéro, `web_url`, `source_branch`, `target_branch`, `sha`, `state == "opened"` → ouverte, `draft`. Une URL d'un autre projet que `origin` est refusée.
-- **Prête à fusionner** : en plus des contrôles du cœur (ouverte, pas brouillon, empilée sur la branche du dessous, pipeline), une MR n'est pas prête si `has_conflicts` est vrai, ou si `detailed_merge_status` ne vaut pas `mergeable` ; le message nomme la valeur reçue. Ce contrôle est fait avant la première fusion pour toute la pile (rien n'est fusionné si une MR ne l'est pas).
+- **Prête à fusionner** : en plus des contrôles du cœur (ouverte, pas brouillon, empilée sur la branche du dessous, pipeline), une MR n'est pas prête si `has_conflicts` est vrai, ou si `detailed_merge_status` ne vaut pas `mergeable` ; le message nomme la valeur reçue. Un statut transitoire (`checking`, `unchecked`, `preparing`, `ci_still_running`…) est relu jusqu'à une valeur stable, dans les délais de `HARNESS_CHECKS_TIMEOUT`, avant de juger (FGL-016). Une MR trouvée par la liste (`ByHead`) est relue par `merge_requests/<iid>` : la liste n'a pas `head_pipeline` et son statut n'est pas fiable (FGL-017). Ce contrôle est fait avant la première fusion pour toute la pile (rien n'est fusionné si une MR ne l'est pas).
 - **MR par branche** (`ByHead`) : `projects/:id/merge_requests?source_branch=<b>&state=opened`. La garde de fin de pile cherche la même branche dans tous les états.
 - **Repointage** : `PUT projects/:id/merge_requests/<iid>` avec `target_branch=<cible>`. GitLab repointe lui-même les MR du dessus quand la MR du bas est fusionnée avec suppression de sa branche source (au plus quatre MR, et seulement si la suppression réussit — [doc GitLab](https://docs.gitlab.com/user/project/merge_requests/#update-merge-requests-when-target-branch-merges)) ; le cœur garde son repointage explicite, sans effet quand GitLab l'a déjà fait, pour couvrir les autres cas.
 - **Checks d'une MR** : `head_pipeline` de la MR, attendu jusqu'à sa fin (mêmes délais que GitHub : `HARNESS_POLL_INTERVAL`, `HARNESS_CHECKS_GRACE`, `HARNESS_CHECKS_TIMEOUT`). Vert seulement si `head_pipeline.sha` est le sha de tête et `status == success` ; si le projet lance des pipelines de MR (une source `merge_request_event` dans `projects/:id/merge_requests/<iid>/pipelines`), la source doit aussi être `merge_request_event`. Pas de `head_pipeline` après le délai de grâce : « pas de pipeline », comme `gh` sans checks.
@@ -214,3 +214,48 @@ Section `TESTS.md` : `fusion-gitlab`. Tous les tests passent par le binaire `har
   - la sortie se termine par un `FAIL` qui nomme la branche `a` et la MR #1
   - le code de sortie est 1
 - **Frontière** : binaire `harness`, faux `gh` et faux `glab`
+
+### FGL-013 — Une MR GitLab se désigne par `!n` ou par son URL, pas par l'URL d'un autre projet
+- **Étant donné** la pile de FGL-001
+- **Quand** `harness merge-stack --dry-run '!3'`, puis `harness merge-stack --dry-run <web_url de !3>`, puis `harness merge-stack --dry-run <URL de MR d'un autre projet sur forge.example.test>`
+- **Alors**
+  - avec `!3`, la sortie se termine par `PASS nothing merged (dry run)`
+  - avec l'URL de !3, la sortie se termine par `PASS nothing merged (dry run)`
+  - avec l'URL d'un autre projet, la sortie se termine par un `FAIL` et le code de sortie est 1
+- **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-014 — Sur un projet à pipelines de MR, seul un pipeline de MR vert compte
+- **Étant donné** la pile de FGL-001, le projet lance des pipelines de MR (une source `merge_request_event` dans les pipelines de !2), et le `head_pipeline` de !2 est un pipeline `push` en `success` sur le sha de tête
+- **Quand** `harness merge-stack 3`
+- **Alors**
+  - aucune MR n'est fusionnée
+  - la sortie nomme !2 (`CHECKS FAIL #2` ou `CHECKS UNKNOWN #2`)
+  - la sortie se termine par `FAIL nothing merged`
+- **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-015 — Après un repointage, la fusion GitLab attend que GitLab se prononce
+- **Étant donné** la pile de FGL-001, et après la fusion de !1 le faux `glab` répond `detailed_merge_status: checking` pour !2 aux deux premières lectures, puis `mergeable`
+- **Quand** `harness merge-stack 3`
+- **Alors**
+  - les trois MR sont `merged`
+  - aucun appel de fusion de !2 n'est reçu tant que le statut est `checking`
+  - la sortie se termine par `PASS`
+- **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-016 — Avant la première fusion, un statut GitLab transitoire est attendu, pas refusé
+- **Étant donné** la pile de FGL-001, et le faux `glab` répond `detailed_merge_status: checking` pour !2 aux deux premières lectures, puis `mergeable`
+- **Quand** `harness merge-stack 3`
+- **Alors**
+  - les trois MR sont `merged`
+  - la sortie ne contient pas `NOT MERGEABLE`
+  - la sortie se termine par `PASS`
+- **Frontière** : binaire `harness`, faux `glab`
+
+### FGL-017 — Une pile GitLab dont les branches contiennent `/` se fusionne
+- **Étant donné** une pile !1 ← !2 sur `main` dont les branches sont `feat/a` et `feat/b`, ouvertes, vertes, `mergeable` ; la liste des MR du faux `glab` ne contient pas `head_pipeline`, comme l'API GitLab
+- **Quand** `harness merge-stack 2`
+- **Alors**
+  - !1 et !2 sont `merged`
+  - l'arbre de `main` est celui de la tête de !2
+  - la sortie se termine par `PASS`
+- **Frontière** : binaire `harness`, faux `glab`

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# A stand-in for ssh, for the merge-stack tests on a forge host: whatever the host and the
+# repository path, git talks to the bare clone $GL_STATE/origin.git.
+set -euo pipefail
+while [[ ${1:-} == -* ]]; do
+  case $1 in -o | -p | -i | -l | -F) shift 2 ;; *) shift ;; esac
+done
+shift # the host
+eval "set -- $1" # git-upload-pack '<path>'
+exec git "${1#git-}" "${GL_STATE:?}/origin.git"

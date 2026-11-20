@@ -1,5 +1,14 @@
 package domain
 
+import "time"
+
+// Timing bounds the waits on the forge.
+type Timing struct {
+	Interval time.Duration // between two polls
+	Grace    time.Duration // how long a commit may stay without any pipeline before it is said to have none
+	Timeout  time.Duration // longest wait for pipelines to end
+}
+
 // PullRequest is one merge request of a forge, as far as merging a stack needs it.
 type PullRequest struct {
 	Number int
@@ -9,6 +18,10 @@ type PullRequest struct {
 	SHA    string // commit at the tip of Head
 	Open   bool
 	Draft  bool
+	// Conflicts and MergeStatus are what a forge says of mergeability; MergeStatus is
+	// empty when it does not say (GitHub), otherwise "mergeable" or the obstacle.
+	Conflicts   bool
+	MergeStatus string
 }
 
 // Checks is the outcome of the pipelines of a commit.

@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2016  # jq programs are meant to stay unexpanded
+# A stand-in for the glab CLI, for the merge-stack tests: `glab api [-X METHOD] [-f k=v | -F k=v]...
+# [--paginate] <path>`. The merge requests live in $GL_STATE/mrs.json, the repository in the bare
+# clone $GL_STATE/origin.git, every call in $GL_STATE/calls.jsonl.
+set -euo pipefail
+state=${GL_STATE:?}
+mrs=$state/mrs.json
+calls=$state/calls.jsonl
+
+[[ ${1:-} == api ]] || { echo "fake glab: unsupported: $*" >&2; exit 2; }
+shift
+method="" path="" fields='{}'
+while (($#)); do
+  case $1 in
+    -X | --method) method=$2; shift 2 ;;
+    -f | -F | --raw-field | --field)
+      fields=$(jq -c --arg k "${2%%=*}" --arg v "${2#*=}" '.[$k] = $v' <<<"$fields")
+      shift 2 ;;
+    --paginate) shift ;;
+    -*) echo "fake glab: unsupported flag: $1" >&2; exit 2 ;;
+    *) path=$1; shift ;;
+  esac
+done
+if [[ -z $method ]]; then
+  if [[ $fields == '{}' ]]; then method=GET; else method=POST; fi
+fi
+path=${path#/}
+jq -cn --arg m "$method" --arg p "$path" --argjson f "$fields" '{method: $m, path: $p, fields: $f}' >>"$calls"
+
+route=${path%%\?*} query=""
+[[ $path == *\?* ]] && query=${path#*\?}
+urldecode() { local s=${1//+/ }; printf '%b' "${s//%/\\x}"; }
+q='{}'
+IFS='&' read -ra pairs <<<"$query"
+for p in "${pairs[@]}"; do
+  if [[ -n $p ]]; then q=$(jq -c --arg k "$(urldecode "${p%%=*}")" --arg v "$(urldecode "${p#*=}")" '.[$k] = $v' <<<"$q"); fi
+done
+
+update() { jq "$@" "$mrs" >"$mrs.new" && mv "$mrs.new" "$mrs"; }
+fail() { echo "{\"message\":\"$1\"}"; echo "glab: $1" >&2; exit 1; }
+mr_of() { jq -c --arg n "$1" '.[] | select((.iid | tostring) == $n)' "$mrs"; }
+public() { jq -c 'del(.refuse)'; }
+field() { jq -r --arg k "$1" '.[$k] // empty' <<<"$fields"; }
+iid=""
+if [[ $route =~ ^projects/:id/merge_requests/([0-9]+) ]]; then
+  iid=${BASH_REMATCH[1]}
+  [[ -n $(mr_of "$iid") ]] || fail "404 Not found"
+fi
+
+case "$method $route" in
+  "GET projects/:id") echo '{"default_branch":"main"}' ;;
+  "GET projects/:id/merge_requests")
+    list=$(jq -c --argjson q "$q" '[.[]
+      | select(($q.source_branch == null) or (.source_branch == $q.source_branch))
+      | select(($q.state == null) or (.state == $q.state))
+      | del(.refuse, .head_pipeline, .pipelines)]' "$mrs") # the list has no head_pipeline, as on GitLab
+    # A scripted status belongs to the MR: a read through the list serves the next one too.
+    for n in $(jq -r '.[].iid' <<<"$list"); do
+      seq=$state/seq-active-$n
+      if [[ -s $seq ]]; then
+        scripted=$(head -n 1 "$seq")
+        tail -n +2 "$seq" >"$seq.new" && mv "$seq.new" "$seq"
+        list=$(jq -c --argjson n "$n" --arg s "$scripted" 'map(if .iid == $n then .detailed_merge_status = $s else . end)' <<<"$list")
+      fi
+    done
+    echo "$list" ;;
+  "GET projects/:id/merge_requests/"*"/pipelines")
+    mr_of "$iid" | jq -c '.pipelines // (if .head_pipeline then [.head_pipeline] else [] end)' ;;
+  "GET projects/:id/merge_requests/"*)
+    # Scripted answers: once a merge has retargeted this MR, each read pops one detailed_merge_status
+    # from $GL_STATE/seq-active-<iid> until the file is empty.
+    seq=$state/seq-active-$iid
+    if [[ -s $seq ]]; then
+      scripted=$(head -n 1 "$seq")
+      tail -n +2 "$seq" >"$seq.new" && mv "$seq.new" "$seq"
+      mr_of "$iid" | jq -c --arg s "$scripted" '.detailed_merge_status = $s | del(.refuse)'
+    else
+      mr_of "$iid" | public
+    fi ;;
+  "PUT projects/:id/merge_requests/"*"/merge")
+    mr=$(mr_of "$iid")
+    src=$(jq -r .source_branch <<<"$mr") tgt=$(jq -r .target_branch <<<"$mr")
+    [[ $(jq -r .refuse <<<"$mr") != true ]] || fail "409 SHA does not match HEAD of source branch"
+    [[ $(jq -r .state <<<"$mr") == opened ]] || fail "405 Method Not Allowed"
+    if [[ -s $state/seq-active-$iid ]]; then # a merge while GitLab is still checking
+      echo "$iid" >>"$state/early-merge"
+      fail "405 Branch cannot be merged"
+    fi
+    [[ $(git -C "$state/origin.git" rev-parse "refs/heads/$src") == "$(field sha)" ]] \
+      || fail "409 SHA does not match HEAD of source branch"
+    [[ $(jq -r .detailed_merge_status <<<"$mr") == mergeable ]] || fail "405 Branch cannot be merged"
+    tmp=$(mktemp -d)
+    git clone -q "$state/origin.git" "$tmp/c"
+    git -C "$tmp/c" checkout -q "$tgt"
+    git -C "$tmp/c" -c user.email=f@f -c user.name=forge merge -q --no-ff "origin/$src" -m "Merge branch '$src' into '$tgt'"
+    merge_sha=$(git -C "$tmp/c" rev-parse HEAD)
+    if [[ -f $state/drift ]]; then # someone else pushes to the target branch, once
+      rm "$state/drift"
+      echo drift >"$tmp/c/drift.txt"
+      git -C "$tmp/c" add drift.txt
+      git -C "$tmp/c" -c user.email=f@f -c user.name=other commit -q -m "chore: someone else"
+    fi
+    git -C "$tmp/c" push -q origin "$tgt"
+    rm -rf "$tmp"
+    update --arg n "$iid" --arg sha "$merge_sha" \
+      'map(if (.iid | tostring) == $n then .state = "merged" | .merge_commit_sha = $sha else . end)'
+    if [[ $(field should_remove_source_branch) == true ]]; then
+      git -C "$state/origin.git" update-ref -d "refs/heads/$src"
+      update --arg s "$src" --arg t "$tgt" \
+        'map(if .state == "opened" and .target_branch == $s then .target_branch = $t else . end)'
+      for n in $(jq -r --arg t "$tgt" '.[] | select(.state == "opened" and .target_branch == $t) | .iid' "$mrs"); do
+        if [[ -f $state/seq-$n ]]; then mv "$state/seq-$n" "$state/seq-active-$n"; fi
+      done
+    fi
+    mr_of "$iid" | public ;;
+  "PUT projects/:id/merge_requests/"*)
+    update --arg n "$iid" --arg t "$(field target_branch)" \
+      'map(if (.iid | tostring) == $n and $t != "" then .target_branch = $t else . end)'
+    mr_of "$iid" | public ;;
+  "GET projects/:id/pipelines")
+    sha=$(jq -r '.sha // empty' <<<"$q")
+    case $(cat "$state/main-checks") in
+      pass) status=success ;;
+      fail) status=failed ;;
+      *) status="" ;;
+    esac
+    # Only the pipeline of the tip of main and of the merge commits exists; any other sha has none.
+    known=$(jq -r '.[] | .merge_commit_sha // empty' "$mrs"; git -C "$state/origin.git" rev-parse refs/heads/main)
+    if [[ -n $status ]] && grep -qxF -- "$sha" <<<"$known"; then
+      jq -cn --arg s "$sha" --arg st "$status" '[{id: 1, sha: $s, ref: "main", source: "push", status: $st}]'
+    else
+      echo '[]'
+    fi ;;
+  *) echo "fake glab: unsupported: $method $path" >&2; exit 2 ;;
+esac

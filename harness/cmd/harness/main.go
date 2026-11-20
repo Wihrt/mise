@@ -27,10 +27,12 @@ import (
 	"github.com/Wihrt/mise/harness/internal/adapters/fsys"
 	"github.com/Wihrt/mise/harness/internal/adapters/git"
 	"github.com/Wihrt/mise/harness/internal/adapters/github"
+	"github.com/Wihrt/mise/harness/internal/adapters/gitlab"
 	"github.com/Wihrt/mise/harness/internal/adapters/kubeconfig"
 	"github.com/Wihrt/mise/harness/internal/adapters/shell"
 	"github.com/Wihrt/mise/harness/internal/app"
 	"github.com/Wihrt/mise/harness/internal/app/local"
+	"github.com/Wihrt/mise/harness/internal/domain"
 )
 
 func main() {
@@ -75,6 +77,14 @@ func duration(getenv func(string) string, name string, def time.Duration) time.D
 	return def
 }
 
+// newForge builds the adapter of the forge tool that serves the clone.
+func newForge(tool, dir string, t domain.Timing) app.Forge {
+	if tool == "glab" {
+		return gitlab.NewForge(dir, t)
+	}
+	return github.NewForge(dir, t)
+}
+
 // mergeStack runs the merge-stack command in the current directory.
 func mergeStack(args []string, stdout, stderr io.Writer, getenv func(string) string) int {
 	flags := flag.NewFlagSet("merge-stack", flag.ContinueOnError)
@@ -96,21 +106,13 @@ func mergeStack(args []string, stdout, stderr io.Writer, getenv func(string) str
 		_, _ = fmt.Fprintf(stdout, "FAIL %v\n", err)
 		return 1
 	}
-	if tool == "" {
-		tool = "gh" // origin is a local path: no forge host to look up
+	timing := domain.Timing{
+		Interval: duration(getenv, "HARNESS_POLL_INTERVAL", 15*time.Second),
+		Grace:    duration(getenv, "HARNESS_CHECKS_GRACE", time.Minute),
+		Timeout:  duration(getenv, "HARNESS_CHECKS_TIMEOUT", 30*time.Minute),
 	}
-	var forge app.Forge
-	switch tool {
-	case "gh":
-		forge = github.NewForge(dir, github.Timing{
-			Interval: duration(getenv, "HARNESS_POLL_INTERVAL", 15*time.Second),
-			Grace:    duration(getenv, "HARNESS_CHECKS_GRACE", time.Minute),
-			Timeout:  duration(getenv, "HARNESS_CHECKS_TIMEOUT", 30*time.Minute),
-		})
-	case "glab":
-		_, _ = fmt.Fprintln(stdout, "FAIL glab: not supported yet")
-		return 1
-	}
+	// A local-path origin has no forge host, so no tool: gh.
+	forge := newForge(tool, dir, timing)
 	opt := app.MergeOptions{Top: flags.Arg(0), DryRun: *dryRun, Validate: *validate}
 	if app.NewMergeStack(forge, clone, clone, stdout).Run(opt) {
 		return 0
