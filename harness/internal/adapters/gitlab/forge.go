@@ -84,7 +84,7 @@ type mr struct {
 func (m mr) domain() domain.PullRequest {
 	return domain.PullRequest{
 		Number: m.IID, URL: m.WebURL, Head: m.SourceBranch, Base: m.TargetBranch,
-		SHA: m.SHA, Open: m.State == "opened", Draft: m.Draft,
+		SHA: m.SHA, State: m.State, Open: m.State == "opened", Draft: m.Draft,
 		Conflicts: m.HasConflicts, MergeStatus: m.DetailedMergeStatus,
 	}
 }
@@ -113,15 +113,6 @@ func (f *Forge) settled(number int) (mr, error) {
 		}
 		time.Sleep(f.timing.Interval)
 	}
-}
-
-// DefaultBranch implements app.Forge.
-func (f *Forge) DefaultBranch() (string, error) {
-	var p struct {
-		DefaultBranch string `json:"default_branch"`
-	}
-	err := f.get(&p, "projects/:id")
-	return p.DefaultBranch, err
 }
 
 // Get implements app.Forge: a number, !number, the web URL of a request of the
@@ -164,6 +155,25 @@ func (f *Forge) ByHead(branch string) (domain.PullRequest, bool, error) {
 	// The list has no head pipeline and its merge status is not reliable: read the request.
 	m, err := f.settled(mrs[0].IID)
 	return m.domain(), err == nil, err
+}
+
+// WasHead implements app.Forge: a request of this project, in any state.
+func (f *Forge) WasHead(branch string) (domain.PullRequest, bool, error) {
+	out, err := f.api("--paginate", "projects/:id/merge_requests?source_branch="+url.QueryEscape(branch))
+	if err != nil {
+		return domain.PullRequest{}, false, err
+	}
+	// glab prints one JSON array per page.
+	for dec := json.NewDecoder(strings.NewReader(out)); dec.More(); {
+		var page []mr
+		if err := dec.Decode(&page); err != nil {
+			return domain.PullRequest{}, false, fmt.Errorf("decode merge requests of %s: %w", branch, err)
+		}
+		if len(page) > 0 {
+			return page[0].domain(), true, nil
+		}
+	}
+	return domain.PullRequest{}, false, nil
 }
 
 // Retarget implements app.Forge.

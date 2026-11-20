@@ -10,17 +10,18 @@ import (
 
 // Forge is the merge request side of the repository host.
 type Forge interface {
-	DefaultBranch() (string, error)
 	// Get reads a request by number, URL or head branch.
 	Get(ref string) (domain.PullRequest, error)
 	// ByHead finds the open request that comes from a branch.
 	ByHead(branch string) (domain.PullRequest, bool, error)
+	// WasHead finds a request of the repository itself, in any state, that came from a branch.
+	WasHead(branch string) (domain.PullRequest, bool, error)
 	Retarget(number int, base string) error
 	// Checks waits for the pipelines of a request to end.
 	Checks(number int) (domain.Checks, error)
 	// Merge merges a request with a merge commit, only if its head is still sha.
 	Merge(number int, sha string) error
-	// CommitChecks waits for the pipelines of a commit of the default branch to end.
+	// CommitChecks waits for the pipelines of a commit of the target branch to end.
 	CommitChecks(sha string) (domain.Checks, error)
 }
 
@@ -41,7 +42,7 @@ type Validator interface {
 }
 
 // MergeStack merges a stack of merge requests, bottom first, then proves that
-// the default branch holds the code of the top of the stack and that it passes.
+// the target branch holds the code of the top of the stack and that it passes.
 type MergeStack struct {
 	forge     Forge
 	history   History
@@ -58,7 +59,7 @@ func NewMergeStack(forge Forge, history History, validator Validator, out io.Wri
 type MergeOptions struct {
 	Top      string // number, URL or branch of the top request
 	DryRun   bool   // check, merge nothing
-	Validate string // command run on the merged default branch when it has no pipeline
+	Validate string // command run on the merged target branch when it has no pipeline
 }
 
 func (m *MergeStack) say(format string, args ...any) {
@@ -67,13 +68,13 @@ func (m *MergeStack) say(format string, args ...any) {
 
 // Run reports whether the stack was merged and proven; it stops at the first doubt.
 func (m *MergeStack) Run(opt MergeOptions) bool {
-	def, stack, err := m.resolve(opt.Top)
+	target, stack, err := m.resolve(opt.Top)
 	if err != nil {
 		m.say("FAIL %v", err)
 		return false
 	}
 	m.say("STACK %d: %s", len(stack), describe(stack))
-	if !m.ready(def, stack) {
+	if !m.ready(target, stack) {
 		m.say("FAIL nothing merged")
 		return false
 	}
@@ -82,31 +83,27 @@ func (m *MergeStack) Run(opt MergeOptions) bool {
 		m.say("PASS nothing merged (dry run)")
 		return true
 	}
-	if !m.merge(def, stack) {
+	if !m.merge(target, stack) {
 		return false
 	}
-	return m.prove(def, stack.Top(), opt.Validate)
+	return m.prove(target, stack.Top(), opt.Validate)
 }
 
-// resolve walks down from the top request to the default branch.
+// resolve walks down from the top request to the branch the stack lands on, refusing one that is, or was, the head of a request.
 func (m *MergeStack) resolve(top string) (string, domain.Stack, error) {
-	def, err := m.forge.DefaultBranch()
-	if err != nil {
-		return "", nil, fmt.Errorf("default branch: %w", err)
-	}
 	pr, err := m.forge.Get(top)
 	if err != nil {
 		return "", nil, fmt.Errorf("merge request %s: %w", top, err)
 	}
 	stack := domain.Stack{pr}
 	seen := map[string]bool{pr.Head: true}
-	for pr.Base != def {
+	for {
 		below, found, err := m.forge.ByHead(pr.Base)
 		if err != nil {
 			return "", nil, fmt.Errorf("merge request of %s: %w", pr.Base, err)
 		}
 		if !found {
-			return "", nil, fmt.Errorf("#%d targets %s, which is neither %s nor the branch of an open merge request", pr.Number, pr.Base, def)
+			break
 		}
 		if seen[below.Head] {
 			return "", nil, fmt.Errorf("the merge requests form a loop at %s", below.Head)
@@ -115,7 +112,15 @@ func (m *MergeStack) resolve(top string) (string, domain.Stack, error) {
 		stack = append(domain.Stack{below}, stack...)
 		pr = below
 	}
-	return def, stack, nil
+	target := pr.Base
+	gone, found, err := m.forge.WasHead(target)
+	if err != nil {
+		return "", nil, fmt.Errorf("merge requests from %s: %w", target, err)
+	}
+	if found {
+		return "", nil, fmt.Errorf("%s is the branch of #%d (%s); retarget #%d on the branch it should land on, then ask again", target, gone.Number, gone.State, pr.Number)
+	}
+	return target, stack, nil
 }
 
 func describe(stack domain.Stack) string {
@@ -128,12 +133,12 @@ func describe(stack domain.Stack) string {
 
 // ready checks everything that can be checked before the first merge, and
 // names every obstacle rather than the first one.
-func (m *MergeStack) ready(def string, stack domain.Stack) bool {
+func (m *MergeStack) ready(target string, stack domain.Stack) bool {
 	if err := m.history.Fetch(); err != nil {
 		m.say("FETCH FAILED %v", err)
 		return false
 	}
-	base, err := m.history.Remote(def)
+	base, err := m.history.Remote(target)
 	if err != nil {
 		m.say("FETCH FAILED %v", err)
 		return false
@@ -157,7 +162,7 @@ func (m *MergeStack) ready(def string, stack domain.Stack) bool {
 		}
 		if !m.history.IsAncestor(below, pr.SHA) {
 			if below == base {
-				m.say("OUTDATED #%d: %s is not in %s; rebase the stack on %s, then ask again", pr.Number, def, pr.Head, def)
+				m.say("OUTDATED #%d: %s is not in %s; rebase the stack on %s, then ask again", pr.Number, target, pr.Head, target)
 			} else {
 				m.say("NOT STACKED #%d: %s does not contain the branch below it", pr.Number, pr.Head)
 			}
@@ -183,11 +188,11 @@ func (m *MergeStack) ready(def string, stack domain.Stack) bool {
 }
 
 // merge merges the requests bottom first and stops at the first that resists.
-func (m *MergeStack) merge(def string, stack domain.Stack) bool {
+func (m *MergeStack) merge(target string, stack domain.Stack) bool {
 	for i, pr := range stack {
 		err := error(nil)
-		if pr.Base != def {
-			err = m.forge.Retarget(pr.Number, def)
+		if pr.Base != target {
+			err = m.forge.Retarget(pr.Number, target)
 		}
 		if err == nil {
 			err = m.forge.Merge(pr.Number, pr.SHA)
@@ -215,13 +220,13 @@ func numbers(stack domain.Stack) string {
 	return b.String()
 }
 
-// prove checks that the default branch is the code that was reviewed, and that it passes.
-func (m *MergeStack) prove(def string, top domain.PullRequest, validate string) bool {
+// prove checks that the target branch is the code that was reviewed, and that it passes.
+func (m *MergeStack) prove(target string, top domain.PullRequest, validate string) bool {
 	if err := m.history.Fetch(); err != nil {
 		m.say("FAIL stack merged, not proven: %v", err)
 		return false
 	}
-	tip, err := m.history.Remote(def)
+	tip, err := m.history.Remote(target)
 	if err != nil {
 		m.say("FAIL stack merged, not proven: %v", err)
 		return false
@@ -234,32 +239,32 @@ func (m *MergeStack) prove(def string, top domain.PullRequest, validate string) 
 	}
 	if want != got {
 		files, _ := m.history.ChangedFiles(top.SHA, tip)
-		m.say("TREE DIFFERS %s is not the code of #%d: %s", def, top.Number, strings.Join(files, " "))
-		m.say("FAIL stack merged, %s differs from the top of the stack", def)
+		m.say("TREE DIFFERS %s is not the code of #%d: %s", target, top.Number, strings.Join(files, " "))
+		m.say("FAIL stack merged, %s differs from the top of the stack", target)
 		return false
 	}
-	m.say("TREE IDENTICAL %s is the code of #%d", def, top.Number)
+	m.say("TREE IDENTICAL %s is the code of #%d", target, top.Number)
 
 	checks, err := m.forge.CommitChecks(tip)
 	switch {
 	case err != nil:
-		m.say("CHECKS UNKNOWN %s: %v", def, err)
-		m.say("FAIL stack merged, %s not verified", def)
+		m.say("CHECKS UNKNOWN %s: %v", target, err)
+		m.say("FAIL stack merged, %s not verified", target)
 		return false
 	case checks == domain.ChecksFail:
-		m.say("CHECKS FAIL %s", def)
-		m.say("FAIL stack merged, %s is red", def)
+		m.say("CHECKS FAIL %s", target)
+		m.say("FAIL stack merged, %s is red", target)
 		return false
 	case checks == domain.ChecksPass:
-		m.say("CHECKS PASS %s", def)
+		m.say("CHECKS PASS %s", target)
 	case validate == "":
-		m.say("CHECKS NONE %s has no pipeline and no --validate command was given", def)
-		m.say("FAIL stack merged, %s not verified", def)
+		m.say("CHECKS NONE %s has no pipeline and no --validate command was given", target)
+		m.say("FAIL stack merged, %s not verified", target)
 		return false
 	default:
 		if err := m.validator.Run(tip, validate); err != nil {
 			m.say("VALIDATION FAIL %s: %v", validate, err)
-			m.say("FAIL stack merged, %s is red", def)
+			m.say("FAIL stack merged, %s is red", target)
 			return false
 		}
 		m.say("VALIDATION PASS %s", validate)

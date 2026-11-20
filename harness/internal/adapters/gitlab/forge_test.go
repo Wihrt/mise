@@ -40,7 +40,7 @@ func TestGetAcceptsNumberBangAndUrlOfTheProject(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", ref, err)
 		}
-		want := domain.PullRequest{Number: 12, URL: "https://h.test/g/p/-/merge_requests/12", Head: "s", Base: "main", SHA: "abc", Open: true, Draft: true, Conflicts: true, MergeStatus: "conflict"}
+		want := domain.PullRequest{Number: 12, URL: "https://h.test/g/p/-/merge_requests/12", Head: "s", Base: "main", SHA: "abc", State: "opened", Open: true, Draft: true, Conflicts: true, MergeStatus: "conflict"}
 		if pr != want {
 			t.Errorf("%s: got %+v", ref, pr)
 		}
@@ -76,5 +76,15 @@ func TestMergeNamesTheTimeout(t *testing.T) {
 	err := f.Merge(12, "abc")
 	if err == nil || !strings.Contains(err.Error(), "checking") {
 		t.Fatalf("got %v", err)
+	}
+}
+
+func TestWasHeadSeesARequestOnTheSecondPage(t *testing.T) {
+	f, _ := glab(t, map[string]string{
+		"projects_:id_merge_requests_source_branch=t": `[]` + "\n" + `[{"iid":7,"source_branch":"t","target_branch":"main","state":"merged"}]`,
+	})
+	pr, found, err := f.WasHead("t")
+	if err != nil || !found || pr.Number != 7 || pr.State != "merged" {
+		t.Fatalf("pr=%+v found=%v err=%v", pr, found, err)
 	}
 }

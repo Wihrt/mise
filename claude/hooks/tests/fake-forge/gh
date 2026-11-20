@@ -7,11 +7,13 @@ state=${GH_STATE:?}
 prs=$state/prs.json
 
 jq_arg=""
+pr_state=open
 args=()
 while (($#)); do
   case $1 in
     --jq) jq_arg=$2; shift 2 ;;
-    --json | --interval | --state) shift 2 ;;
+    --state) pr_state=$2; shift 2 ;;
+    --json | --interval) shift 2 ;;
     *) args+=("$1"); shift ;;
   esac
 done
@@ -22,7 +24,8 @@ find_pr() { jq -e --arg r "$1" '.[] | select((.number|tostring) == $r or .headRe
 case "${args[0]} ${args[1]}" in
   "repo view") echo '{"defaultBranchRef":{"name":"main"}}' | emit ;;
   "pr view") find_pr "${args[2]}" | emit || { echo "no pull requests found for ${args[2]}" >&2; exit 1; } ;;
-  "pr list") jq --arg h "${args[3]}" '[.[] | select(.headRefName == $h and .state == "OPEN")]' "$prs" | emit ;;
+  "pr list") # --state open (the default) lists the open pull requests only, --state all every one
+    jq --arg h "${args[3]}" --arg s "$pr_state" '[.[] | select(.headRefName == $h and ($s == "all" or .state == ($s | ascii_upcase)))]' "$prs" | emit ;;
   "pr edit") update --arg n "${args[2]}" --arg b "${args[4]}" 'map(if (.number|tostring) == $n then .baseRefName = $b else . end)' ;;
   "pr checks")
     case $(find_pr "${args[2]}" | jq -r .checks) in

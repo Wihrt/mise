@@ -728,3 +728,27 @@ Branche : `feat/fusion-gitlab` · Commande : `mise run test`
     - l'arbre de `main` est celui de la tête de !2
     - la sortie se termine par `PASS`
 - **Test** : `hooks/tests/merge-stack-gitlab.bats` › `FGL-017 a GitLab stack whose branches contain a slash is merged`
+
+## cible-de-pile — La pile s'arrête sur la première branche qui n'est la tête d'aucune MR ouverte
+Branche : `feat/cible-de-pile` · Commande : `mise run test`
+
+### FGL-011 — Une pile qui vise une autre branche que la branche par défaut s'arrête sur elle
+- **Critère** :
+  - **Étant donné** une MR !1 de `fix` vers `dev`, `dev` n'étant la branche source d'aucune MR et `main` étant la branche par défaut ; une fois avec le faux `glab`, une fois avec le faux `gh`
+  - **Quand** `harness merge-stack 1`
+  - **Alors**
+    - !1 est fusionnée dans `dev`
+    - `main` n'a pas bougé
+    - la sortie contient `TREE IDENTICAL dev` et `CHECKS PASS dev`
+    - la sortie se termine par `PASS`
+- **Test** : `hooks/tests/merge-stack-cible.bats` › `FGL-011 a GitLab stack aimed at dev stops on dev`, `FGL-011 a GitHub stack aimed at dev stops on dev`
+
+### FGL-012 — Une cible qui a été la branche source d'une MR est refusée
+- **Critère** :
+  - **Étant donné** une pile !1 (`a` vers `main`) ← !2 (`b` vers `a`), où !1 est fermée sans fusion et la branche `a` existe encore ; une fois avec le faux `glab`, une fois avec le faux `gh`
+  - **Quand** `harness merge-stack 2`
+  - **Alors**
+    - aucune MR n'est fusionnée
+    - la sortie se termine par un `FAIL` qui nomme la branche `a` et la MR #1
+    - le code de sortie est 1
+- **Test** : `hooks/tests/merge-stack-cible.bats` › `FGL-012 a GitLab target that was the source branch of a closed request is refused`, `FGL-012 a GitHub target that was the source branch of a closed request is refused`

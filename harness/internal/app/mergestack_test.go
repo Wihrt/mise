@@ -17,10 +17,21 @@ type fakeForge struct {
 	mainChecks domain.Checks
 	main       *string // commit of main, shared with fakeHistory
 	drift      string  // when set, the commit main ends on instead of the merged head
+	wasErr     error // what WasHead answers instead of looking
 	calls      []string
 }
 
-func (f *fakeForge) DefaultBranch() (string, error) { return "main", nil }
+func (f *fakeForge) WasHead(branch string) (domain.PullRequest, bool, error) {
+	if f.wasErr != nil {
+		return domain.PullRequest{}, false, f.wasErr
+	}
+	for _, pr := range f.prs {
+		if pr.Head == branch {
+			return *pr, true, nil
+		}
+	}
+	return domain.PullRequest{}, false, nil
+}
 
 func (f *fakeForge) Get(ref string) (domain.PullRequest, error) {
 	for _, pr := range f.prs {
@@ -180,14 +191,25 @@ func TestMergeStackRefusesBeforeMerging(t *testing.T) {
 	}
 }
 
-func TestMergeStackUnknownBase(t *testing.T) {
+func TestMergeStackRefusesAbandonedTarget(t *testing.T) {
 	forge, history := threeHigh()
 	forge.prs[1].Open = false
+	forge.prs[1].State = "closed"
 	out, ok := runStack(forge, history, MergeOptions{Top: "c"})
 	if ok || len(forge.calls) != 0 {
 		t.Fatalf("ok=%v calls=%v", ok, forge.calls)
 	}
-	wantLines(t, out, "FAIL #2 targets a, which is neither main nor the branch of an open merge request")
+	wantLines(t, out, "FAIL a is the branch of #1 (closed); retarget #2 on the branch it should land on, then ask again")
+}
+
+func TestMergeStackFailsClosedWhenTheGuardCannotRead(t *testing.T) {
+	forge, history := threeHigh()
+	forge.wasErr = errors.New("boom")
+	out, ok := runStack(forge, history, MergeOptions{Top: "c"})
+	if ok || len(forge.calls) != 0 {
+		t.Fatalf("ok=%v calls=%v", ok, forge.calls)
+	}
+	wantLines(t, out, "FAIL merge requests from main: boom")
 }
 
 func TestMergeStackStopsWhereItResists(t *testing.T) {

@@ -16,6 +16,7 @@ type PullRequest struct {
 	Head   string // branch the request comes from
 	Base   string // branch it targets
 	SHA    string // commit at the tip of Head
+	State  string // as the forge says it, lower case
 	Open   bool
 	Draft  bool
 	// Conflicts and MergeStatus are what a forge says of mergeability; MergeStatus is
@@ -37,7 +38,7 @@ const (
 )
 
 // Stack is a chain of merge requests, bottom first: the first targets the
-// default branch, each next one targets the head of the one below.
+// target of the stack, each next one targets the head of the one below.
 type Stack []PullRequest
 
 // Top is the last request of the stack, the one whose code is the outcome.
