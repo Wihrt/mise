@@ -574,3 +574,16 @@ Branche : `feat/couverture-exclusions` · Commande : `mise run test`
     - elle contient `PRAGMA` avec `tox.ini` et la ligne de `partial_also`
     - quand `pyproject.toml` ne porte aucune table `tool.coverage` (`[project]`, `[tool.hatch.build.targets.wheel]`, `[dependency-groups]`) et que les deux autres fichiers sont absents, la sortie ne contient aucune ligne `PRAGMA` et se termine par `PASS`
 - **Test** : `../harness/acceptance/couverture_test.go` › `TestCOV014_OtherConfigurationFilesAreRead`, `TestCOV014_PyprojectWithoutCoverageTableIsAccepted`
+
+## forge-hote — Le dépôt dit sa forge, un hôte inconnu est refusé
+Branche : `feat/forge-hote` · Commande : `mise run test`
+
+### FGL-010 — Un hôte de forge inconnu est refusé
+- **Critère** :
+  - **Étant donné** un dépôt dont `origin` est sur `inconnu.example.test`, absent de `forges`
+  - **Quand** `harness merge-stack 1`
+  - **Alors**
+    - la sortie se termine par un `FAIL` qui nomme `inconnu.example.test` et le fichier `forges`
+    - le code de sortie est 1
+    - ni le faux `gh` ni le faux `glab` n'ont été appelés
+- **Test** : `hooks/tests/merge-stack-forge.bats` › `FGL-010 an unknown forge host is refused before any forge tool is called`

@@ -24,11 +24,13 @@ import (
 
 	"github.com/Wihrt/mise/harness/internal/adapters/agentfile"
 	"github.com/Wihrt/mise/harness/internal/adapters/claudecode"
+	"github.com/Wihrt/mise/harness/internal/adapters/fsys"
 	"github.com/Wihrt/mise/harness/internal/adapters/git"
 	"github.com/Wihrt/mise/harness/internal/adapters/github"
 	"github.com/Wihrt/mise/harness/internal/adapters/kubeconfig"
 	"github.com/Wihrt/mise/harness/internal/adapters/shell"
 	"github.com/Wihrt/mise/harness/internal/app"
+	"github.com/Wihrt/mise/harness/internal/app/local"
 )
 
 func main() {
@@ -89,11 +91,26 @@ func mergeStack(args []string, stdout, stderr io.Writer, getenv func(string) str
 		return 1
 	}
 	clone := git.NewClone(dir)
-	forge := github.NewForge(dir, github.Timing{
-		Interval: duration(getenv, "HARNESS_POLL_INTERVAL", 15*time.Second),
-		Grace:    duration(getenv, "HARNESS_CHECKS_GRACE", time.Minute),
-		Timeout:  duration(getenv, "HARNESS_CHECKS_TIMEOUT", 30*time.Minute),
-	})
+	tool, _, err := local.New(localDir(getenv), git.NewRunner(), fsys.New(), stdout).Tool(dir)
+	if err != nil {
+		_, _ = fmt.Fprintf(stdout, "FAIL %v\n", err)
+		return 1
+	}
+	if tool == "" {
+		tool = "gh" // origin is a local path: no forge host to look up
+	}
+	var forge app.Forge
+	switch tool {
+	case "gh":
+		forge = github.NewForge(dir, github.Timing{
+			Interval: duration(getenv, "HARNESS_POLL_INTERVAL", 15*time.Second),
+			Grace:    duration(getenv, "HARNESS_CHECKS_GRACE", time.Minute),
+			Timeout:  duration(getenv, "HARNESS_CHECKS_TIMEOUT", 30*time.Minute),
+		})
+	case "glab":
+		_, _ = fmt.Fprintln(stdout, "FAIL glab: not supported yet")
+		return 1
+	}
 	opt := app.MergeOptions{Top: flags.Arg(0), DryRun: *dryRun, Validate: *validate}
 	if app.NewMergeStack(forge, clone, clone, stdout).Run(opt) {
 		return 0

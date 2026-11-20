@@ -168,11 +168,7 @@ var localUsage = strings.Join([]string{
 }, "\n")
 
 func runLocal(args []string, stdout, stderr io.Writer, getenv func(string) string) int {
-	dir := getenv("CLAUDE_LOCAL_DIR")
-	if dir == "" {
-		dir = getenv("HOME") + "/.claude/local"
-	}
-	l := local.New(dir, git.NewRunner(), fsys.New(), stdout)
+	l := local.New(localDir(getenv), git.NewRunner(), fsys.New(), stdout)
 	command, rest := "", []string(nil)
 	if len(args) > 0 {
 		command, rest = args[0], args[1:]
@@ -189,4 +185,12 @@ func runLocal(args []string, stdout, stderr io.Writer, getenv func(string) strin
 	}
 	_, _ = fmt.Fprintln(stderr, localUsage)
 	return 2
+}
+
+// localDir is the directory of the machine-local files of the harness.
+func localDir(getenv func(string) string) string {
+	if dir := getenv("CLAUDE_LOCAL_DIR"); dir != "" {
+		return dir
+	}
+	return getenv("HOME") + "/.claude/local"
 }
