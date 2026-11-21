@@ -7,7 +7,7 @@
     "serve": "honkit serve"
   },
   "devDependencies": {
-    "honkit": "^6.1.6",
+    "honkit": "^7.0.0",
     "gitbook-plugin-search-pro": "^2.0.2"
   }
 }
