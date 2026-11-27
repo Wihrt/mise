@@ -3,6 +3,8 @@ package acceptance
 import (
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -26,13 +28,31 @@ func mutationFragment(t *testing.T) string {
 	return string(b)
 }
 
+// withGo makes the throwaway repository declare its own go, as a real repo adopting the fragment does,
+// with the version this repository pins in .config/mise.toml.
+func withGo(t *testing.T, fragment string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "..", ".config", "mise.toml"))
+	if err != nil {
+		t.Fatalf(".config/mise.toml: %v", err)
+	}
+	m := regexp.MustCompile(`(?m)^go\s*=\s*"([^"]+)"`).FindSubmatch(b)
+	if m == nil {
+		t.Fatal("no go version pinned in .config/mise.toml")
+	}
+	if !strings.Contains(fragment, "[tools]\n") {
+		t.Fatal("fragment has no [tools] table")
+	}
+	return strings.Replace(fragment, "[tools]\n", "[tools]\ngo = \""+string(m[1])+"\"\n", 1)
+}
+
 // mutationGo builds a Go repository whose first commit is MUTATION_BASE, applies change in a second
 // commit, runs `mise run mutation:go` and returns its exit code and output.
 func mutationGo(t *testing.T, change files) (int, string) {
 	t.Helper()
 	fragment := mutationFragment(t)
 	r := newRepo(t)
-	r.write("mise.toml", fragment)
+	r.write("mise.toml", withGo(t, fragment))
 	r.write("go.mod", goMod)
 	r.write("calc.go", calcBase)
 	r.write("calc_test.go", unitBase)
