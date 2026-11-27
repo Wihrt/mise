@@ -1,5 +1,4 @@
-// Package gate holds the use cases of the red and green gates: red, green,
-// characterize and replay. It reaches git, the test task and the file system
+// Package gate holds the coverage gate. It reaches git, the test task and the file system
 // through the ports below.
 package gate
 
@@ -16,13 +15,8 @@ type Files interface {
 	Write(path, content string) error
 	IsFile(path string) bool
 	Remove(path string)
-	MkdirAll(path string) error
-	// Patches lists the *.patch files of a directory, sorted.
-	Patches(dir string) []string
 	// Resolve makes a path absolute, symbolic links followed.
 	Resolve(path string) string
-	// TempDir creates a directory and returns it with the function that deletes it.
-	TempDir(prefix string) (dir string, cleanup func(), err error)
 }
 
 // TaskResult is the outcome of one `mise run`.
@@ -38,10 +32,4 @@ var ErrNoMise = errors.New("mise not found in PATH")
 // Tasks runs a mise task in a directory, standard output and error merged.
 type Tasks interface {
 	Run(dir, task string, timeoutSeconds int) (TaskResult, error)
-}
-
-// TaskFile reads a mise.toml.
-type TaskFile interface {
-	// Depends maps each task of the file to its direct `depends`.
-	Depends(toml string) map[string][]string
 }

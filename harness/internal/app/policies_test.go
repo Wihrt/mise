@@ -145,7 +145,6 @@ func TestAgentGuard(t *testing.T) {
 		{"implementer writes production code", "implementer", write("pkg/calc.go"), domain.Allow},
 		{"implementer pushes", "implementer", bash("git -C /repo push"), domain.Deny},
 		{"implementer commits", "implementer", bash("git commit -m x"), domain.Allow},
-		{"mutant-writer commits", "mutant-writer", bash("git commit -m x"), domain.Deny},
 		{"unknown role pushes", "reviewer", bash("git push"), domain.Allow},
 	}
 	for _, tt := range tests {

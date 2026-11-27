@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/Wihrt/mise/harness/internal/domain/coverage"
-	"github.com/Wihrt/mise/harness/internal/domain/tdd"
 )
 
 // coverage runs the task once, reads the reports it wrote and fails for every
@@ -59,7 +58,7 @@ func (r *run) coverage() (bool, error) {
 		r.outf("COVERAGE %s: %d files", p, len(m))
 		measures = append(measures, m)
 	}
-	production := func(f string) bool { return tracked[f] && !tdd.IsTestPath(f) }
+	production := func(f string) bool { return tracked[f] && !coverage.IsTestPath(f) }
 	merged := coverage.Merge(measures...)
 	findings := merged.Select(production).Findings()
 	sources := map[string]string{}

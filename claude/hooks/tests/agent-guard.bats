@@ -98,11 +98,3 @@ guard acceptance-writer deny  "aw push"            bash_json "git push origin fe
 guard acceptance-writer allow "aw go testdata"     file_json Write "$WT/cmd/greet/testdata/profile.json" "$WT"
 guard acceptance-writer allow "aw conftest"        file_json Write "$WT/conftest.py" "$WT"
 guard acceptance-writer deny  "aw testdata-like"   file_json Write "$WT/pkg/mytestdata.go" "$WT"
-# ---- mutant-writer ----
-guard mutant-writer deny  "mw push"               bash_json "git push origin feat/x" "$WT"
-guard mutant-writer deny  "mw commit"             bash_json "git commit -m x" "$WT"
-guard mutant-writer deny  "mw merge"              bash_json "git merge main" "$WT"
-guard mutant-writer deny  "mw rebase"             bash_json "git rebase main" "$WT"
-guard mutant-writer allow "mw git diff"           bash_json "git -C /tmp/scratch diff" "$WT"
-guard mutant-writer allow "mw git worktree add"   bash_json "git worktree add --detach /tmp/scratch abc123" "$WT"
-guard mutant-writer allow "mw edit scratch file"  file_json Edit "/tmp/scratch/chart/templates/deploy.yaml" "$WT"

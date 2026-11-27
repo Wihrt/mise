@@ -8,6 +8,16 @@ import (
 
 func noEnv(string) string { return "" }
 
+func TestUsageNamesOnlyCoverageGate(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run(nil, strings.NewReader(""), &stdout, &stderr, noEnv); code != 2 {
+		t.Fatalf("exit %d, want 2", code)
+	}
+	if got := stderr.String(); !strings.Contains(got, "\n       harness gate coverage ...\n       harness local ") {
+		t.Errorf("usage = %q", got)
+	}
+}
+
 func TestRun(t *testing.T) {
 	tests := []struct {
 		name       string

@@ -1,10 +1,10 @@
-// Command harness runs the Claude Code hooks, the TDD gates and the local-file
+// Command harness runs the Claude Code hooks, the coverage gate and the local-file
 // lookups of the harness, and merges stacks of merge requests.
 //
 // Usage:
 //
 //	harness hook <name> [argument]                             hook input on stdin
-//	harness gate <red|green|characterize|replay> ...
+//	harness gate coverage ...
 //	harness local <forge|cas-reels> ...
 //	harness merge-stack [--dry-run] [--validate <command>] <top merge request>
 //
@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Wihrt/mise/harness/internal/adapters/agentfile"
@@ -64,10 +65,12 @@ func policy(name, arg string, getenv func(string) string) app.Policy {
 	return nil
 }
 
-const usage = "usage: harness hook <name> [argument]\n" +
-	"       harness gate <red|green|characterize|replay> ...\n" +
-	"       harness local <forge|cas-reels> ...\n" +
-	"       harness merge-stack [--dry-run] [--validate <command>] <top merge request>"
+var usage = strings.Join([]string{
+	"usage: harness hook <name> [argument]",
+	"       harness gate coverage ...",
+	"       harness local <forge|cas-reels> ...",
+	"       harness merge-stack [--dry-run] [--validate <command>] <top merge request>",
+}, "\n")
 
 // duration reads a Go duration from the environment, or returns the default.
 func duration(getenv func(string) string, name string, def time.Duration) time.Duration {
