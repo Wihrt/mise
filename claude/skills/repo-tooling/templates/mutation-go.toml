@@ -9,6 +9,7 @@ jq = "1.8.2"
 
 [env]
 MUTATION_BASE = "{{ get_env(name='MUTATION_BASE', default='origin/main') }}"  # CI sets it to the target branch of the merge request
+MUTATION_FULL = "{{ get_env(name='MUTATION_FULL', default='') }}"  # 1: mutate the whole code (weekly CI), not the diff
 
 [tasks.mutation]
 description = "Run every mutation:* task"
@@ -28,7 +29,11 @@ run = '''
 set -eu
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true  # paths relative to the module, as gremlins expects
 mkdir -p .tdd
-[ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '*.go')" ] || exit 0
-gremlins unleash --diff "$MUTATION_BASE" -o .tdd/mutation-go.json
+if [ "${MUTATION_FULL:-}" = 1 ]; then
+  gremlins unleash -o .tdd/mutation-go.json
+else
+  [ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '*.go')" ] || exit 0
+  gremlins unleash --diff "$MUTATION_BASE" -o .tdd/mutation-go.json
+fi
 jq -e '.mutants_lived == 0 and .mutants_not_covered == 0' .tdd/mutation-go.json
 '''

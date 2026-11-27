@@ -11,7 +11,13 @@ description = "Mutate the chart <chart> when changed since MUTATION_BASE; the ve
 run = '''
 set -eu
 mkdir -p .tdd
-[ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '<chart-dir>')" ] || exit 0
-helm-mutation-test <chart-dir> --since "$MUTATION_BASE" --report console,json --report-dir .tdd/mutation-helm-<chart>
+if [ "${MUTATION_FULL:-}" = 1 ]; then
+  since=""
+else
+  [ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '<chart-dir>')" ] || exit 0
+  since="--since $MUTATION_BASE"
+fi
+# shellcheck disable=SC2086
+helm-mutation-test <chart-dir> $since --report console,json --report-dir .tdd/mutation-helm-<chart>
 jq -e '.tally.survived == 0 and .tally.noCoverage == 0' .tdd/mutation-helm-<chart>/mutation-report.json
 '''
