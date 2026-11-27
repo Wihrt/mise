@@ -59,6 +59,16 @@ Mutation testing replaces any proof of the tests: it mutates only the code chang
 - Full mode: `MUTATION_FULL=1 mise run mutation` mutates the whole code (Go without `--diff`, Python `git ls-files` targets, Helm without `--since`); the verdict is still the `jq`. It runs locally or in CI on demand, never on merge requests, and blocks no merge: GitHub `.github/workflows/mutation-full.yml` (`workflow_dispatch`, full history, `timeout-minutes: 360`), GitLab a manual job (`when: manual`). A repo may add a `schedule` if it wants one.
 - CI passes the target branch: `MUTATION_BASE: origin/<target>` on the step that runs `mise run check` (GitHub: `${{ github.base_ref && format('origin/{0}', github.base_ref) || 'origin/main' }}`), with the full history fetched.
 
+## Monorepo
+
+A repo with several services (each with its own `mise.toml`) is a mise monorepo.
+
+- Declare the services in `config_roots` and merge `templates/monorepo.toml` into the root `mise.toml` (`monorepo_root = true`, `[monorepo] config_roots = [...]`). The root `test`, `mutation` and `check` run the service tasks with `//...:<task>`, each in its own directory.
+- The mutation common part (jq, `MUTATION_BASE`, `MUTATION_FULL`, `mutation`) lives at the root, in `monorepo.toml` (a copy of the one in `mutation-go.toml`, which a single repo still needs). Services do not carry it: they merge only their own part (`mutation:go`, `mutation:py`, `mutation:helm`) and the `[tools]` they pin. Services see the root `[env]`.
+- Every service, chart included, has a `check` task: the root `check` only runs those; add `lint` to its `depends` (root repo tools).
+- CI is unchanged: `mise run check` at the root.
+- `mise install` at the root does not install the services' `[tools]` (checked with mise 2026.11.10: a service pinning `jq = "1.6"`, not installed, was still missing after `mise install` at the root). Run it in each service directory.
+
 ## Non-conforming repo
 Open a first MR `chore(tooling)` in the stack, before any feature MR, with the baseline above, and green `mise run check` plus `prek run --all-files`. Add the CI job below unless an existing job already runs `mise run check`.
 - GitLab (image with mise is unverified): `image: docker.io/jdxcode/mise`; `variables: {GIT_DEPTH: 0}`; script `mise install`, `mise run check`, `git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"`, `b=$(git rev-list --reverse "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD" | head -1); [ -z "$b" ] || cog check "$b..HEAD"`.

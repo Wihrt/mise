@@ -7,6 +7,7 @@
 description = "Mutate the Python files changed since MUTATION_BASE, or everything with MUTATION_FULL=1; the verdict is the jq on the report"
 run = '''
 set -eu
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true  # paths relative to the service directory
 if [ "${MUTATION_FULL:-}" = 1 ]; then
   targets=$(git ls-files '<paquet>/*.py' | paste -sd, -)
 else
