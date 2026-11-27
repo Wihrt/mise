@@ -30,6 +30,12 @@ func (*Files) IsFile(path string) bool {
 	return err == nil && info.Mode().IsRegular()
 }
 
+// Exists reports a file or a directory.
+func (*Files) Exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 // Remove deletes a file; a missing file is fine.
 func (*Files) Remove(path string) { _ = os.Remove(path) }
 

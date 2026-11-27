@@ -14,9 +14,10 @@ type Remote interface {
 	OriginURL(repo string) (string, error)
 }
 
-// Files reads a file of the local directory.
+// Files reads a file of the local directory and tells whether a path exists.
 type Files interface {
 	Read(path string) (string, error)
+	Exists(path string) bool
 }
 
 var (

@@ -5,7 +5,7 @@
 //
 //	harness hook <name> [argument]                             hook input on stdin
 //	harness gate coverage ...
-//	harness local <forge|cas-reels> ...
+//	harness local <forge|cas-reels|stack> ...
 //	harness merge-stack [--dry-run] [--validate <command>] <top merge request>
 //
 // Configuration comes from the environment: HOME, KUBECONFIG,
@@ -68,7 +68,7 @@ func policy(name, arg string, getenv func(string) string) app.Policy {
 var usage = strings.Join([]string{
 	"usage: harness hook <name> [argument]",
 	"       harness gate coverage ...",
-	"       harness local <forge|cas-reels> ...",
+	"       harness local <forge|cas-reels|stack> ...",
 	"       harness merge-stack [--dry-run] [--validate <command>] <top merge request>",
 }, "\n")
 
