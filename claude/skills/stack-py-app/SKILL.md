@@ -9,7 +9,7 @@ What a Python application must respect. Each line names the skill that details i
 1. Hexagonal layout and SOLID: `hexagonal-py`.
 2. Repo tooling (mise tasks, hooks, CI, Renovate): `repo-tooling`.
 3. Architecture baseline: criteria `ARC-001` to `ARC-003` before the first feature. Criteria: `stacked-tdd-mr/templates/socle-application.md`; test: `hexagonal-py/templates/test_architecture.py`.
-4. Acceptance tests at the boundary, one mutant per clause: `stacked-tdd-mr`. An HTTP API is tested with Bruno, a web front with Playwright (catalogue of `agents/acceptance-writer.md`).
+4. Acceptance tests at the boundary: `stacked-tdd-mr`. An HTTP API is tested with Bruno, a web front with Playwright (catalogue of `agents/acceptance-writer.md`).
 5. The smallest code that passes the tests; nothing for a hypothetical case.
 6. Unit tests in `tests/unit` are required: `mutation:py` (pytest-gremlins, `repo-tooling` section Mutation) measures them on the files changed.
 
