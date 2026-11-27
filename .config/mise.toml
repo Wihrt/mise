@@ -112,7 +112,7 @@ description = "Run every mutation:* task"
 depends = ["mutation:*"]
 
 [tasks."mutation:go"]
-description = "Mutate the Go files changed since MUTATION_BASE; the verdict is the jq on the report"
+description = "Mutate the Go files changed since MUTATION_BASE, or everything with MUTATION_FULL=1; the verdict is the jq on the report"
 dir = "harness"
 run = '''
 set -eu

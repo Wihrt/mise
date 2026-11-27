@@ -4,7 +4,7 @@
 # Replace <paquet> with the package directory (e.g. src/demo).
 
 [tasks."mutation:py"]
-description = "Mutate the Python files changed since MUTATION_BASE; the verdict is the jq on the report"
+description = "Mutate the Python files changed since MUTATION_BASE, or everything with MUTATION_FULL=1; the verdict is the jq on the report"
 run = '''
 set -eu
 if [ "${MUTATION_FULL:-}" = 1 ]; then
