@@ -182,6 +182,18 @@ Texte ajouté à `claude/CLAUDE.md` (section Development) et à `repo-tooling` :
 
 Dans `claude/CLAUDE.md`, la phrase sur les tests d'acceptation (« proven red then green by `harness gate` and listed in `TESTS.md` ») devient : la preuve est la tâche `mutation` du dépôt, en CI, plus la porte de couverture.
 
+### Mode complet, de temps en temps (ajout du 2026-11-27)
+
+En temps normal, la mutation reste en mode diff. De temps en temps, on repasse sur tout le code, pour mesurer aussi ce que le diff ne regarde jamais.
+- **`MUTATION_FULL=1`.** Les tâches `mutation:*` des trois fragments ignorent alors `MUTATION_BASE` et leur garde, puis mutent tout :
+  - Go : `gremlins unleash` sans `--diff` ;
+  - Python : les cibles sont tous les fichiers du paquet (`git ls-files`) ;
+  - Helm : `helm-mutation-test` sans `--since`.
+
+  Le verdict reste le même `jq` sur le rapport. Sans la variable, rien ne change.
+- **Un workflow CI à part, `mutation-full`.** Il tourne chaque semaine (cron) et à la demande (`workflow_dispatch`), et lance `MUTATION_FULL=1 mise run mutation`. Il ne tourne pas sur les PR et ne bloque aucune fusion : un rouge est un signal, que l'on traite par des tests ajoutés ou des mutants équivalents exclus. `repo-tooling` le décrit pour GitHub et pour GitLab (pipeline planifié).
+- **Un rouge attendu au départ.** Le code écrit avant cette pile n'a jamais été mesuré.
+
 ### Choix de l'auteur (à relire)
 
 - **Ordre des commits.** La convention reste `test(<slug>): acceptance` puis `feat(<slug>)`, mais rien ne vérifie plus cet ordre.
@@ -250,3 +262,10 @@ Frontière : la ligne de commande `harness`, les tâches mise des fragments `rep
 - **Alors**
   - `~/.claude/agents/mutant-writer.md` n'existe pas
   - `~/.claude/agents/acceptance-writer.md` et `implementer.md` existent
+
+### MUT-007 — `MUTATION_FULL=1` mute tout le code, pas seulement le diff
+- **Étant donné** pour chacun des trois fragments (Go, Python, Helm) un dépôt jetable dont le code non vérifié par les tests unitaires (pour Helm : un champ de template non vérifié par la suite) est déjà dans `MUTATION_BASE`, et rien n'a changé depuis
+- **Quand** on lance la tâche `mutation:*` du fragment, sans puis avec `MUTATION_FULL=1`
+- **Alors**
+  - sans `MUTATION_FULL`, la tâche sort en succès
+  - avec `MUTATION_FULL=1`, la tâche sort en échec
