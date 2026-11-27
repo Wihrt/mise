@@ -63,11 +63,11 @@ Mutation testing replaces any proof of the tests: it mutates only the code chang
 
 A repo with several services (each with its own `mise.toml`) is a mise monorepo.
 
-- Declare the services in `config_roots` and merge `templates/monorepo.toml` into the root `mise.toml` (`monorepo_root = true`, `[monorepo] config_roots = [...]`). The root `test`, `mutation` and `check` run the service tasks with `//...:<task>`, each in its own directory.
+- Declare the services in `config_roots` and merge `templates/monorepo.toml` into the root `mise.toml`; it REPLACES the root `test` and `check` of `templates/mise.toml` (`monorepo_root = true`, `[monorepo] config_roots = [...]`). The root `test`, `mutation` and `check` run the service tasks with `//...:<task>`, each in its own directory.
 - The mutation common part (jq, `MUTATION_BASE`, `MUTATION_FULL`, `mutation`) lives at the root, in `monorepo.toml` (a copy of the one in `mutation-go.toml`, which a single repo still needs). Services do not carry it: they merge only their own part (`mutation:go`, `mutation:py`, `mutation:helm`) and the `[tools]` they pin. Services see the root `[env]`.
 - Every service, chart included, has a `check` task: the root `check` only runs those; add `lint` to its `depends` (root repo tools).
 - CI is unchanged: `mise run check` at the root.
-- `mise install` at the root does not install the services' `[tools]` (checked with mise 2026.11.10: a service pinning `jq = "1.6"`, not installed, was still missing after `mise install` at the root). Run it in each service directory.
+- `mise install` at the root does not install the services' `[tools]` (checked with mise 2026.11.10: a service pinning `jq = "1.6"`, not installed, was still missing after `mise install` at the root). `mise run` does install a service's missing tools on demand (mise 2026.11.10: `mise run check` at the root printed "installed 1 tool", then ran the service's `check` with `jq-1.6`), so CI stays `mise run check` at the root.
 
 ## Non-conforming repo
 Open a first MR `chore(tooling)` in the stack, before any feature MR, with the baseline above, and green `mise run check` plus `prek run --all-files`. Add the CI job below unless an existing job already runs `mise run check`.
