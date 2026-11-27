@@ -56,11 +56,11 @@ func TestMNR002_SimpleRepoKeepsItsBehaviour(t *testing.T) {
 		write(t, filepath.Join(dir, "mise.toml"), "monorepo_root = true\n")
 
 		code, _, errOut := stack(t, dir)
-		if code == 0 {
-			t.Errorf("exit = 0, want non-zero")
+		if code != 2 {
+			t.Errorf("exit = %d, want 2", code)
 		}
-		if strings.TrimSpace(errOut) == "" {
-			t.Errorf("stderr is empty, want a message")
+		if !strings.Contains(errOut, "config_roots") {
+			t.Errorf("stderr = %q, want it to name %s", errOut, "config_roots")
 		}
 	})
 
@@ -71,11 +71,11 @@ func TestMNR002_SimpleRepoKeepsItsBehaviour(t *testing.T) {
 		write(t, filepath.Join(dir, "services/a/cmd/main.go"), "package main\n")
 
 		code, _, errOut := stack(t, dir)
-		if code == 0 {
-			t.Errorf("exit = 0, want non-zero")
+		if code != 2 {
+			t.Errorf("exit = %d, want 2", code)
 		}
-		if strings.TrimSpace(errOut) == "" {
-			t.Errorf("stderr is empty, want a message")
+		if !strings.Contains(errOut, "services/absent") {
+			t.Errorf("stderr = %q, want it to name %s", errOut, "services/absent")
 		}
 	})
 }
