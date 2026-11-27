@@ -27,4 +27,4 @@ The signal is production code, not a manifest: a chart or an OpenTofu repo has a
 - `stack=none`: say so in one line and impose nothing. Infrastructure-as-code repos (charts, OpenTofu, Ansible) follow their own skills.
 - Limits: a service in a sub-directory (`service/go.mod`) is handled when its folder is listed in `config_roots`; otherwise, and for a Go library whose packages sit at the root, the command prints `stack=none`: ask the user which stack applies instead of guessing.
 
-A new stack is one line in the table and one stack skill; nothing changes in the `harness` binary.
+A new stack is one line in the table, one stack skill, and one rule in `harness/internal/domain/layout` (`Detect`), which is the source of truth: the table mirrors it.

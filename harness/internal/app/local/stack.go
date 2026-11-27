@@ -39,7 +39,7 @@ func (l *Local) roots(repo string) ([]string, error) {
 		if err != nil || roots != nil {
 			return roots, err
 		}
-		break
+		break // the first root mise.toml found wins
 	}
 	return []string{"."}, nil
 }
