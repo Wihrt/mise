@@ -20,6 +20,7 @@ const (
 	helmExtra   = "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: extra\ndata:\n  other: value\n"
 	helmSuiteHd = "suite: cm\ntemplates:\n  - templates/cm.yaml\ntests:\n  - it: renders the config map\n    asserts:\n      - equal:\n          path: data.greeting\n          value: hello\n"
 	helmSuitePt = "      - equal:\n          path: data.port\n          value: \"8080\"\n"
+	helmSuiteMd = "      - equal:\n          path: apiVersion\n          value: v1\n      - equal:\n          path: kind\n          value: ConfigMap\n      - equal:\n          path: metadata.name\n          value: demo\n"
 	helmIgnore  = ".tdd\n"
 )
 
@@ -77,13 +78,14 @@ func TestMUT004_UnrenderedTemplateFails(t *testing.T) {
 	}
 }
 
+// helm-mutation-test mutates the whole touched template, so the success suite checks every field of it.
 func TestMUT004_CheckedFieldSucceeds(t *testing.T) {
 	code, out := mutationHelm(t, files{
 		"charts/demo/templates/cm.yaml":  helmCMPort,
-		"charts/demo/tests/cm_test.yaml": helmSuiteHd + helmSuitePt,
+		"charts/demo/tests/cm_test.yaml": helmSuiteHd + helmSuiteMd + helmSuitePt,
 	})
 	if code != 0 {
-		t.Errorf("mutation:helm:demo failed although an assertion covers the changed field (exit %d):\n%s", code, out)
+		t.Errorf("mutation:helm:demo failed although the suite checks every field of the changed template (exit %d):\n%s", code, out)
 	}
 }
 
