@@ -50,9 +50,10 @@ For a repo that `repo-stack` names an application and that has a `Dockerfile` at
 
 ## Mutation
 Mutation testing replaces any proof of the tests: it mutates only the code changed since `MUTATION_BASE`, and the unit tests are its target (Go: gremlins runs the tests of the mutated package; tests under the `container` tag and acceptance tests of another package do not count).
-- Merge the fragment of the stack from `templates/`: `mutation-go.toml` for Go, `mutation-py.toml` for Python. The common part (`jq`, `MUTATION_BASE`, `[tasks.mutation]`, `check` depending on `mutation`) is in `mutation-go.toml`, marked "common part": merge it once, whatever the number of fragments.
+- Merge the fragment of the stack from `templates/`: `mutation-go.toml` for Go, `mutation-py.toml` for Python, `mutation-helm.toml` for Helm charts. The common part (`jq`, `MUTATION_BASE`, `[tasks.mutation]`, `check` depending on `mutation`) is in `mutation-go.toml`, marked "common part": merge it once, whatever the number of fragments.
 - The verdict is the `jq` on the tool's JSON report (no survivor, no mutant not covered by a test), never the exit code of the tool.
 - Python: `pytest-gremlins==1.15.0` goes in the dev group of `pyproject.toml` (a pytest plugin, run by `uv run`), configured under `[tool.pytest-gremlins]` (`paths`). The target is `tests/unit`. Replace `<paquet>` in `mutation-py.toml` with the package directory. Only changed files are mutated, whole.
+- Helm: `helm-mutation-test` (standalone binary, a mise tool: no `helm plugin install`) mutates the templates of a chart, the unit tests being the helm-unittest suites. One task `mutation:helm:<chart>` per chart, written by hand from `mutation-helm.toml` (replace `<chart>` and `<chart-dir>`). When the suites sit in subdirectories, add `-f 'tests/**/*_test.yaml'` to the command.
 - CI keeps the pytest-gremlins cache between runs, and saves it even when the job fails: GitHub `actions/cache` with `if: always()`, GitLab `cache:` with `when: always`.
 - CI passes the target branch: `MUTATION_BASE: origin/<target>` on the step that runs `mise run check` (GitHub: `${{ github.base_ref && format('origin/{0}', github.base_ref) || 'origin/main' }}`), with the full history fetched.
 

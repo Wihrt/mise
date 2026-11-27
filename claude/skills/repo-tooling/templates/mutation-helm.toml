@@ -1,0 +1,17 @@
+# Fragment: merge into the repo's mise.toml, never replace it (skill repo-tooling, section Mutation).
+# The common part (jq, MUTATION_BASE, mutation, check) is in mutation-go.toml: merge it once per repo.
+# One task per chart: replace <chart> with the chart name and <chart-dir> with its path (e.g. charts/demo).
+# Suites in subdirectories: add -f 'tests/**/*_test.yaml' to the helm-mutation-test command.
+
+[tools."github:mmpyro/helm-mutation-test"]
+version = "1.2.0"
+
+[tasks."mutation:helm:<chart>"]
+description = "Mutate the chart <chart> when changed since MUTATION_BASE; the verdict is the jq on the report"
+run = '''
+set -eu
+mkdir -p .tdd
+[ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '<chart-dir>')" ] || exit 0
+helm-mutation-test <chart-dir> --since "$MUTATION_BASE" --report console,json --report-dir .tdd/mutation-helm-<chart>
+jq -e '.tally.survived == 0 and .tally.noCoverage == 0' .tdd/mutation-helm-<chart>/mutation-report.json
+'''
