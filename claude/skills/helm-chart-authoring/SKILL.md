@@ -65,3 +65,4 @@ Single-consumer resources stay local. A resource that only one deployment repo n
 
 ## Acceptance tests
 - Written by the `acceptance-writer` from spec criteria (catalogue: `~/.claude/agents/acceptance-writer.md`). Proven pattern (dry run 2026-10-28): helm-unittest over `templates/*.yaml` with `documentSelector` by kind + `matchMany`, JSONPath filter + `notExists` per container and initContainer, one test per values profile sharing assertions by YAML anchor. Relations between objects (Ingress → Service) need pytest over `helm template`: helm-unittest cannot compare two documents.
+- Mutation: each chart has a task `mutation:helm:<chart>` (skill `repo-tooling`, section Mutation); the helm-unittest suites must kill every mutant of the templates changed since `MUTATION_BASE`.

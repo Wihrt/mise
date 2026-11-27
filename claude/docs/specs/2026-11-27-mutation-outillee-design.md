@@ -63,7 +63,7 @@ Deuxième demande, liée : un script reste en bash tant qu'il séquence des comm
   - cosmic-ray 8.9.0 : seuil et filtre git natifs, mais il relance la suite à chaque mutant et ignore `--fail-over 0`.
 - **helm-mutation-test** v1.2.0 (2026-10-22, un seul mainteneur, Apache-2.0)
   - Il embarque helm-unittest.
-  - Options `--since <ref>` et `--threshold N` (code 2 si les suites échouent déjà).
+  - Options `--since <ref>` et `--threshold N` (code 2 si les suites échouent déjà). `--since` travaille au fichier : un template touché est muté en entier (constaté le 2026-11-27 pendant la tâche 3, « 2 files inspected », survivants sur les lignes non modifiées).
   - Les mutants équivalents sont détectés et exclus. `noCoverage` (un template qu'aucune suite ne rend) est hors du score.
   - Le rapport est `mutation-report.json`, avec `tally{killed, survived, noCoverage, invalid, equivalent, timeout, error}`.
   - Un changement de `values.yaml`, d'un partiel `_*.tpl` ou de `Chart.yaml` déclenche un run complet.
@@ -242,7 +242,7 @@ Frontière : la ligne de commande `harness`, les tâches mise des fragments `rep
 - **Alors**
   - si une suite rend ce template sans vérifier le champ modifié, la tâche sort en échec
   - si aucune suite ne rend le template modifié, la tâche sort en échec
-  - si une assertion porte sur ce champ, la tâche sort en succès
+  - si la suite vérifie chaque champ du template modifié (helm-mutation-test mute tout le fichier touché, pas seulement la ligne changée), la tâche sort en succès
 
 ### MUT-005 — Le harnais ne déploie plus l'agent `mutant-writer`
 - **Étant donné** la configuration `[dotfiles]` de la branche
