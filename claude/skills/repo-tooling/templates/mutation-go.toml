@@ -1,0 +1,33 @@
+# Fragment: merge into the repo's mise.toml, never replace it (skill repo-tooling, section Mutation).
+# The common part (jq, MUTATION_BASE, mutation, check) is shared by mutation-py.toml and
+# mutation-helm.toml: merge it once per repo, whatever the number of fragments.
+
+# --- common part ---
+[tools]
+jq = "1.8.2"
+# --- end common part (tools) ---
+
+[env]
+MUTATION_BASE = "{{ get_env(name='MUTATION_BASE', default='origin/main') }}"  # CI sets it to the target branch of the merge request
+
+[tasks.mutation]
+description = "Run every mutation:* task"
+depends = ["mutation:*"]
+
+[tasks.check]
+description = "lint, test and mutation (CI entrypoint)"
+depends = ["lint", "test", "mutation"]
+
+# --- Go ---
+[tools."github:go-gremlins/gremlins"]
+version = "0.6.0"
+
+[tasks."mutation:go"]
+description = "Mutate the Go files changed since MUTATION_BASE; the verdict is the jq on the report"
+run = '''
+set -eu
+mkdir -p .tdd
+[ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '*.go')" ] || exit 0
+gremlins unleash --diff "$MUTATION_BASE" -o .tdd/mutation-go.json
+jq -e '.mutants_lived == 0 and .mutants_not_covered == 0' .tdd/mutation-go.json
+'''

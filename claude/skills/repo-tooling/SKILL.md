@@ -48,6 +48,12 @@ For a repo that `repo-stack` names an application and that has a `Dockerfile` at
 - Prove each gate with a known-bad and a known-good input. gitleaks ignores `AKIAIOSFODNN7EXAMPLE`; use another key shape to test.
 - prek clones remote hook repos even for skipped hooks; copy private hooks in as `repo: local`.
 
+## Mutation
+Mutation testing replaces any proof of the tests: it mutates only the code changed since `MUTATION_BASE`, and the unit tests are its target (Go: gremlins runs the tests of the mutated package; tests under the `container` tag and acceptance tests of another package do not count).
+- Merge the fragment of the stack from `templates/`: `mutation-go.toml` for Go. The common part (`jq`, `MUTATION_BASE`, `[tasks.mutation]`, `check` depending on `mutation`) is in `mutation-go.toml`, marked "common part": merge it once, whatever the number of fragments.
+- The verdict is the `jq` on the tool's JSON report (no survivor, no mutant not covered by a test), never the exit code of the tool.
+- CI passes the target branch: `MUTATION_BASE: origin/<target>` on the step that runs `mise run check` (GitHub: `${{ github.base_ref && format('origin/{0}', github.base_ref) || 'origin/main' }}`), with the full history fetched.
+
 ## Non-conforming repo
 Open a first MR `chore(tooling)` in the stack, before any feature MR, with the baseline above, and green `mise run check` plus `prek run --all-files`. Add the CI job below unless an existing job already runs `mise run check`.
 - GitLab (image with mise is unverified): `image: docker.io/jdxcode/mise`; `variables: {GIT_DEPTH: 0}`; script `mise install`, `mise run check`, `git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"`, `b=$(git rev-list --reverse "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD" | head -1); [ -z "$b" ] || cog check "$b..HEAD"`.

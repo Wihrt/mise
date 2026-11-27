@@ -42,6 +42,8 @@ jobs:
           persist-credentials: false
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
       - name: Check
+        env:
+          MUTATION_BASE: ${{ github.base_ref && format('origin/{0}', github.base_ref) || 'origin/main' }}
         run: mise run check
       - name: Conventional commits
         if: github.event_name == 'pull_request'

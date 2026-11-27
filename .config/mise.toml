@@ -7,6 +7,8 @@ gitleaks = "8.30.1"
 go = "1.27.4"
 golangci-lint = "2.15.0"
 gotestsum = "1.13.0"
+"github:go-gremlins/gremlins" = "0.6.0"
+jq = "1.8.2"
 actionlint = "1.7.12"
 bats = "1.14.0"
 node = "24.22.2"  # lint:renovate runs npx; CI has no global node
@@ -17,6 +19,7 @@ zizmor = "1.32.0"
 
 [env]
 RENOVATE_VERSION = "44.175.3"
+MUTATION_BASE = "{{ get_env(name='MUTATION_BASE', default='origin/main') }}"
 
 [tasks.setup]
 description = "Install the git hooks"
@@ -41,8 +44,8 @@ description = "Run every test:* task"
 depends = ["test:*"]
 
 [tasks.check]
-description = "lint then test (CI entrypoint)"
-depends = ["lint", "test"]
+description = "lint, test and mutation (CI entrypoint)"
+depends = ["lint", "test", "mutation"]
 
 [tasks."lint:secrets"]
 description = "Scan the tree for secrets"
@@ -102,6 +105,21 @@ run = """
 golangci-lint run ./...
 go mod tidy -diff
 """
+
+[tasks.mutation]
+description = "Run every mutation:* task"
+depends = ["mutation:*"]
+
+[tasks."mutation:go"]
+description = "Mutate the Go files changed since MUTATION_BASE; the verdict is the jq on the report"
+dir = "harness"
+run = '''
+set -eu
+mkdir -p ../.tdd
+[ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '*.go')" ] || exit 0
+gremlins unleash --diff "$MUTATION_BASE" -o ../.tdd/mutation-go.json
+jq -e '.mutants_lived == 0 and .mutants_not_covered == 0' ../.tdd/mutation-go.json
+'''
 
 [tasks."test:go"]
 description = "Run the harness tests: unit tests, and acceptance tests that run the built binary (harness/acceptance)"
