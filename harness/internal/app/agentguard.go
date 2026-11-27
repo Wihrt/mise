@@ -22,7 +22,7 @@ func NewAgentGuard(parser CommandParser, role string) *AgentGuard {
 
 var (
 	guardedRoles = []string{"implementer", "acceptance-writer"}
-	testBases    = []string{"TESTS.md", "mise.toml", ".gitignore", "conftest.py"}
+	testBases    = []string{"mise.toml", ".gitignore", "conftest.py"}
 	testGlobs    = []string{"*_test.*", "test_*.py", "*.tftest.hcl"}
 	testDirs     = []string{"test", "tests", "acceptance", "testdata"}
 )
@@ -36,7 +36,7 @@ func (p *AgentGuard) Evaluate(req domain.Request) domain.Decision {
 		if p.role != "acceptance-writer" || req.Path == "" || isTestPath(req.Path, req.Cwd) {
 			return domain.Allowed()
 		}
-		return domain.Denied("acceptance-writer may only edit test files, TESTS.md, mise.toml, .gitignore.")
+		return domain.Denied("acceptance-writer may only edit test files, mise.toml, .gitignore.")
 	}
 	if len(gitCalls(p.parser, req, "push")) > 0 {
 		return domain.Denied(p.role + " must not push. The controller pushes.")

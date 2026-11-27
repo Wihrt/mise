@@ -34,7 +34,7 @@ Domain raises domain exceptions. Adapters translate library errors (`sqlalchemy.
 - Fakes: in-memory classes implementing the Protocol (`FakeUserStore` with a dict). Never `Mock`/`MagicMock` on your own ports.
 - One contract suite per port (parametrized fixture over `[FakeX, RealX]`), run against every adapter, so fake and real cannot drift.
 - Use cases are tested with fakes, no I/O; adapters with the contract suite on the real backend.
-- Test names carrying a criterion ID are `test_<PREFIX><DIGITS>_<what>`, dash removed: `CALC-001` -> `test_CALC001_add`. This matches the `harness gate` normalization; `test_CALC_001_add` is also accepted.
+- Test names carrying a criterion ID are `test_<PREFIX><DIGITS>_<what>`, dash removed: `CALC-001` -> `test_CALC001_add`. `test_CALC_001_add` is also accepted.
 
 ## Tooling (verified: ruff 0.17.1, ty 0.0.90)
 `lint:py` runs `ruff check`, `ruff format --check` and `ty check src`. ty is 0.0.x beta: pin the exact version in `mise.toml`.
