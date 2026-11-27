@@ -34,10 +34,11 @@
 - A design that makes an architectural decision gets an ADR (skill `adr`), in the same merge request as its spec.
 - Execute plans with `stacked-tdd-mr` (wrapper over `subagent-driven-development`).
 - Every spec has a `Critères d'acceptation` section (`stacked-tdd-mr/templates/acceptance-criteria.md`); each plan task lists its criterion IDs and contains no acceptance test code.
-- Acceptance tests, written by `acceptance-writer` from the criteria, are the guarantee: proven red then green by `harness gate` and listed in `TESTS.md`. Unit tests are free scaffolding.
+- Acceptance tests, written by `acceptance-writer` from the criteria, are the guarantee; the proof is the `mutation` task of the repo (`mise run mutation`, in CI) plus the coverage gate. Unit tests are required: they are what `mise run mutation` measures.
+- A script stays in bash as long as it sequences commands: chaining, idempotence guard ("already done, skip"), checking its own arguments. As soon as it decides a result by itself (it parses an output or a file, compares, computes, returns a verdict), it moves to Python or Go, with tests run by `mise run test`.
 - Every repo follows `repo-tooling` (mise, prek, Renovate).
 - Every dependency is declared in the repo, whatever it is (`repo-tooling`). My global mise config is for my daily work: a repo never relies on it. A missing tool is added to the repo's `mise.toml`, never installed on the workstation only.
-- Direct fix: when I say `fix direct` or `sans TDD`, skip brainstorming, spec, plan and `stacked-tdd-mr`: no criterion, no acceptance test, no `TESTS.md` entry, no proof. Follow "Direct fix" in `stacked-tdd-mr` ("Work without a test"). Worktree, merge request and green CI still apply. Never pick this mode yourself; when a request looks like one, ask in one line.
+- Direct fix: when I say `fix direct` or `sans TDD`, skip brainstorming, spec, plan and `stacked-tdd-mr`: no criterion, no acceptance test, no proof. Follow "Direct fix" in `stacked-tdd-mr` ("Work without a test"). Worktree, merge request and green CI still apply. Never pick this mode yourself; when a request looks like one, ask in one line.
 
 ## Debugging
 - Bug or unexplained red CI: `superpowers:systematic-debugging`, phases 1 to 3 only (no red/green loop; throwaway code, never committed).
@@ -45,7 +46,7 @@
 
 ## Reports
 - A status report (on request, and at the end of a stack) is one Docs artifact per task, updated at the same link: where we are (MRs re-read via `gh`/`glab` just before), what remains, what awaits my decision, evidence.
-- A decision of substance (options, triage) goes in an artifact with context, options and a recommendation. A closed question stays in chat. During a stack, blockers (`TESTS-CHANGE`, gate failures, plan ambiguity) are ruled by the orchestrator, ledgered as `Ruling:` and listed in the final status report.
+- A decision of substance (options, triage) goes in an artifact with context, options and a recommendation. A closed question stays in chat. During a stack, blockers (`CRITERION-ISSUE`, mutation or coverage failures, plan ambiguity) are ruled by the orchestrator, ledgered as `Ruling:` and listed in the final status report.
 - Present options as a numbered list with one trade-off line each and one recommendation, so I can answer in one line ("1: ..., 2: ...").
 - In chat, give only the link and the choice expected.
 

@@ -52,3 +52,11 @@ deployed() { [ "$(realpath "$HOME/$1")" = "$(realpath "$REPO/$2")" ] || { echo "
   [[ $output == *"skill without a [dotfiles] entry: new-skill"* ]]
   [[ $output == *"source does not exist: claude/CLAUDE.md"* ]]
 }
+
+@test "MUT-005 the harness no longer deploys the mutant-writer agent" {
+  run mise dot apply --yes
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME/.claude/agents/mutant-writer.md" ]
+  [ -e "$HOME/.claude/agents/acceptance-writer.md" ]
+  [ -e "$HOME/.claude/agents/implementer.md" ]
+}

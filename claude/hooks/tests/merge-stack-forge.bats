@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Acceptance tests of `harness merge-stack` forge selection. Criteria: claude/TESTS.md, section forge-hote.
+# Acceptance tests of `harness merge-stack` forge selection. Criteria: specs under claude/docs/specs/ (no spec named for forge-hote).
 
 harness() { "${HARNESS:?set HARNESS to the harness binary}" "$@"; }
 g() { git -c user.email=a@b -c user.name=a "$@"; }

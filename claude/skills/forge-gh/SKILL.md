@@ -8,7 +8,7 @@ Serves github.com or any GitHub Enterprise host known to `gh auth status`. Work 
 ## Open a PR
 1. Before pushing: `git log --oneline origin/<base>..HEAD`, `git status --short`, `git log --format='%h %an <%ae> %s' origin/<base>..HEAD` (identity on every commit). Grep the range for `ghp_|github_pat_|AKIA|-----BEGIN`; on a hit do not push, report SHA and pattern only.
 2. Push the feature branch: `git push -u origin HEAD:<branch>`.
-3. Write the body to a file outside the repo (objective; link to the feature's TESTS.md section as `<repo url>/blob/<branch>/TESTS.md` plus the section heading as text; previous PR of the stack), then:
+3. Write the body to a file outside the repo (objective; link to the feature's spec section as `<repo url>/blob/<branch>/<spec path>` plus the section heading as text; previous PR of the stack), then:
    `gh pr create --base <base> --title "<conventional title>" --body "$(cat FILE)"`
    `<base>` is the previous branch of the stack (first one: the default branch). `--body-file FILE` is equivalent.
 4. The command prints the PR URL; re-read it with `gh pr view <branch> --json url`.

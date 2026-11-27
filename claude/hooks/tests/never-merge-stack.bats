@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # Acceptance test of the never-merge rule for `harness merge-stack`.
-# Criterion: claude/TESTS.md, section fusion-de-pile.
+# Criterion: claude/docs/specs/2026-11-13-fusion-de-pile-design.md.
 
 harness() { "${HARNESS:?set HARNESS to the harness binary}" "$@"; }
 

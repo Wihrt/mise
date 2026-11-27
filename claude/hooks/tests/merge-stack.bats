@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # Acceptance tests of `harness merge-stack`, against a throwaway repository and
-# a stand-in forge (fake-forge/gh). Criteria: claude/TESTS.md, section fusion-de-pile.
+# a stand-in forge (fake-forge/gh). Criteria: claude/docs/specs/2026-11-13-fusion-de-pile-design.md.
 
 harness() { "${HARNESS:?set HARNESS to the harness binary}" "$@"; }
 g() { git -c user.email=a@b -c user.name=a "$@"; }

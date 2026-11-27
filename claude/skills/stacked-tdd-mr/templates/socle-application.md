@@ -1,6 +1,6 @@
 # Socle d'une application Go ou Python
 
-Critères que toute application porte. À recopier dans la spec du dépôt ; l'acceptance-writer les transcrit dans `TESTS.md`. Les IDs sont réservés : aucun autre critère ne s'appelle `ARC-…` ni `FAC-…`. Compléter chaque critère par son `Cas réel` dans le dépôt.
+Critères que toute application porte. À recopier dans la spec du dépôt ; l'acceptance-writer les transcrit en tests. Les IDs sont réservés : aucun autre critère ne s'appelle `ARC-…` ni `FAC-…`. Compléter chaque critère par son `Cas réel` dans le dépôt.
 
 ## architecture — Les couches hexagonales ne se mélangent pas
 

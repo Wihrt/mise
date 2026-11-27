@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Acceptance tests of `harness merge-stack` on GitLab, against a throwaway repository whose
-# origin is on forge.example.test and a stand-in forge (fake-forge/glab). Criteria: claude/TESTS.md,
-# section fusion-gitlab.
+# origin is on forge.example.test and a stand-in forge (fake-forge/glab). Criteria: specs under
+# claude/docs/specs/ (no spec named for fusion-gitlab).
 
 harness() { "${HARNESS:?set HARNESS to the harness binary}" "$@"; }
 g() { git -c user.email=a@b -c user.name=a "$@"; }

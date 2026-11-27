@@ -47,7 +47,7 @@ terraform {
 
 ## Tests
 
-- Name each `run` block after its TESTS.md ID, first, dash removed: `run "CALC003_sub_is_exact"` for `CALC-003` (`harness gate` matches it).
+- Name each `run` block after its criterion ID, first, dash removed: `run "CALC003_sub_is_exact"` for `CALC-003`.
 - Native `tofu test` only: `*.tftest.hcl` next to the module (or in `tests/`). No Terratest.
 - Unit tests use `mock_provider` so no cloud credentials or network are needed:
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Acceptance tests of `harness merge-stack`: the target of a stack, on both forges, against a
 # throwaway repository and the stand-ins fake-forge/gh and fake-forge/glab (origin on
-# forge.example.test for GitLab). Criteria: claude/TESTS.md, section cible-de-pile.
+# forge.example.test for GitLab). Criteria: specs under claude/docs/specs/ (no spec named for cible-de-pile).
 
 harness() { "${HARNESS:?set HARNESS to the harness binary}" "$@"; }
 g() { git -c user.email=a@b -c user.name=a "$@"; }

@@ -8,11 +8,11 @@ Serves gitlab.com or any host known to `glab auth status`. Run `glab` from insid
 ## Open an MR
 1. Before pushing: `git log --oneline origin/<base>..HEAD`, `git status --short`, and `git log --format='%h %an <%ae> %s' origin/<base>..HEAD` (every commit carries the user's identity). Grep the range for `glpat-|AKIA|-----BEGIN`; on a hit do not push, report SHA and pattern only.
 2. Push the feature branch only, with an explicit refspec: `git push -u origin HEAD:<branch>`. Never push the default branch.
-3. Write the description to a file outside the repo (objective; link to the feature's TESTS.md section as `<web_url of the project>/-/blob/<branch>/TESTS.md` plus the section heading as text, no hand-built anchor; previous MR of the stack), then:
+3. Write the description to a file outside the repo (objective; link to the feature's spec section as `<web_url of the project>/-/blob/<branch>/<spec path>` plus the section heading as text, no hand-built anchor; previous MR of the stack), then:
    `glab mr create --target-branch <base> --title "<conventional title>" --description "$(cat FILE)" --yes --no-editor`
    `<base>` is the previous branch of the stack (first one: the branch feature 1 was cut from, the default branch unless the user names another; cut and target are the same branch).
 4. Before retrying a create that printed only a link or failed, check `glab mr list --source-branch <branch> -F json`: a duplicate is worse than a pause. After a batch, list per source branch; never trust the loop's exit status.
-5. Take every MR link from `web_url`, never hand-built (the TESTS.md link above is the one exception). Read the MR back (below).
+5. Take every MR link from `web_url`, never hand-built (the spec link above is the one exception). Read the MR back (below).
 
 ## Stacks
 Branch N is cut from branch N-1; its MR targets N-1, and its description names the previous MR. When a lower branch moves: `git rebase --update-refs` from the top of the stack, then `git push --force-with-lease=<branch>:<old-sha> origin <branch>` for each moved branch (old sha read before the rebase). Never retarget, never bare `--force`, no `glab stack` (experimental).
