@@ -8,7 +8,7 @@ Aujourd'hui, la valeur d'un test est prouvée par le harnais : `harness gate red
 
 L'utilisateur veut réduire cette dépendance : la preuve devient le travail d'outils de mutation standard, déclarés dans chaque dépôt, lancés par `mise` en local comme en CI. L'IA reçoit une boîte à outils et s'en sert ; elle n'est plus elle-même la preuve. N'importe qui peut lancer `mise run mutation` sans Claude.
 
-Deuxième demande, liée : un script ne reste en bash que s'il est une suite de commandes sans logique ; sinon il est écrit en Python ou en Go, avec des tests.
+Deuxième demande, liée : un script reste en bash tant qu'il séquence des commandes ; dès qu'il décide d'un résultat par lui-même, il est écrit en Python ou en Go, avec des tests.
 
 ## Objectifs
 
@@ -93,7 +93,7 @@ depends = ["lint", "test", "mutation"]
 - pytest-gremlins sort en 0 même avec des survivants : seul le `jq` fait échouer la tâche.
 - Les tâches `mutation:*` restent hors de `test` : `harness gate coverage --task test` ne les lance pas.
 - La CI récupère l'historique complet (`fetch-depth: 0` sur GitHub, `GIT_DEPTH: 0` sur GitLab, déjà dans `repo-tooling`) et passe `MUTATION_BASE=origin/<branche cible>`.
-- Les lignes `run` sont des commandes sans logique, sauf la garde `test -n "$targets" || exit 0` de `mutation:py`, qui compense un comportement vérifié de l'outil (choix de l'auteur, voir plus bas).
+- Les lignes `run` séquencent des commandes ; la garde `test -n "$targets" || exit 0` de `mutation:py` est une garde ordinaire (rien à muter, on passe), permise par la règle des scripts.
 
 ### Flux `stacked-tdd-mr` après le changement
 
@@ -117,7 +117,7 @@ Par tâche : `acceptance-writer` écrit les tests depuis les critères (commit `
 
 Texte ajouté à `claude/CLAUDE.md`, section Development, et à `repo-tooling` :
 
-> Un script ou une tâche reste en bash tant qu'il enchaîne des commandes sans logique propre. Dès qu'il contient une condition, une boucle, une analyse de texte ou un calcul, il est écrit en Python ou en Go, avec des tests lancés par `mise run test`. `set -eu`, `mkdir -p` et une redirection ne sont pas de la logique ; un `if`, un `for`, un `case`, `grep | sed` sur une sortie à interpréter en sont.
+> Un script reste en bash tant qu'il séquence des commandes : enchaînement, garde d'idempotence (« déjà fait, on passe »), contrôle de ses arguments. Dès qu'il décide d'un résultat par lui-même (il analyse une sortie ou un fichier, compare, calcule, rend un verdict), il passe en Python ou en Go, avec des tests lancés par `mise run test`.
 
 La phrase de `claude/CLAUDE.md` sur les tests d'acceptation (« proven red then green by `harness gate` and listed in `TESTS.md` ») devient : la preuve est la tâche `mutation` du dépôt, en CI.
 
@@ -142,12 +142,11 @@ La phrase de `claude/CLAUDE.md` sur les tests d'acceptation (« proven red then 
 
 ## Suites (hors de cette pile)
 
-Scripts bash qui ont de la logique et enfreignent la nouvelle règle :
-- `tasks/bootstrap` (152 lignes, conditions) ;
-- `.config/lint-harness` (24 lignes) ;
-- `claude/skills/docker-build-strategies/scripts/verify-build.sh` (34 lignes).
-
-`claude/hooks/tests/helpers.bash` est un utilitaire de tests bats, à juger au même moment.
+Relecture des scripts bash du dépôt avec la règle (2026-11-27) :
+- `.config/lint-harness` enfreint la règle : il compare `config.toml` aux skills présents et rend un verdict (`.config/lint-harness:9-11`), sans test. À migrer en Go ou Python.
+- `tasks/bootstrap` est conforme : ses `if` sont des gardes d'idempotence (`:13`, `:80`, `:87`) et sa boucle séquence les complétions (`:125`).
+- `claude/skills/docker-build-strategies/scripts/verify-build.sh` est conforme : ses `if` contrôlent ses arguments (`:13`, `:18`).
+- `claude/hooks/tests/helpers.bash` est un utilitaire de tests bats, pas un script livré.
 
 ## Critères d'acceptation
 
