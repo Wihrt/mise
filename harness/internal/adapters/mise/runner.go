@@ -12,8 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pelletier/go-toml/v2"
-
 	"github.com/Wihrt/mise/harness/internal/app/gate"
 )
 
@@ -73,32 +71,4 @@ func (r *Runner) Run(dir, task string, timeoutSeconds int) (gate.TaskResult, err
 	default:
 		return gate.TaskResult{}, err
 	}
-}
-
-// TaskFile reads the tasks of a mise.toml.
-type TaskFile struct{}
-
-// Depends maps each task of the file to its direct `depends`; an unreadable file has no task.
-func (TaskFile) Depends(text string) map[string][]string {
-	var file struct {
-		Tasks map[string]map[string]any `toml:"tasks"`
-	}
-	if err := toml.Unmarshal([]byte(text), &file); err != nil {
-		return nil
-	}
-	depends := map[string][]string{}
-	for name, task := range file.Tasks {
-		depends[name] = nil
-		switch d := task["depends"].(type) {
-		case string:
-			depends[name] = []string{d}
-		case []any:
-			for _, v := range d {
-				if s, ok := v.(string); ok {
-					depends[name] = append(depends[name], s)
-				}
-			}
-		}
-	}
-	return depends
 }

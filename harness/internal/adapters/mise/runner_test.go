@@ -25,16 +25,3 @@ func TestGoEnvAddsCount1(t *testing.T) {
 		}
 	}
 }
-
-func TestDepends(t *testing.T) {
-	got := TaskFile{}.Depends("[tools]\ngo = \"1\"\n[tasks.test]\ndepends = [\"test:*\"]\n[tasks.\"test:render\"]\nrun = \"x\"\n[tasks.check]\ndepends = \"lint\"\n")
-	if !slices.Equal(got["test"], []string{"test:*"}) || !slices.Equal(got["check"], []string{"lint"}) {
-		t.Errorf("Depends = %v", got)
-	}
-	if _, ok := got["test:render"]; !ok || len(got) != 3 {
-		t.Errorf("every task is listed: %v", got)
-	}
-	if got := (TaskFile{}).Depends("not = [toml"); len(got) != 0 {
-		t.Errorf("unreadable file: %v", got)
-	}
-}

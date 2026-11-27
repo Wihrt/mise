@@ -15,13 +15,8 @@ type Files interface {
 	Write(path, content string) error
 	IsFile(path string) bool
 	Remove(path string)
-	MkdirAll(path string) error
-	// Patches lists the *.patch files of a directory, sorted.
-	Patches(dir string) []string
 	// Resolve makes a path absolute, symbolic links followed.
 	Resolve(path string) string
-	// TempDir creates a directory and returns it with the function that deletes it.
-	TempDir(prefix string) (dir string, cleanup func(), err error)
 }
 
 // TaskResult is the outcome of one `mise run`.

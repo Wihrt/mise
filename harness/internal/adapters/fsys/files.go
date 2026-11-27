@@ -4,7 +4,6 @@ package fsys
 import (
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -34,18 +33,6 @@ func (*Files) IsFile(path string) bool {
 // Remove deletes a file; a missing file is fine.
 func (*Files) Remove(path string) { _ = os.Remove(path) }
 
-// MkdirAll creates a directory and its parents.
-func (*Files) MkdirAll(path string) error {
-	return os.MkdirAll(path, 0o755) //nolint:gosec // G301: a report directory inside the repository
-}
-
-// Patches lists the *.patch files of a directory, sorted.
-func (*Files) Patches(dir string) []string {
-	matches, _ := filepath.Glob(filepath.Join(dir, "*.patch"))
-	sort.Strings(matches)
-	return matches
-}
-
 // Resolve makes a path absolute, symbolic links followed.
 func (*Files) Resolve(path string) string {
 	abs, err := filepath.Abs(path)
@@ -56,13 +43,4 @@ func (*Files) Resolve(path string) string {
 		return real
 	}
 	return abs
-}
-
-// TempDir creates a temporary directory and returns it with the function that deletes it.
-func (*Files) TempDir(prefix string) (string, func(), error) {
-	dir, err := os.MkdirTemp("", prefix)
-	if err != nil {
-		return "", func() {}, err
-	}
-	return dir, func() { _ = os.RemoveAll(dir) }, nil
 }
