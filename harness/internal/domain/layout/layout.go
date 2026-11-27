@@ -62,10 +62,10 @@ func checkRoot(root string, before []string) error {
 		return fmt.Errorf("config_roots entry %q must be a clean relative path inside the repository", root)
 	}
 	for _, other := range before {
-		switch {
-		case other == root:
+		if other == root {
 			return fmt.Errorf("config_roots entry %q is listed twice", root)
-		case strings.HasPrefix(root, other+"/") || strings.HasPrefix(other, root+"/"):
+		}
+		if strings.HasPrefix(root, other+"/") || strings.HasPrefix(other, root+"/") {
 			return fmt.Errorf("config_roots entries %q and %q are nested", other, root)
 		}
 	}
