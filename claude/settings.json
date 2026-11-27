@@ -97,16 +97,7 @@
     ]
   },
   "enabledPlugins": {
-    "superpowers@anthropic-plugin-directory": true,
-    "autoharness@autoharness": false
-  },
-  "extraKnownMarketplaces": {
-    "autoharness": {
-      "source": {
-        "source": "github",
-        "repo": "tigerless-labs/autoharness"
-      }
-    }
+    "superpowers@anthropic-plugin-directory": true
   },
   "modelSettings": {
     "claude-opus-5-5": {
