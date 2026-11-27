@@ -7,7 +7,7 @@ Date : 2026-11-27. Statut : proposé. ADR : `docs/adr/0004-un-monorepo-est-un-mo
 Dans un monorepo, le code est toujours dans un sous-dossier. Aujourd'hui, la chaîne ne voit pas ces sous-dossiers :
 - `repo-stack` ne regarde que la racine. Il répond `stack=none`, donc pas de skill de pile, pas de test d'architecture, et l'étape de couverture est sautée. C'est ce qui arrive à ce dépôt avec `harness/`.
 - `mutation:py` passe des chemins comptés depuis la racine à `--gremlin-targets` (remarque 1 de la revue finale de la pile « mutation outillée »).
-- La porte de couverture, lancée à la racine avec un rapport LCOV écrit dans un service, ne juge pas les fichiers Python et sort en `PASS` (essai du 2026-11-27, ci-dessous).
+- La porte de couverture, lancée à la racine avec un rapport LCOV écrit dans un service, ne rattache pas les fichiers Python à leur chemin suivi : elle les déclare `NOT MEASURED` et sort en `FAIL` (essai du 2026-11-27, ci-dessous). Ce n'est pas un faux vert, mais elle ne juge pas ces fichiers : il faut la lancer dans le service.
 
 On veut que toute la chaîne (détection de la pile, test d'architecture, couverture, mutation) fonctionne service par service, sans renommer de tâche à la main pour chaque service.
 
@@ -34,7 +34,7 @@ On veut que toute la chaîne (détection de la pile, test d'architecture, couver
 - **mise gère les monorepos nativement.** `monorepo_root = true` et `[monorepo] config_roots = ["services/a", "services/b"]` dans le `mise.toml` racine. `mise run '//...:test'` lance la tâche `test` de chaque service, dans le dossier du service, avec ses propres `[tools]`. La découverte automatique et `experimental_monorepo_root` sont dépréciés : la liste `config_roots` est obligatoire. Doc : https://mise.jdx.dev/tasks/monorepo.html.
 - **L'environnement descend.** Une tâche de service voit le `[env]` de la racine. `MUTATION_BASE` défini à la racine par `get_env(...)` vaut sa valeur par défaut, ou celle du shell (`MUTATION_BASE=foo mise run check` → `foo` dans les deux services).
 - **La porte de couverture marche déjà par service.** `harness gate coverage --task test --repo <racine>/services/a --coverage .tdd/cover/go.txt` lance le `test` du service dans son dossier, ne liste que ses fichiers, et rapporte `UNCOVERED internal/domain/x.go:5-5` avec des chemins relatifs au service. Même chose en Python avec `py.lcov`. `COVERAGE.md` est lu dans le dossier passé à `--repo` (`harness/internal/app/gate/coverage.go:112`).
-- **Faux vert de la porte à la racine.** `--repo <racine> --coverage services/b/.tdd/cover/py.lcov` : coverage.py écrit `SF:src/b/x.py`, qui ne correspond à aucun fichier suivi (`services/b/src/b/x.py`). Les fichiers Python sont écartés en silence : `NOT JUDGED 7 files`, aucune ligne `UNCOVERED` pour la fonction Python non testée. Les chemins Go, eux, sont résolus (`UNCOVERED services/a/...`).
+- **La porte à la racine échoue, sans faux vert.** `--repo <racine> --task check --coverage services/a/.tdd/cover/go.txt --coverage services/b/.tdd/cover/py.lcov` : coverage.py écrit `SF:src/b/x.py`, qui ne correspond pas au chemin suivi `services/b/src/b/x.py`. La porte sort `NOT MEASURED services/b/src/b/x.py` puis `FAIL` (code 1). Les chemins Go sont résolus (`UNCOVERED services/a/...`). Corrigé le 2026-11-27 : un premier essai avait conclu à tort à un `PASS` silencieux ; relancé par l'orchestrateur, la porte échoue.
 - **pytest-gremlins résout `--gremlin-targets` depuis le `rootdir` de pytest** (`plugin.py`, `_resolve_target_paths`). Lancé dans `services/b`, `--gremlin-targets=src/pkg/mod.py` mute le fichier (« Zapped: 2 gremlins »).
 - **gremlins** dans un sous-dossier : réglé par `diff.relative=true` (MUT-006).
 - **Règle des scripts.** Le snippet bash de `repo-stack` décide un résultat (il teste des fichiers et nomme une pile) : la nouvelle détection, qui doit en plus lire un TOML, va en Go, avec tests.
@@ -79,7 +79,7 @@ config_roots = ["services/a", "services/b"]
 ### Porte de couverture
 
 - `stacked-tdd-mr` (étape 4c) lance la porte une fois par dossier que `harness local stack` nomme avec une pile : `--repo <dépôt>/<dossier>`. Chaque service a son `COVERAGE.md`.
-- La porte refuse le faux vert : quand **aucun** fichier d'un rapport ne correspond à un fichier suivi du dépôt passé à `--repo`, elle sort en `ERROR: <rapport>: aucun fichier suivi (lancer la porte dans le dossier du service ?)` puis `FAIL`, code 2.
+- La porte ne change pas : lancée à la racine, elle échoue déjà (`NOT MEASURED`) ; lancée dans le service, elle juge ses fichiers.
 
 ### `stacked-tdd-mr`
 
@@ -90,7 +90,6 @@ config_roots = ["services/a", "services/b"]
 ## Choix de l'auteur (à relire)
 
 - **Sortie de `harness local stack`** : une ligne par dossier et par pile, au format ci-dessus. `.` désigne la racine.
-- **Faux vert de la porte** : l'erreur se déclenche quand aucun fichier du rapport n'est suivi, pas dès qu'un seul ne l'est pas. Des fichiers générés et ignorés par git peuvent légitimement apparaître dans un rapport Go.
 - **Fichiers lus pour `monorepo_root`** : seulement le `mise.toml` racine (`mise.toml`, `.config/mise.toml`, `.mise.toml`, dans cet ordre), pas les `mise.local.toml`.
 - **Ce dépôt** n'est pas converti en monorepo par cette pile : `harness/` reste un sous-dossier sans `config_roots`. La conversion serait une suite.
 
@@ -100,7 +99,6 @@ config_roots = ["services/a", "services/b"]
 - **Entrées de `config_roots`** : chemins relatifs, sans `..`, sans doublon, et le dossier doit exister. Sinon, erreur (code 2). Les entrées imbriquées (`services` et `services/a`) sont refusées aussi.
 - **Racine** : `lint` y porte les outils de dépôt (prek, gitleaks, typos). Le lint des services passe par `//...:check`.
 - **Porte par dossier** : un seul lancement par dossier qui a au moins une pile, avec un `--coverage` par rapport (Go et Python). Un `COVERAGE.md` par dossier.
-- **Rapport vide** : un rapport sans aucun fichier déclenche la même erreur qu'un rapport dont aucun fichier n'est suivi.
 - **`repo-stack` dépend du binaire `harness`**, comme `stacked-tdd-mr` le fait déjà : le binaire est déployé par les dotfiles dans `~/.local/bin`. Pas de repli sur l'ancien snippet bash.
 - **ADR 0004** : écrit avec cette spec, dans la même MR.
 
@@ -129,12 +127,8 @@ Frontière : la ligne de commande `harness`, et les tâches mise des fragments `
   - la sortie est exactement `. stack=stack-go-app image=no`
   - avec `monorepo_root = true` sans `config_roots`, ou avec un dossier listé absent, la commande sort en erreur et le dit sur la sortie d'erreur
 
-### MNR-003 — La porte de couverture refuse un rapport dont aucun fichier n'est suivi
-- **Étant donné** un dépôt jetable avec un service Python `services/b`, dont le rapport `services/b/.tdd/cover/py.lcov` nomme `src/b/x.py`
-- **Quand** on lance `harness gate coverage --repo <racine> --task test --coverage services/b/.tdd/cover/py.lcov`
-- **Alors**
-  - la porte sort en échec et nomme le rapport sur sa sortie
-  - lancée avec `--repo <racine>/services/b --coverage .tdd/cover/py.lcov`, elle juge `src/b/x.py`
+### MNR-003 — retiré le 2026-11-27
+Il reposait sur un faux vert de la porte à la racine qui n'existe pas (voir « Contraintes »). La porte n'est pas modifiée.
 
 ### MNR-004 — `mise run check` à la racine d'un monorepo lance la mutation de chaque service
 - **Étant donné** un dépôt jetable construit avec `monorepo.toml` à la racine, un service Go `services/a` et un service Python `services/b` chacun avec son fragment de mutation, et une fonction ajoutée dans chaque service depuis `MUTATION_BASE`
