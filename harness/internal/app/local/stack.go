@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/pelletier/go-toml/v2"
+
 	"github.com/Wihrt/mise/harness/internal/domain/layout"
 )
 
@@ -35,7 +37,16 @@ func (l *Local) roots(repo string) ([]string, error) {
 		if err != nil {
 			continue
 		}
-		roots, err := layout.Roots([]byte(text))
+		var cfg struct {
+			MonorepoRoot bool `toml:"monorepo_root"`
+			Monorepo     struct {
+				ConfigRoots []string `toml:"config_roots"`
+			} `toml:"monorepo"`
+		}
+		if err := toml.Unmarshal([]byte(text), &cfg); err != nil {
+			return nil, fmt.Errorf("mise.toml: %w", err)
+		}
+		roots, err := layout.Roots(cfg.MonorepoRoot, cfg.Monorepo.ConfigRoots)
 		if err != nil || roots != nil {
 			return roots, err
 		}

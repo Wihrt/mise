@@ -49,6 +49,7 @@ func TestStack(t *testing.T) {
 		},
 		"missing folder":  {files: files{"/r/mise.toml": monorepo, "/r/a/x": ""}, code: 2, err: "b is not a folder"},
 		"no config_roots": {files: files{"/r/mise.toml": "monorepo_root = true\n"}, code: 2, err: "config_roots"},
+		"bad toml":        {files: files{"/r/mise.toml": "monorepo_root = ["}, code: 2, err: "mise.toml"},
 	}
 	for name, tc := range tests {
 		var out bytes.Buffer

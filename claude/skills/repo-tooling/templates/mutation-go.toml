@@ -1,5 +1,5 @@
 # Fragment: merge into the repo's mise.toml, never replace it (skill repo-tooling, section Mutation).
-# The common part (jq, MUTATION_BASE, mutation, check) is shared by mutation-py.toml and
+# The common part (jq, MUTATION_BASE, MUTATION_FULL) is shared by mutation-py.toml and
 # mutation-helm.toml: merge it once per repo, whatever the number of fragments.
 
 # --- common part ---
@@ -11,15 +11,12 @@ jq = "1.8.2"
 MUTATION_BASE = "{{ get_env(name='MUTATION_BASE', default='origin/main') }}"  # CI sets it to the target branch of the merge request
 MUTATION_FULL = "{{ get_env(name='MUTATION_FULL', default='') }}"  # 1: mutate the whole code (on-demand CI), not the diff
 
+# --- Go ---
+# [tasks.mutation]: merge it once per mise.toml, whatever the number of fragments (a monorepo service keeps it too).
 [tasks.mutation]
 description = "Run every mutation:* task"
 depends = ["mutation:*"]
 
-[tasks.check]
-description = "lint, test and mutation (CI entrypoint)"
-depends = ["lint", "test", "mutation"]
-
-# --- Go ---
 [tools."github:go-gremlins/gremlins"]
 version = "0.6.0"
 

@@ -7,34 +7,30 @@ import (
 )
 
 func TestRoots(t *testing.T) {
-	cfg := func(roots string) []byte {
-		return []byte("monorepo_root = true\n[monorepo]\nconfig_roots = " + roots + "\n")
-	}
-	if got, err := Roots(cfg(`["b/x", "a", "c"]`)); err != nil || !slices.Equal(got, []string{"b/x", "a", "c"}) {
+	if got, err := Roots(true, []string{"b/x", "a", "c"}); err != nil || !slices.Equal(got, []string{"b/x", "a", "c"}) {
 		t.Errorf("order: %q, %v", got, err)
 	}
-	if got, err := Roots([]byte("[tools]\ngo = \"1\"\n")); err != nil || got != nil {
+	if got, err := Roots(false, nil); err != nil || got != nil {
 		t.Errorf("not a monorepo: %q, %v", got, err)
 	}
-	errs := map[string][]byte{
-		"config_roots":   []byte("monorepo_root = true\n"),
-		"mise.toml":      []byte("monorepo_root = ["),
-		"/abs":           cfg(`["/abs"]`),
-		"../out":         cfg(`["../out"]`),
-		"..":             cfg(`[".."]`),
-		"a/../b":         cfg(`["a/../b"]`),
-		"a/":             cfg(`["a/"]`),
-		`"."`:            cfg(`["."]`),
-		"listed twice":   cfg(`["a", "b", "a"]`),
-		"nested":         cfg(`["services", "services/a"]`),
-		"nested reverse": cfg(`["services/a", "services"]`),
+	errs := map[string][]string{
+		"config_roots":   nil,
+		"/abs":           {"/abs"},
+		"../out":         {"../out"},
+		"..":             {".."},
+		"a/../b":         {"a/../b"},
+		"a/":             {"a/"},
+		`"."`:            {"."},
+		"listed twice":   {"a", "b", "a"},
+		"nested":         {"services", "services/a"},
+		"nested reverse": {"services/a", "services"},
 	}
 	for want, in := range errs {
-		if _, err := Roots(in); err == nil || !strings.Contains(err.Error(), strings.Trim(strings.Split(want, " ")[0], `"`)) {
+		if _, err := Roots(true, in); err == nil || !strings.Contains(err.Error(), strings.Trim(strings.Split(want, " ")[0], `"`)) {
 			t.Errorf("%s: err = %v", want, err)
 		}
 	}
-	if _, err := Roots(cfg(`["a", "ab"]`)); err != nil {
+	if _, err := Roots(true, []string{"a", "ab"}); err != nil {
 		t.Errorf("sibling sharing a prefix: %v", err)
 	}
 }

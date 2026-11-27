@@ -13,3 +13,6 @@ linters:
     rules:
       - path-except: internal/(domain|app)/
         linters: [forbidigo]
+      - path: acceptance/monorepo_tooling_test\.go
+        text: "G304"
+        linters: [gosec]

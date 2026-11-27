@@ -1,0 +1,31 @@
+# Fragment: merge into the mise.toml at the root of a monorepo, never replace it (skill repo-tooling, section Monorepo).
+# This fragment REPLACES the root `test` and `check` of templates/mise.toml (remove those two there).
+# Each service keeps its own mise.toml (its [tools], its tasks, a `check`); the root aggregates them.
+# The root takes the [tools] and [env] of the mutation common part (a copy of mutation-go.toml's), not the services.
+# Each service keeps its [tasks.mutation] (from its fragment) and the check of templates/mise.toml (lint, test, mutation).
+
+monorepo_root = true
+
+[monorepo]
+config_roots = ["<service>"]
+
+[tools]
+jq = "1.8.2"
+
+[env]
+MUTATION_BASE = "{{ get_env(name='MUTATION_BASE', default='origin/main') }}"  # CI sets it to the target branch of the merge request
+MUTATION_FULL = "{{ get_env(name='MUTATION_FULL', default='') }}"  # 1: mutate the whole code (on-demand CI), not the diff
+
+[tasks.test]
+description = "Run the test task of every service"
+depends = ["//...:test"]
+
+[tasks.mutation]
+description = "Run the mutation task of every service"
+depends = ["//...:mutation"]
+
+[tasks.check]
+description = "check of every service (CI entrypoint)"
+# Replaces the check of templates/mise.toml. Once the root has its lint task (templates/mise.toml), add it:
+# depends = ["lint", "//...:check"] (a missing task makes mise fail, so the fragment cannot name it).
+depends = ["//...:check"]
