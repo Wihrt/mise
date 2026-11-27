@@ -72,7 +72,7 @@ config_roots = ["services/a", "services/b"]
 ### Outillage d'un monorepo (`repo-tooling`)
 
 - Nouveau fragment `templates/monorepo.toml` pour la racine : `monorepo_root`, `[monorepo] config_roots`, `MUTATION_BASE` (déplacé depuis la partie commune de `mutation-go.toml`), et les tâches d'agrégation `test = "//...:test"`, `mutation = "//...:mutation"`, `check` qui dépend de `lint` (outils de dépôt : secrets, typos, prek) et de `//...:check`.
-- Chaque service reçoit son `mise.toml` avec les fragments habituels, sans la partie commune `MUTATION_BASE`.
+- Chaque service reçoit son `mise.toml` avec les fragments habituels. De la partie commune de mutation, la racine prend `[tools]` et `[env]` ; le service garde les tâches `mutation` (`mutation:*`) et `check` (`lint`, `test`, `mutation`), sans quoi `//...:check` et `//...:mutation` ne lancent aucune mutation et sortent en 0 (revue finale du 2026-11-27, reproduit : `check exit=0`, `mutation exit=0` sans que `mutation:go` tourne).
 - Ce qui reste à la racine : prek, Renovate, gitleaks, typos, la CI. La CI lance `mise run check` à la racine, comme aujourd'hui.
 - Un service Python lance `mutation:py` dans son dossier : `--gremlin-targets` reçoit alors des chemins relatifs au service. La garde `git diff` du fragment Python reçoit `diff.relative=true`, comme Go (MUT-006).
 
@@ -131,7 +131,7 @@ Frontière : la ligne de commande `harness`, et les tâches mise des fragments `
 Il reposait sur un faux vert de la porte à la racine qui n'existe pas (voir « Contraintes »). La porte n'est pas modifiée.
 
 ### MNR-004 — `mise run check` à la racine d'un monorepo lance la mutation de chaque service
-- **Étant donné** un dépôt jetable construit avec `monorepo.toml` à la racine, un service Go `services/a` et un service Python `services/b` chacun avec son fragment de mutation, et une fonction ajoutée dans chaque service depuis `MUTATION_BASE`
+- **Étant donné** un dépôt jetable construit uniquement à partir des gabarits, comme la section « Monorepo » de `repo-tooling` l'indique : `monorepo.toml` à la racine, un service Go `services/a` et un service Python `services/b` dont le `mise.toml` (tâches `check`, `mutation` et fragment de mutation compris) vient des gabarits, sans tâche écrite à la main, et une fonction ajoutée dans chaque service depuis `MUTATION_BASE`
 - **Quand** on lance `mise run check` à la racine
 - **Alors**
   - si les tests unitaires des deux services vérifient leurs résultats, la tâche sort en succès
