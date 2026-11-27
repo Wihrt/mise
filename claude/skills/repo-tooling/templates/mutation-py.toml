@@ -4,10 +4,14 @@
 # Replace <paquet> with the package directory (e.g. src/demo).
 
 [tasks."mutation:py"]
-description = "Mutate the Python files changed since MUTATION_BASE; the verdict is the jq on the report"
+description = "Mutate the Python files changed since MUTATION_BASE, or everything with MUTATION_FULL=1; the verdict is the jq on the report"
 run = '''
 set -eu
-targets=$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '<paquet>/*.py' | paste -sd, -)
+if [ "${MUTATION_FULL:-}" = 1 ]; then
+  targets=$(git ls-files '<paquet>/*.py' | paste -sd, -)
+else
+  targets=$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '<paquet>/*.py' | paste -sd, -)
+fi
 test -n "$targets" || exit 0
 uv run pytest -q tests/unit --gremlins --gremlin-cache --gremlin-targets="$targets" --gremlin-report=json
 jq -e '.summary.survived == 0' coverage/gremlins/gremlins.json

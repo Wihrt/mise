@@ -154,3 +154,14 @@ Cause prouvée pendant la tâche 5 : avec `dir = "harness"`, `git diff` rend des
 - **Alors**
   - si le test unitaire appelle la fonction sans vérifier son résultat, la tâche sort en échec
   - si le test unitaire vérifie le résultat, la tâche sort en succès
+
+### Task 7: mode complet de la mutation, de temps en temps
+
+**Critères :** MUT-007 (spec). **Mode :** atdd. **Tâche de test :** `test:go`. Spec : section « Mode complet, de temps en temps ».
+
+**Files:**
+- Modify: `claude/skills/repo-tooling/templates/mutation-{go,py,helm}.toml` : si `MUTATION_FULL` vaut `1`, la tâche saute la garde et le diff (Go : `gremlins unleash` sans `--diff` ; Python : `targets=$(git ls-files '<paquet>/*.py' | paste -sd, -)` ; Helm : sans `--since`). Le verdict `jq` ne change pas. Déclarer `MUTATION_FULL = "{{ get_env(name='MUTATION_FULL', default='') }}"` dans la partie commune (`[env]` de `mutation-go.toml`).
+- Modify: `.config/mise.toml` : le même `[env]` et la même branche dans `mutation:go`.
+- Create: `.github/workflows/mutation-full.yml` : `on: schedule` (hebdomadaire) et `workflow_dispatch` ; checkout complet ; mise ; `MUTATION_FULL=1 mise run mutation`.
+- Modify: `claude/skills/repo-tooling/SKILL.md` (section « Mutation ») : le mode complet, le workflow planifié GitHub et l'équivalent GitLab (pipeline planifié, règle `$CI_PIPELINE_SOURCE == "schedule"`).
+- La branche « complet / diff » est un séquencement (un `if` sur une variable) : bash autorisé par la règle des scripts.
