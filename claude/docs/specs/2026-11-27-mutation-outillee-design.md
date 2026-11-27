@@ -191,7 +191,7 @@ En temps normal, la mutation reste en mode diff. De temps en temps, on repasse s
   - Helm : `helm-mutation-test` sans `--since`.
 
   Le verdict reste le même `jq` sur le rapport. Sans la variable, rien ne change.
-- **Un workflow CI à part, `mutation-full`.** Il tourne chaque semaine (cron) et à la demande (`workflow_dispatch`), et lance `MUTATION_FULL=1 mise run mutation`. Il ne tourne pas sur les PR et ne bloque aucune fusion : un rouge est un signal, que l'on traite par des tests ajoutés ou des mutants équivalents exclus. `repo-tooling` le décrit pour GitHub et pour GitLab (pipeline planifié).
+- **Un workflow CI à part, `mutation-full`.** Il tourne à la demande seulement (`workflow_dispatch`), et lance `MUTATION_FULL=1 mise run mutation`. Il ne tourne pas sur les PR et ne bloque aucune fusion : un rouge est un signal, que l'on traite par des tests ajoutés ou des mutants équivalents exclus. `repo-tooling` le décrit pour GitHub et pour GitLab (job manuel, `when: manual`). Un dépôt peut y ajouter un `schedule` s'il en veut un.
 - **Un rouge attendu au départ.** Le code écrit avant cette pile n'a jamais été mesuré.
 
 ### Choix de l'auteur (à relire)
