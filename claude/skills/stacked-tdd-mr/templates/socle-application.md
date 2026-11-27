@@ -21,12 +21,10 @@ Tout dépôt Go ou Python. Un test par critère, sous `tests/architecture/` (gab
 - **Quand** le test d'architecture est lancé
 - **Alors** aucun paquet hors du domaine et des cas d'usage n'importe un adapter, sauf la racine de composition et l'adapter lui-même
 
-### Notes pour les preuves
-- Les trois critères ne se recouvrent pas : un import direct du domaine vers un adapter ne fait échouer que ARC-001, des cas d'usage vers un adapter que ARC-002, d'un adapter vers un autre que ARC-003. Sans cela la porte refuserait un critère (`REDUNDANT`).
-- Mutants types. ARC-001 : le domaine importe une bibliothèque hors liste, ou un adapter. ARC-002 : un cas d'usage importe un adapter, ou une bibliothèque hors liste (un ORM, un client HTTP). ARC-003 : un adapter en importe un autre.
-- En Go, un import du domaine vers un adapter qui importe lui-même le domaine est un cycle que le compilateur refuse : le mutant ne se construit pas. Viser un adapter qui n'importe pas le domaine, ou une bibliothèque tierce.
-- Changement neutre type : un paquet de plus dans le domaine, un adapter de plus câblé à la racine de composition.
-- Élargir une liste de bibliothèques permises est un changement de critère (`--ac-changed ARC-001` pour celle du domaine, `--ac-changed ARC-002` pour celle des cas d'usage) : les deux listes sont dans le fichier de test, que l'implementer ne modifie pas.
+### Notes
+- Les trois critères ne se recouvrent pas : un import direct du domaine vers un adapter ne fait échouer que ARC-001, des cas d'usage vers un adapter que ARC-002, d'un adapter vers un autre que ARC-003.
+- En Go, un import du domaine vers un adapter qui importe lui-même le domaine est un cycle que le compilateur refuse : le test ne peut pas l'exercer. Viser un adapter qui n'importe pas le domaine, ou une bibliothèque tierce.
+- Élargir une liste de bibliothèques permises est un changement de critère (ARC-001 pour celle du domaine, ARC-002 pour celle des cas d'usage) : les deux listes sont dans le fichier de test, que l'implementer ne modifie pas.
 
 ## douze-facteurs — L'image se comporte en application à douze facteurs
 
@@ -61,9 +59,8 @@ Dépôt Go ou Python avec un `Dockerfile` à la racine. Le produit est l'image, 
   - le système de fichiers racine du conteneur est en lecture seule
   - le processus ne tourne pas en root
 
-### Notes pour les preuves
+### Notes
 - Non vérifié : ces critères ont été écrits le 14/11 sur un poste sans Docker. Le premier dépôt qui les porte les prouve, et corrige ce gabarit si un critère ne se laisse pas tester ainsi.
 - Un critère sans objet (FAC-001 pour un worker sans port) s'écarte par un `Ruling:` consigné.
-- Mutants types. FAC-001 : port écrit en dur. FAC-002 : valeur par défaut donnée à la variable obligatoire. FAC-003 : log de requête retiré, ou écrit dans un fichier. FAC-004 : le traitement de SIGTERM retiré du code (Go : `signal.NotifyContext` ; Python : la boucle du worker ignore le signal) : code non nul, ou 137 à la fin du délai. Pas l'`ENTRYPOINT` en forme shell : une image distroless n'a pas de shell, le conteneur ne démarre pas et tous les critères échouent. FAC-005 : `read_only: true` retiré du compose ; `USER` retiré du `Dockerfile`.
-- Changement neutre type : une route de plus, un autre port, un autre format de log.
+- FAC-004 : le traitement de SIGTERM est dans le code (Go : `signal.NotifyContext` ; Python : la boucle du worker) ; code de sortie non nul, ou 137 à la fin du délai. Pas l'`ENTRYPOINT` en forme shell : une image distroless n'a pas de shell, le conteneur ne démarre pas et tous les critères échouent. FAC-005 : `read_only: true` dans le compose ; `USER` dans le `Dockerfile`.
 - Comment lancer FAC-001 (un autre `PORT`) et FAC-002 (l'image seule, sans la variable) : `compose-dev`, « Started by the tests ».

@@ -9,7 +9,7 @@ What a Go application must respect. Each line names the skill that details it: r
 1. Hexagonal layout and SOLID: `hexagonal-go`.
 2. Repo tooling (mise tasks, hooks, CI, Renovate): `repo-tooling`.
 3. Architecture baseline: criteria `ARC-001` to `ARC-003` before the first feature. Criteria: `stacked-tdd-mr/templates/socle-application.md`; test: `hexagonal-go/templates/arch_test.go`.
-4. Acceptance tests at the boundary, one mutant per clause: `stacked-tdd-mr`. An HTTP API is tested with Bruno, a web front with Playwright (catalogue of `agents/acceptance-writer.md`).
+4. Acceptance tests at the boundary: `stacked-tdd-mr`. An HTTP API is tested with Bruno, a web front with Playwright (catalogue of `agents/acceptance-writer.md`).
 5. The smallest code that passes the tests; nothing for a hypothetical case.
 
 ## With a Dockerfile at the root (`image=yes`)

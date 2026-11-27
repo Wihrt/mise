@@ -17,9 +17,9 @@ Chaque spec contient une section `## Critères d'acceptation` (ou `## Acceptance
 - **Remplace** : SEC-001
 ```
 
-**Forme du « Alors ».** Une ligne = une clause ; une ligne suivie d'une liste = une clause par élément. La porte compte les clauses et exige un mutant par clause : écrire chaque promesse indépendante sur sa propre ligne, pas deux promesses dans une phrase. Cas réel : un critère à trois promesses sur une ligne n'était prouvé que pour l'une d'elles (état des lieux, leçon 9).
+**Forme du « Alors ».** Une ligne = une clause ; une ligne suivie d'une liste = une clause par élément. Écrire chaque promesse indépendante sur sa propre ligne, pas deux promesses dans une phrase. Cas réel : un critère à trois promesses sur une ligne n'était vérifié que pour l'une d'elles (état des lieux, leçon 9).
 
-`Remplace` est optionnel (mode characterize : IDs des anciens critères que celui-ci remplace) ; `Profils` est optionnel ; un critère universel vaut sur chaque profil.
+`Remplace` est optionnel (IDs des anciens critères que celui-ci remplace) ; `Profils` est optionnel ; un critère universel vaut sur chaque profil.
 
 ## Règles
 - « Alors » énonce un résultat observable à la frontière. Jamais un helper de template, une fonction, une organisation de fichiers, un nom généré, un ordre, un nombre ou un texte exact, sauf si ce détail EST le contrat (le critère le dit alors).
@@ -38,21 +38,21 @@ Quatre raisons de garder (au moins une) :
 3. Contrat avec l'extérieur : ce qu'un consommateur du livrable lit ou appelle.
 4. Incident réel : une régression déjà vue (citer `Cas réel :`).
 
-Six raisons de refuser, chacune avec la preuve de la porte qui la détecte :
+Six raisons de refuser :
 
-| Raison de refuser | Preuve qui la détecte |
+| Raison de refuser | Comment la repérer |
 |---|---|
-| Teste l'outil (compilateur, schéma, linter) plutôt que le livrable | critère refusé à l'écriture ; sinon aucun mutant de production ne le fait rougir (`MUTANT MISSING`, `SURVIVED`) |
-| Recopie la configuration (le « Alors » répète une valeur du code) | `NO-NEUTRAL <ID>` : aucun changement neutre n'existe |
-| Fige un détail (nom généré, ordre, nombre, texte exact) | `BRITTLE <ID>` : un changement neutre fait échouer le test |
-| Cas hypothétique | aucune : règle de lecture, `Cas réel :` exigé |
-| Doublon d'un autre critère | `REDUNDANT <ID>: covered by <ID>` |
-| Ne peut pas échouer | `SURVIVED <ID>` / `MUTANT MISSING` : le mutant ne fait rougir aucun test |
+| Teste l'outil (compilateur, schéma, linter) plutôt que le livrable | critère refusé à l'écriture ; sinon aucun changement de production ne le fait rougir |
+| Recopie la configuration (le « Alors » répète une valeur du code) | il ne vérifie aucun comportement : changer la valeur dans le code le fait rougir sans rien casser |
+| Fige un détail (nom généré, ordre, nombre, texte exact) | un changement qui ne touche pas le comportement fait échouer le test |
+| Cas hypothétique | règle de lecture, `Cas réel :` exigé |
+| Doublon d'un autre critère | un autre critère échoue exactement pour les mêmes changements |
+| Ne peut pas échouer | aucun changement de production ne le fait rougir |
 
 ## Catalogue
-Un ensemble qui a vocation à grandir (liste d'environnements, d'applications, de releases) n'a ni nombre ni noms figés dans un critère : le critère porte sur la règle qui s'applique à chaque élément, et ajouter ou retirer un élément ne change aucun test. Preuve : le changement neutre « élément ajouté à l'ensemble » (`BRITTLE`).
+Un ensemble qui a vocation à grandir (liste d'environnements, d'applications, de releases) n'a ni nombre ni noms figés dans un critère : le critère porte sur la règle qui s'applique à chaque élément, et ajouter ou retirer un élément ne change aucun test.
 
 ## Règle de plan
-- Une tâche = un fichier de test : les tâches d'un plan se découpent par fichier de test, car un fichier cité par une section antérieure ne peut changer qu'avec `--replaces` ou `--ac-changed` (`KEPT TEST MODIFIED`).
+- Une tâche = un fichier de test : les tâches d'un plan se découpent par fichier de test, car un fichier cité par une section antérieure ne change que par un changement de critère.
 - La tâche de test écrit un rapport par test à un chemin qui lui est propre et n'a aucun fichier intermédiaire partagé avec une autre tâche de test : `check` lance ses dépendances en parallèle.
 - La tâche de test de la `Commande` d'une section est lancée par un hook de commit ou un job CI du dépôt, directement ou par une tâche qui en dépend (`NOT WIRED <tâche>`) ; la brancher avant la première acceptation.
