@@ -134,3 +134,23 @@
 - [ ] **Step 4:** `MUTATION_BASE=<branche de la tâche 4> mise run mutation:go`. Attendu : code 0, `mutants_lived == 0`, `mutants_not_covered == 0`.
 - [ ] **Step 5:** porte green, puis `mise run check`. Attendu : code 0.
 - [ ] **Step 6:** commiter `feat(gate-coverage-seul): ...`.
+
+### Task 6: `mutation:go` sur un module Go hors de la racine du dépôt (correctif)
+
+**Critères :** MUT-006 (ci-dessous). **Mode :** atdd. **Tâche de test :** `test:go`.
+
+Cause prouvée pendant la tâche 5 : avec `dir = "harness"`, `git diff` rend des chemins préfixés par `harness/`, alors que gremlins attend des chemins relatifs au module. Le run donne `Skipped: 516, Killed: 0`, et la tâche sort en 0 quel que soit le code. Avec `diff.relative=true` (`GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true`), le même run donne `Killed: 8, Lived: 0, Not covered: 0`.
+
+**Files:**
+- Modify: `claude/skills/repo-tooling/templates/mutation-go.toml`, `[tasks."mutation:go"]` : la garde et gremlins voient le diff relatif au répertoire de la tâche (`diff.relative=true`, par `git -c` pour la garde et par l'environnement pour gremlins). À la racine, cela ne change rien.
+- Modify: `.config/mise.toml`, `[tasks."mutation:go"]` : le même réglage.
+- Modify: `claude/skills/repo-tooling/SKILL.md` (section « Mutation ») : un module Go hors de la racine prend `dir = "<module>"`.
+
+## Critères d'acceptation
+
+### MUT-006 — `mutation:go` mute le code changé d'un module Go placé dans un sous-répertoire
+- **Étant donné** un dépôt jetable dont le module Go est dans `svc/` (cas réel : `harness/go.mod` de ce dépôt), le fragment `mutation-go.toml` avec `dir = "svc"` sur `mutation:go`, et une fonction ajoutée dans `svc/` depuis `MUTATION_BASE`
+- **Quand** on lance `mise run mutation:go`
+- **Alors**
+  - si le test unitaire appelle la fonction sans vérifier son résultat, la tâche sort en échec
+  - si le test unitaire vérifie le résultat, la tâche sort en succès
