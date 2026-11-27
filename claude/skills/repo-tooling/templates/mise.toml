@@ -88,6 +88,7 @@ depends = ["test:*"]
 [tasks.check]
 description = "lint, test and mutation (CI entrypoint)"
 # Needs [tasks.mutation] (templates/mutation-*.toml): merge a Mutation fragment first.
+# A repo with no Mutation fragment (no Go, Python or Helm code: OpenTofu, Ansible) drops "mutation" from depends.
 depends = ["lint", "test", "mutation"]
 
 [tasks."lint:secrets"]
