@@ -12,9 +12,6 @@ extend-exclude = [
   "rtk/",
 ]
 
-# `Branche :` opens a header line written by the harness acceptance tests (removed with the harness gate).
 [default.extend-words]
-Branche = "Branche"
-
 # `dette initiale` is the reason the baseline writes into COVERAGE.md.
 initiale = "initiale"

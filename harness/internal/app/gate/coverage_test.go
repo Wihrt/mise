@@ -25,8 +25,8 @@ func (t reportTask) Run(string, string, int) (TaskResult, error) {
 func TestFindingsIgnoreUntrackedFiles(t *testing.T) {
 	files := fakeFiles{"/r/app/a.py": "x = 1\n"}
 	var out bytes.Buffer
-	New(trackedGit{listed: "app/a.py\n"}, files, reportTask{files}, noTasks{}, &out).
-		Run(Options{Mode: "coverage", Task: "test", Repo: "/r", Coverage: []string{"py.lcov"}, Timeout: 5, Jobs: 1})
+	New(trackedGit{listed: "app/a.py\n"}, files, reportTask{files}, &out).
+		Run(Options{Task: "test", Repo: "/r", Coverage: []string{"py.lcov"}, Timeout: 5})
 	got := out.String()
 	if !strings.Contains(got, "UNCOVERED app/a.py:1-1") || strings.Contains(got, ".venv") {
 		t.Errorf("output %q: want the tracked file judged, the untracked one ignored", got)

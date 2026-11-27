@@ -9,7 +9,7 @@ import (
 )
 
 // AgentGuard holds a harness agent to its role: none pushes, the acceptance-writer
-// edits test files only, the mutant-writer never commits, merges or rebases.
+// edits test files only.
 type AgentGuard struct {
 	parser CommandParser
 	role   string
@@ -21,7 +21,7 @@ func NewAgentGuard(parser CommandParser, role string) *AgentGuard {
 }
 
 var (
-	guardedRoles = []string{"implementer", "acceptance-writer", "mutant-writer"}
+	guardedRoles = []string{"implementer", "acceptance-writer"}
 	testBases    = []string{"TESTS.md", "mise.toml", ".gitignore", "conftest.py"}
 	testGlobs    = []string{"*_test.*", "test_*.py", "*.tftest.hcl"}
 	testDirs     = []string{"test", "tests", "acceptance", "testdata"}
@@ -40,11 +40,6 @@ func (p *AgentGuard) Evaluate(req domain.Request) domain.Decision {
 	}
 	if len(gitCalls(p.parser, req, "push")) > 0 {
 		return domain.Denied(p.role + " must not push. The controller pushes.")
-	}
-	if p.role == "mutant-writer" {
-		for _, inv := range gitCalls(p.parser, req, "commit", "merge", "rebase") {
-			return domain.Denied("mutant-writer must not " + inv.Operands(gitFlags...)[0] + ".")
-		}
 	}
 	return domain.Allowed()
 }
