@@ -35,7 +35,7 @@ Go hexagonal layout, kept small. For code style (naming, errors, concurrency, st
 - Test names carry the criterion ID: `Test<PREFIX><DIGITS>_<Behavior>`, e.g. `TestCALC001_Add` for `CALC-001`. Subtests may add detail but the top-level name keeps the ID.
 
 ## Security and verification
-Commands live in `mise.toml` (see `repo-tooling`); `lint:go` and `test:go` run them. `test:go` writes the JUnit report that `harness gate` reads: `gotestsum --junitfile .tdd/junit.xml -- -count=1 ./...` (`-count=1`: no cached result, see "Architecture test") with `gotestsum = "1.13.0"` in `[tools]` (registry `aqua:gotestyourself/gotestsum`; verified on the e2e fixture: a compile error gives a report holding only a `TestMain` failure, and the output carries `undefined: <symbol>`). `.tdd/` is gitignored.
+Commands live in `mise.toml` (see `repo-tooling`); `lint:go` and `test:go` run them. `test:go` writes the JUnit report, for CI and humans: `gotestsum --junitfile .tdd/junit.xml -- -count=1 ./...` (`-count=1`: no cached result, see "Architecture test") with `gotestsum = "1.13.0"` in `[tools]` (registry `aqua:gotestyourself/gotestsum`; verified on the e2e fixture: a compile error gives a report holding only a `TestMain` failure, and the output carries `undefined: <symbol>`). `.tdd/` is gitignored.
 
 | Layer | Control | Where |
 |---|---|---|

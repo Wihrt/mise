@@ -3,7 +3,7 @@ package coverage
 import "strings"
 
 var (
-	testBasenames = map[string]bool{"TESTS.md": true, "mise.toml": true, ".gitignore": true, "conftest.py": true}
+	testBasenames = map[string]bool{"mise.toml": true, ".gitignore": true, "conftest.py": true}
 	testDirs      = map[string]bool{"test": true, "tests": true, "acceptance": true, "testdata": true}
 )
 

@@ -1,7 +1,7 @@
 // Package acceptance holds the acceptance tests of the harness binary. They are
 // black-box tests: each one runs the compiled binary on a throwaway git
 // repository and reads its standard output and its exit code. A test named
-// Test<ID>_... proves the criterion <ID> of claude/TESTS.md.
+// Test<ID>_... proves the criterion <ID> of the "Critères d'acceptation" section of the spec.
 package acceptance
 
 import (

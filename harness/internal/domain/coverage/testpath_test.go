@@ -4,7 +4,6 @@ import "testing"
 
 func TestIsTestPath(t *testing.T) {
 	cases := map[string]bool{
-		"TESTS.md":              true,
 		"sub/mise.toml":         true,
 		".gitignore":            true,
 		"pkg/conftest.py":       true,

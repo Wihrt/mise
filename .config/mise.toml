@@ -115,6 +115,7 @@ description = "Mutate the Go files changed since MUTATION_BASE; the verdict is t
 dir = "harness"
 run = '''
 set -eu
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true  # paths relative to the module, as gremlins expects
 mkdir -p ../.tdd
 [ -n "$(git diff --name-only --diff-filter=AMR "$MUTATION_BASE" -- '*.go')" ] || exit 0
 gremlins unleash --diff "$MUTATION_BASE" -o ../.tdd/mutation-go.json

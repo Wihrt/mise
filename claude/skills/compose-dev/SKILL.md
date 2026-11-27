@@ -40,7 +40,7 @@ APP_PORT=0 docker compose -p "$project" up -d --build --wait
 port=$(docker compose -p "$project" port app "${PORT:-8080}" | sed 's/.*://')
 ```
 
-- A project name and a host port of its own per run: two runs at once do not collide, so `harness gate --jobs` stays usable. The shell's pid alone is not enough on a Docker daemon shared by several CI jobs (each job's shell may have the same pid in its own container): the name carries the job id when there is one (`CI_JOB_ID` on GitLab, `GITHUB_RUN_ID` on GitHub) and a random number. `APP_PORT=0` asks Docker for a free host port; `docker compose port` reads it.
+- A project name and a host port of its own per run: two runs at once do not collide. The shell's pid alone is not enough on a Docker daemon shared by several CI jobs (each job's shell may have the same pid in its own container): the name carries the job id when there is one (`CI_JOB_ID` on GitLab, `GITHUB_RUN_ID` on GitHub) and a random number. `APP_PORT=0` asks Docker for a free host port; `docker compose port` reads it.
 - `up --wait` returns when every service is running or healthy, and fails when one is not: no fixed sleep.
 - `down -v --rmi local` in a trap: a failed run leaves no container, network, volume or built image behind (each project builds an image named after it).
 - Another listening port (`FAC-001`): `PORT=9090 APP_PORT=0 docker compose -p "$project" up -d --build --wait`, then `docker compose -p "$project" port app 9090`. The test fails when the application ignores `PORT`: nothing listens on 9090 inside the container.

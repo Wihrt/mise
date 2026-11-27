@@ -12,7 +12,7 @@ setup_file() {
   echo base >"$FIX/README.md"; git -C "$FIX" add .; git -C "$FIX" commit -q -m init
   git -C "$FIX" worktree add -q -b feat "$WORK/wt"
   mkdir -p "$WT/pkg/tests"
-  echo t >"$WT/pkg/calc_test.go"; echo t >"$WT/TESTS.md"; echo t >"$WT/mise.toml"; echo t >"$WT/pkg/tests/x_test.yaml"
+  echo t >"$WT/pkg/calc_test.go"; echo t >"$WT/mise.toml"; echo t >"$WT/pkg/tests/x_test.yaml"
   git -C "$WT" add .; git -C "$WT" commit -q -m 'test(calc): failing tests'
   echo p >"$WT/pkg/calc.go"; git -C "$WT" add .; git -C "$WT" commit -q -m 'feat(calc): impl'
   git -C "$FIX" worktree add -q -b plain "$WORK/wt2"
@@ -33,7 +33,6 @@ merge() { # expected name generator args...
 # ---- implementer ----
 guard implementer allow "impl prod file" file_json Edit "$WT/pkg/calc.go" "$WT"
 guard implementer allow "impl new prod file" file_json Write "$WT/pkg/new.go" "$WT"
-guard implementer allow "impl TESTS.md" file_json Edit "$WT/TESTS.md" "$WT"
 guard implementer allow "impl test-commit file" file_json Edit "$WT/pkg/calc_test.go" "$WT"
 guard implementer allow "impl test-commit yaml" file_json Write "$WT/pkg/tests/x_test.yaml" "$WT"
 guard implementer allow "impl NotebookEdit test file" file_json NotebookEdit "$WT/pkg/calc_test.go" "$WT"
@@ -47,7 +46,6 @@ guard implementer allow "impl git status" bash_json 'git status' "$WT"
 guard implementer allow "impl Read ignored" file_json Read "$WT/pkg/calc_test.go" "$WT"
 # implementer in a branch with no test( commit
 guard implementer allow "impl no test commit, other file" file_json Edit "$WORK/wt2/README.md" "$WORK/wt2"
-guard implementer allow "impl no test commit, TESTS.md" file_json Edit "$WORK/wt2/TESTS.md" "$WORK/wt2"
 
 # unknown role / unknown tool
 guard bogus allow "unknown role" file_json Edit "$WT/pkg/calc.go" "$WT"
@@ -84,7 +82,6 @@ merge allow "nm git merge outside git" bash_json 'git merge main' "$WORK"
 merge deny "nm git -C default merge" bash_json "git -C $FIX merge feat" "$WORK"
 merge allow "nm non-Bash tool" file_json Edit "$WT/pkg/calc.go" "$WT"
 # ---- acceptance-writer ----
-guard acceptance-writer allow "aw TESTS.md"        file_json Edit  "$WT/TESTS.md" "$WT"
 guard acceptance-writer allow "aw helm test"       file_json Write "$WT/chart/tests/acceptance/sec_test.yaml" "$WT"
 guard acceptance-writer allow "aw go test"         file_json Edit  "$WT/pkg/calc_test.go" "$WT"
 guard acceptance-writer allow "aw py test"         file_json Write "$WT/src/test_cli.py" "$WT"
