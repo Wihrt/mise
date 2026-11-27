@@ -1,10 +1,15 @@
 # Fragment: merge into the repo's mise.toml, never replace it (skill repo-tooling, section Mutation).
-# The common part (jq, MUTATION_BASE, mutation, check) is in mutation-go.toml: merge it once per repo.
+# The common part (jq, MUTATION_BASE, MUTATION_FULL) is in mutation-go.toml: merge it once per repo.
 # One task per chart: replace <chart> with the chart name and <chart-dir> with its path (e.g. charts/demo).
 # Suites in subdirectories: add -f 'tests/**/*_test.yaml' to the helm-mutation-test command.
 
 [tools."github:mmpyro/helm-mutation-test"]
 version = "1.2.0"
+
+# [tasks.mutation]: merge it once per mise.toml, whatever the number of fragments (a monorepo service keeps it too).
+[tasks.mutation]
+description = "Run every mutation:* task"
+depends = ["mutation:*"]
 
 [tasks."mutation:helm:<chart>"]
 description = "Mutate the chart <chart> when changed since MUTATION_BASE, or everything with MUTATION_FULL=1; the verdict is the jq on the report"

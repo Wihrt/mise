@@ -1,7 +1,8 @@
 # Fragment: merge into the mise.toml at the root of a monorepo, never replace it (skill repo-tooling, section Monorepo).
 # This fragment REPLACES the root `test` and `check` of templates/mise.toml (remove those two there).
 # Each service keeps its own mise.toml (its [tools], its tasks, a `check`); the root aggregates them.
-# The mutation common part is a copy of the one in mutation-go.toml: a monorepo takes it here, not in the services.
+# The root takes the [tools] and [env] of the mutation common part (a copy of mutation-go.toml's), not the services.
+# Each service keeps its [tasks.mutation] (from its fragment) and the check of templates/mise.toml (lint, test, mutation).
 
 monorepo_root = true
 

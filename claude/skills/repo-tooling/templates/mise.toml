@@ -86,8 +86,9 @@ depends = ["test:*"]
 # '''
 
 [tasks.check]
-description = "lint then test (CI entrypoint)"
-depends = ["lint", "test"]
+description = "lint, test and mutation (CI entrypoint)"
+# Needs [tasks.mutation] (templates/mutation-*.toml): merge a Mutation fragment first.
+depends = ["lint", "test", "mutation"]
 
 [tasks."lint:secrets"]
 description = "Scan the tree for secrets"

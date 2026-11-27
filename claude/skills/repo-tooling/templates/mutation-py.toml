@@ -1,7 +1,12 @@
 # Fragment: merge into the repo's mise.toml, never replace it (skill repo-tooling, section Mutation).
-# The common part (jq, MUTATION_BASE, mutation, check) is in mutation-go.toml: merge it once per repo.
+# The common part (jq, MUTATION_BASE, MUTATION_FULL) is in mutation-go.toml: merge it once per repo.
 # pytest-gremlins is not a mise tool: it is a pytest plugin in the dev group of pyproject.toml.
 # Replace <paquet> with the package directory (e.g. src/demo).
+
+# [tasks.mutation]: merge it once per mise.toml, whatever the number of fragments (a monorepo service keeps it too).
+[tasks.mutation]
+description = "Run every mutation:* task"
+depends = ["mutation:*"]
 
 [tasks."mutation:py"]
 description = "Mutate the Python files changed since MUTATION_BASE, or everything with MUTATION_FULL=1; the verdict is the jq on the report"
