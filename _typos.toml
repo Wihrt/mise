@@ -1,9 +1,8 @@
-# typos config. TESTS.md holds French specs by design; typos targets code identifiers.
+# typos config. typos targets code identifiers.
 # The repo prose and imported harness content are French (typos is English-only),
 # so those paths are excluded rather than rewritten.
 [files]
 extend-exclude = [
-  "TESTS.md",
   "README.md",
   "config.toml",
   "tasks/",
@@ -13,7 +12,7 @@ extend-exclude = [
   "rtk/",
 ]
 
-# `Branche :` opens the header line of a TESTS.md section: the acceptance tests of the gate write such files.
+# `Branche :` opens a header line written by the harness acceptance tests (removed with the harness gate).
 [default.extend-words]
 Branche = "Branche"
 

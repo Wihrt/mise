@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Acceptance tests of the search-hint hook. Criteria: claude/TESTS.md, section recherche-semble.
+# Acceptance tests of the search-hint hook. Criteria: claude/docs/specs/2026-11-13-recherche-semble-design.md.
 
 hook() { "${HARNESS:?set HARNESS to the harness binary}" hook search-hint; }
 bash_call() { jq -nc --arg k "$1" '{tool_name:"Bash",cwd:"/r",tool_input:{command:$k}}'; }

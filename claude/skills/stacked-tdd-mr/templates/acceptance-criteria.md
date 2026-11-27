@@ -1,6 +1,6 @@
 # Critères d'acceptation — gabarit
 
-Chaque spec contient une section `## Critères d'acceptation` (ou `## Acceptance criteria`), de préférence en dernier. Un critère = un titre `### <ID> — <titre>` sous cette section, jusqu'au prochain `## `. L'ID est celui de `TESTS.md` (`ING-002`).
+Chaque spec contient une section `## Critères d'acceptation` (ou `## Acceptance criteria`), de préférence en dernier. Un critère = un titre `### <ID> — <titre>` sous cette section, jusqu'au prochain `## `. L'ID est un identifiant stable (`ING-002`).
 
 ```markdown
 ## Critères d'acceptation
