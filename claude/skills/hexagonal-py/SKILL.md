@@ -3,7 +3,7 @@ name: hexagonal-py
 description: Use when structuring, adding to or reviewing a Python service with hexagonal layers, ports and adapters, dependency injection or SOLID, or when domain code starts importing a framework.
 ---
 
-Rules are checked by the mise task `lint:py` (ruff, ty); tests by `test:py` (`uv run pytest --junitxml=.tdd/junit.xml`, the JUnit report `harness gate` reads; `.tdd/` is gitignored; verified with pytest 9.1.1: it creates `.tdd/`, and an import error at collection writes one `error` testcase named after the module and exits 2). Names below are the shape, not a framework.
+Rules are checked by the mise task `lint:py` (ruff, ty); tests by `test:py` (`uv run pytest --junitxml=.tdd/junit.xml`, the JUnit report for CI and humans; `.tdd/` is gitignored; verified with pytest 9.1.1: it creates `.tdd/`, and an import error at collection writes one `error` testcase named after the module and exits 2). Names below are the shape, not a framework.
 
 ## Layout
 ```
