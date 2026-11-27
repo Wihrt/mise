@@ -1,2 +1,0 @@
-# Append-only test specs: both sides of a rebase keep their section.
-TESTS.md merge=union
