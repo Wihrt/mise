@@ -11,6 +11,7 @@ What a Python application must respect. Each line names the skill that details i
 3. Architecture baseline: criteria `ARC-001` to `ARC-003` in `TESTS.md` before the first feature, proven by mutants. Criteria: `stacked-tdd-mr/templates/socle-application.md`; test: `hexagonal-py/templates/test_architecture.py`.
 4. Acceptance tests at the boundary, one mutant per clause: `stacked-tdd-mr`. An HTTP API is tested with Bruno, a web front with Playwright (catalogue of `agents/acceptance-writer.md`).
 5. The smallest code that passes the tests; nothing for a hypothetical case.
+6. Unit tests in `tests/unit` are required: `mutation:py` (pytest-gremlins, `repo-tooling` section Mutation) measures them on the files changed.
 
 ## With a Dockerfile at the root (`image=yes`)
 6. Twelve factors: `twelve-factor`; baseline criteria `FAC-001` to `FAC-005`, same template as line 3.
