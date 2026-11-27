@@ -36,7 +36,7 @@ forge=$(~/.local/bin/harness local forge --repo .) || exit 1
 Internal hosts are declared in `~/.claude/local/forges` (`<host> <tool>` per line), a directory that is never versioned.
 Unknown host (or a local-path origin): stop and say so to the user.
 3. Repo not conforming to `repo-tooling` (no `mise.toml` with `setup`/`test`/`check`, no prek config): feature 1 is `chore(tooling)` (see "Work without a test").
-3b. Stack: invoke `repo-stack` at the repo root and follow the stack skill it names. A repo that has a stack starts its stack with the baseline tasks (architecture test, and a container test while it has a `Dockerfile`), after `chore(tooling)`. A test task that writes its report elsewhere than `.tdd/junit.xml` (`test:api`, `test:ui`, `test:container`) gets `--report <path>` on the coverage command of its tasks.
+3b. Stack: invoke `repo-stack` at the repo root and follow the stack skill it names. A repo that has a stack (a monorepo: each folder `harness local stack` names with a stack, the baseline laid per folder) starts its stack with the baseline tasks (architecture test, and a container test while it has a `Dockerfile`), after `chore(tooling)`. A test task that writes its report elsewhere than `.tdd/junit.xml` (`test:api`, `test:ui`, `test:container`) gets `--report <path>` on the coverage command of its tasks.
 4. No CI pipeline: stop and tell the user. Check GitLab: `glab api projects/:id | jq -r .ci_config_path` and `git ls-files .gitlab-ci.yml`; GitHub: `ls .github/workflows`. An include-only CI counts.
 5. Each plan task = one feature = one slug, one ID prefix, one mise task, one branch.
 

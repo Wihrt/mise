@@ -3,6 +3,7 @@ package local
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -20,6 +21,42 @@ func (f files) Read(path string) (string, error) {
 		return text, nil
 	}
 	return "", errors.New("no such file")
+}
+
+// Exists is true for a file, and for a folder holding one.
+func (f files) Exists(path string) bool {
+	for name := range f {
+		if name == path || strings.HasPrefix(name, path+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func TestStack(t *testing.T) {
+	const monorepo = "monorepo_root = true\n[monorepo]\nconfig_roots = [\"b\", \"a\"]\n"
+	tests := map[string]struct {
+		files files
+		code  int
+		want  string
+		err   string
+	}{
+		"simple repo":                {files: files{"/r/go.mod": "", "/r/internal/x.go": ""}, want: ". stack=stack-go-app image=no\n"},
+		"mise.toml of a simple repo": {files: files{"/r/mise.toml": "[tools]\n", "/r/pyproject.toml": "", "/r/src/x.py": ""}, want: ". stack=stack-py-app image=no\n"},
+		"monorepo in the list order": {
+			files: files{"/r/.config/mise.toml": monorepo, "/r/a/go.mod": "", "/r/a/cmd/m.go": "", "/r/b/x": ""},
+			want:  "b stack=none\na stack=stack-go-app image=no\n",
+		},
+		"missing folder":  {files: files{"/r/mise.toml": monorepo, "/r/a/x": ""}, code: 2, err: "b is not a folder"},
+		"no config_roots": {files: files{"/r/mise.toml": "monorepo_root = true\n"}, code: 2, err: "config_roots"},
+	}
+	for name, tc := range tests {
+		var out bytes.Buffer
+		code, err := New("/l", remote{}, tc.files, &out).Stack("/r")
+		if code != tc.code || out.String() != tc.want || (err == nil) != (tc.err == "") || (err != nil && !strings.Contains(err.Error(), tc.err)) {
+			t.Errorf("%s: code %d, out %q, err %v; want code %d, out %q, err %q", name, code, out.String(), err, tc.code, tc.want, tc.err)
+		}
+	}
 }
 
 func TestHost(t *testing.T) {

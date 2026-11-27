@@ -79,6 +79,7 @@ var localUsage = strings.Join([]string{
 	"usage:",
 	"  harness local forge --repo DIR   print the forge CLI (gh, glab) for the host of DIR's origin",
 	"  harness local cas-reels ID       print the lines of cas-reels.md that name ID",
+	"  harness local stack --repo DIR   print the stack of each service of DIR (one line per folder of a monorepo)",
 	"The local directory is $CLAUDE_LOCAL_DIR, default ~/.claude/local.",
 }, "\n")
 
@@ -88,8 +89,12 @@ func runLocal(args []string, stdout, stderr io.Writer, getenv func(string) strin
 	if len(args) > 0 {
 		command, rest = args[0], args[1:]
 	}
-	if repo, ok := strings.CutPrefix(strings.Join(rest, "="), "--repo="); ok && command == "forge" && len(rest) <= 2 && repo != "" {
-		code, err := l.Forge(repo)
+	if repo, ok := strings.CutPrefix(strings.Join(rest, "="), "--repo="); ok && (command == "forge" || command == "stack") && len(rest) <= 2 && repo != "" {
+		call := l.Forge
+		if command == "stack" {
+			call = l.Stack
+		}
+		code, err := call(repo)
 		if err != nil {
 			_, _ = fmt.Fprintf(stderr, "harness local: %v\n", err)
 		}
